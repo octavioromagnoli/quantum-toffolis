@@ -103,8 +103,22 @@ def adapt_vqe(m: dict, H, pool: list | None = None, grad_tol: float = 1e-5,
             "history": history, "stop": reason}
 
 
+def line_cost(order: list[int], exc) -> tuple[float, list[int]]:
+    """Costo en CZ de agregar `exc` con qubits en línea (ruteo con fSWAP de routing.py).
+
+    Devuelve (CZ aproximadas, nuevo orden de modos). Doble en línea ≈ 18 CZ, simple ≈ 2,
+    cada fSWAP ≈ 2.
+    """
+    from qiskit import QuantumCircuit
+    from .routing import _gather
+    new = list(order)
+    n_sw = _gather(QuantumCircuit(len(order)), new, list(exc[0]) + list(exc[1]))
+    return (18.0 if len(exc[0]) == 2 else 2.0) + 2.0 * n_sw, new
+
+
 def adapt_vqe_multi(ms: list[dict], Hs: list, pool: list | None = None,
                     grad_tol: float = 1e-5, max_ops: int = 40, kind: str = "fermionic",
+                    init_order: list[int] | None = None, cost_power: float = 0.0,
                     verbose: bool = False) -> dict:
     """UNA lista de excitaciones común a varias geometrías.
 
@@ -112,6 +126,11 @@ def adapt_vqe_multi(ms: list[dict], Hs: list, pool: list | None = None,
     agrega el de mayor max_d |g_k(d)|; después se reoptimiza cada geometría por separado
     (sus θ son distintos, pero el circuito y la cantidad de CZ son los mismos).
     Para cuando el gradiente máximo es < grad_tol en todas las geometrías.
+
+    Co-ADAPT (Ramôa et al. 2026): con cost_power > 0 el puntaje es
+    max_d|g_k| / costo_k^cost_power, donde costo_k son las CZ en línea de agregar el
+    operador dado el orden actual de modos (seguido como en routing.routed_ansatz,
+    arrancando en init_order). Así la lista sale barata de rutear EN ESE ORDEN.
     """
     pools = [_Pool(m, pool or fermionic_pool(m), kind) for m in ms]
     Hms = [H.to_matrix(sparse=True) for H in Hs]
@@ -121,22 +140,29 @@ def adapt_vqe_multi(ms: list[dict], Hs: list, pool: list | None = None,
     energies = [float(np.real(np.vdot(s, Hm @ s))) for s, Hm in zip(psis, Hms)]
     history = []
     reason = "max_ops"
+    order = list(init_order or range(2 * ms[0]["norb"]))
     for _ in range(max_ops):
         G = np.array([p.gradients(s, Hm @ s) for p, s, Hm in zip(pools, psis, Hms)])
-        score = np.max(np.abs(G), axis=0)
-        k = int(np.argmax(score))
-        if score[k] < grad_tol:
+        gmax = np.max(np.abs(G), axis=0)
+        if gmax.max() < grad_tol:
             reason = "grad_tol"
             break
+        costs = [line_cost(order, e) for e in pools[0].excitations]
+        score = gmax / np.array([c for c, _ in costs]) ** cost_power
+        score[gmax < grad_tol] = -1.0
+        k = int(np.argmax(score))
+        order = costs[k][1]
         idx.append(k)
         for j, (p, Hm) in enumerate(zip(pools, Hms)):
             fast = p.fast(idx)
             xs[j], energies[j] = _reoptimize(fast, Hm, np.append(xs[j], 0.0))
             psis[j] = fast.state(xs[j])
         history.append({"n_ops": len(idx), "added": pools[0].excitations[k],
-                        "max_grad": float(score[k]), "energies": list(energies)})
+                        "max_grad": float(gmax[k]), "line_cost": costs[k][0],
+                        "energies": list(energies)})
         if verbose:
-            print(f"  op {len(idx):2d}: {pools[0].excitations[k]}  max|g|={score[k]:.2e}")
+            print(f"  op {len(idx):2d}: {pools[0].excitations[k]}  max|g|={gmax[k]:.2e}  "
+                  f"costo línea≈{costs[k][0]:.0f}")
     return {"excitations": [pools[0].excitations[i] for i in idx], "xs": xs,
             "energies": energies, "history": history, "stop": reason}
 

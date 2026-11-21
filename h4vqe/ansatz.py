@@ -74,6 +74,80 @@ def excitation_generator(exc, nq: int, a=None, kind: str = "fermionic") -> Spars
     return (1j * (T - T.adjoint())).simplify(atol=1e-12)
 
 
+def _multiplexor_weights(n_ctrl: int) -> tuple[list[int], np.ndarray]:
+    """RY multicontrolada (todos los controles en 1) con 2^n RY y 2^n CNOT (código Gray).
+
+    Devuelve el orden de controles de las CNOT y los pesos w_k: RY(w_k φ) antes de la
+    CNOT k. Con X^m antes de una RY(α), el ángulo efectivo es (−1)^m α, así que el
+    ángulo total para los controles c es Σ_k (−1)^{m_k(c)} w_k φ. Se pide φ si c = 1…1
+    y 0 si no (sistema lineal de ±1, invertible).
+    """
+    n = 2 ** n_ctrl
+    order = [(k & -k).bit_length() - 1 if k < n else n_ctrl - 1 for k in range(1, n + 1)]
+    M = np.zeros((n, n))
+    for c in range(n):
+        m = 0
+        for k in range(n):
+            M[c, k] = (-1) ** m
+            m ^= (c >> order[k]) & 1
+    f = np.zeros(n)
+    f[n - 1] = 1.0
+    return order, np.linalg.solve(M, f)
+
+
+def excitation_circuit(exc, nq: int, theta, kind: str = "fermionic") -> QuantumCircuit:
+    """Circuito compacto que implementa EXACTAMENTE exp(−iθG) para una excitación.
+
+    Simple ((i,), (a,)):     CNOT(a→i), RY(2σθ) en a controlada por i, CNOT(a→i).
+    Doble ((i, j), (a, b)):  escalera CNOT(i→j), CNOT(a→b), CNOT(a→i) que lleva el par
+    |s1⟩ = |ij ocupados⟩, |s2⟩ = |ab ocupados⟩ a dos estados que difieren solo en a;
+    después, RY(2σθ) en a controlada por i = 1, j = 0, b = 0 (8 CNOT); después, la
+    escalera inversa. Total: 14 CNOT para la doble y 4 para la simple, actuando SOLO
+    sobre los qubits de la excitación, lo que se rutea mucho mejor en línea que
+    PauliEvolutionGate.
+    Fermiónica: el signo σ de T|s1⟩ depende de la paridad de algunos qubits espectadores
+    (cadenas Z de Jordan-Wigner). Se implementa con CNOT(q→a) antes y después de la
+    rotación (X en el blanco invierte el ángulo de la RY).
+    """
+    src, dst = exc
+    G = excitation_generator(exc, nq, kind=kind).to_matrix(sparse=True)
+    occ = list(src)
+    s1 = sum(1 << q for q in src)
+    s2 = sum(1 << q for q in dst)
+    spect = [q for q in range(nq) if q not in src + dst]
+    # -iθG = θ(T − T†): s1 -> cos θ s1 + σ sin θ s2, con σ = <s2|(-iG)|s1> = <s2|T|s1>
+    sigma0 = np.real(-1j * G[s2, s1])
+    parity = [q for q in spect
+              if np.real(-1j * G[s2 | (1 << q), s1 | (1 << q)]) * sigma0 < 0]
+    if len(src) == 1:
+        (i,), (a,) = src, dst
+        ladder = [(a, i)]
+        ctrls, vals, target = [i], [1], a
+    else:
+        (i, j), (a, b) = src, dst
+        ladder = [(i, j), (a, b), (a, i)]
+        ctrls, vals, target = [i, j, b], [1, 0, 0], a
+    order, w = _multiplexor_weights(len(ctrls))
+    qc = QuantumCircuit(nq)
+    for c, t in ladder:
+        qc.cx(c, t)
+    neg = [c for c, v in zip(ctrls, vals) if v == 0]
+    for q in parity:
+        qc.cx(q, target)
+    if neg:
+        qc.x(neg)
+    for k, wk in enumerate(w):
+        qc.ry(2.0 * sigma0 * wk * theta, target)
+        qc.cx(ctrls[order[k]], target)
+    if neg:
+        qc.x(neg)
+    for q in parity:
+        qc.cx(q, target)
+    for c, t in reversed(ladder):
+        qc.cx(c, t)
+    return qc
+
+
 class FastAnsatz:
     """Simulador numpy exacto de Π_k exp(-i θ_k G_k)|HF> (solo para OPTIMIZAR)."""
 

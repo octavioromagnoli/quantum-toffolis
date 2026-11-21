@@ -26,7 +26,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from qiskit import QuantumCircuit, transpile
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, StabilizerState
 from qiskit_aer.primitives import SamplerV2 as AerSampler
 
 from .config import BASIS_GATES, SEED
@@ -39,22 +39,29 @@ def split_constant(H: SparsePauliOp) -> tuple[float, SparsePauliOp]:
     return float(np.real(const)), rest
 
 
-def measurement_groups(H: SparsePauliOp, method: str = "sorted") -> list[SparsePauliOp]:
-    """Grupos QWC.
+def measurement_groups(H: SparsePauliOp, method: str = "sorted",
+                       grouping: str = "qwc") -> list[SparsePauliOp]:
+    """Grupos de términos que se miden juntos.
+    grouping="qwc": conmutan qubit a qubit (se miden con H / S†H por qubit).
+    grouping="gc":  conmutan en general (se miden con un Clifford, ver diagonalize_group).
     method="sorted": sorted insertion (Crawford et al., Quantum 5, 385 (2021)): se recorren
         los términos por |c| decreciente y cada uno va al primer grupo compatible. Pone los
         términos grandes juntos y sus covarianzas se compensan: para H4 baja la σ²·N
-        de Neyman ~1,9× contra el coloreo (scripts/shots_study.py), sin compuertas extra.
+        de Neyman ~1,9× (QWC) contra el coloreo (scripts/shots_study.py).
     method="coloring": group_commuting de qiskit (lo que se usaba antes)."""
     _, rest = split_constant(H)
     if method == "coloring":
-        return rest.group_commuting(qubit_wise=True)
+        return rest.group_commuting(qubit_wise=(grouping == "qwc"))
     labels = [p.to_label() for p in rest.paulis]
     groups: list[tuple[list[str], list[int]]] = []  # (base común por qubit, índices)
     for k in np.argsort(-np.abs(rest.coeffs), kind="stable"):
         lab = labels[k]
         for basis, idx in groups:
-            if all(a == "I" or b == "I" or a == b for a, b in zip(lab, basis)):
+            if grouping == "qwc":
+                ok = all(a == "I" or b == "I" or a == b for a, b in zip(lab, basis))
+            else:
+                ok = all(rest.paulis[k].commutes(rest.paulis[j]) for j in idx)
+            if ok:
                 for q, a in enumerate(lab):
                     if a != "I":
                         basis[q] = a
@@ -63,6 +70,39 @@ def measurement_groups(H: SparsePauliOp, method: str = "sorted") -> list[SparseP
         else:
             groups.append((list(lab), [k]))
     return [rest[idx] for _, idx in groups]
+
+
+def _independent_generators(paulis) -> list:
+    """Subconjunto independiente (en GF(2), vectores simplécticos [x|z]) que genera el grupo."""
+    rows, gens = [], []
+    for p in paulis:
+        v = np.concatenate([p.x, p.z]).astype(np.uint8)
+        for r, piv in rows:  # reducir contra los ya elegidos
+            if v[piv]:
+                v ^= r
+        if v.any():
+            piv = int(np.flatnonzero(v)[0])
+            rows = [(r ^ v if r[piv] else r, pv) for r, pv in rows]
+            rows.append((v, piv))
+            gens.append(p)
+    return gens
+
+
+def diagonalize_group(group: SparsePauliOp) -> tuple[QuantumCircuit, SparsePauliOp]:
+    """Clifford U tal que U P U† es un string de Z (con signo) para todo P del grupo.
+    Se completa un conjunto independiente de generadores a un estado estabilizador
+    C|0>; entonces C† P C = ±Z... y medir O_g en |ψ> = medir Σ c ±Z en C†|ψ>.
+    Devuelve (circuito C†, O_g reescrito en Z con los signos en los coeficientes)."""
+    gens = _independent_generators(group.paulis)
+    C = StabilizerState.from_stabilizer_list([g.to_label() for g in gens],
+                                             allow_underconstrained=True).clifford
+    labels, coeffs = [], []
+    for p, c in zip(group.paulis, group.coeffs):
+        q = p.evolve(C, frame="h")  # C† P C
+        assert not q.x.any() and q.phase in (0, 2), (p, q)
+        labels.append(Pauli((q.z, np.zeros_like(q.x))).to_label())
+        coeffs.append(c * (-1 if q.phase == 2 else 1))
+    return C.adjoint().to_circuit(), SparsePauliOp(labels, coeffs)
 
 
 def group_basis(group: SparsePauliOp) -> str:
@@ -119,14 +159,26 @@ class MeasurementPlan:
         return len(self.groups)
 
 
-def prepare_measurement(circuit: QuantumCircuit, H: SparsePauliOp) -> MeasurementPlan:
+def prepare_measurement(circuit: QuantumCircuit, H: SparsePauliOp,
+                        grouping: str = "qwc") -> MeasurementPlan:
+    """grouping="qwc": rotaciones de 1 qubit (sin CZ extra).
+    grouping="gc": un Clifford por grupo (menos shots, pero agrega CZ al circuito medido)."""
     const, _ = split_constant(H)
-    groups = measurement_groups(H)
-    circs = [rotate_and_measure(circuit, group_basis(g)) for g in groups]
+    groups = measurement_groups(H, grouping=grouping)
+    if grouping == "qwc":
+        circs = [rotate_and_measure(circuit, group_basis(g)) for g in groups]
+        tables = [value_table(g) for g in groups]
+    else:
+        circs, tables = [], []
+        for g in groups:
+            diag, gz = diagonalize_group(g)
+            qc = circuit.compose(diag)
+            qc.measure_all()
+            circs.append(qc)
+            tables.append(value_table(gz))
     circs = transpile(circs, basis_gates=BASIS_GATES + ["measure"], optimization_level=1,
                       seed_transpiler=SEED)
-    return MeasurementPlan(const, groups, circs, [value_table(g) for g in groups],
-                           circuit.num_qubits)
+    return MeasurementPlan(const, groups, circs, tables, circuit.num_qubits)
 
 
 def allocate_shots(groups, total_shots: int, weights=None) -> list[int]:
@@ -200,7 +252,7 @@ def bootstrap_sigma(plan: MeasurementPlan, stage_counts: list[np.ndarray], n_boo
 def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
                    seed: int = SEED, pilot_fraction: float = 0.1,
                    return_details: bool = False, plan: MeasurementPlan | None = None,
-                   weights=None, n_boot: int = 0) -> dict:
+                   weights=None, n_boot: int = 0, grouping: str = "qwc") -> dict:
     """circuit: ansatz con parámetros YA asignados, sin mediciones.
 
     Dos etapas:
@@ -213,8 +265,9 @@ def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
     plan: resultado de prepare_measurement(circuit, H) para no re-transpilar
           (si se pasa, circuit y H no se usan).
     n_boot > 0: agrega "sigma_boot" (σ por bootstrap con n_boot réplicas).
+    grouping: "qwc" (default) o "gc" (conmutación general + Clifford), ver prepare_measurement.
     """
-    plan = plan or prepare_measurement(circuit, H)
+    plan = plan or prepare_measurement(circuit, H, grouping=grouping)
     seed_pilot, seed_rest, seed_boot = np.random.SeedSequence(seed).spawn(3)
     if weights is not None:
         pilot_fraction, w_pilot = 1.0, weights

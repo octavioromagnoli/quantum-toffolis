@@ -33,11 +33,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 OUT = os.path.join(ROOT, "results", "calib_sigma")
 
-# (nombre, shots, pilot_fraction, repeticiones). Cada config se corre en cada distancia.
+# (nombre, shots, pilot_fraction, repeticiones, agrupamiento). Cada config en cada distancia.
 CONFIGS = [
-    ("neyman_8M", 8_000_000, 0.1, 500),  # lo que usa el pipeline hoy
-    ("sumc_8M", 8_000_000, 1.0, 300),    # una sola etapa N_g ∝ Σ|c| (¿el piloto sesga σ?)
-    ("neyman_1M", 1_000_000, 0.1, 500),  # z no debería depender de los shots
+    ("neyman_8M", 8_000_000, 0.1, 500, "qwc"),  # lo que usa el pipeline hoy
+    ("sumc_8M", 8_000_000, 1.0, 300, "qwc"),    # una sola etapa N_g ∝ Σ|c| (¿el piloto sesga σ?)
+    ("neyman_1M", 1_000_000, 0.1, 500, "qwc"),  # z no debería depender de los shots
+    ("gc_4M", 4_000_000, 0.1, 500, "gc"),       # conmutación general + Clifford
 ]
 DISTANCES = [2.0, 3.0]
 N_BOOT = 200
@@ -70,19 +71,21 @@ def prep(d: float) -> dict:
 _PLANS = {}
 
 
-def _init_worker(preps):
+def _init_worker(preps, groupings):
     from h4vqe.estimator import prepare_measurement
     for d, p in preps.items():
-        _PLANS[d] = (p, prepare_measurement(p["circuit"], p["H"]))
+        for gr in groupings:
+            _PLANS[d, gr] = (p, prepare_measurement(p["circuit"], p["H"], grouping=gr))
 
 
-def _job(cfg, d, shots, pilot, rep, seed):
+def _job(cfg, d, shots, pilot, grouping, rep, seed):
     from h4vqe.estimator import measure_energy
-    p, plan = _PLANS[d]
+    p, plan = _PLANS[d, grouping]
     t0 = time.time()
     r = measure_energy(None, None, shots, seed=seed, pilot_fraction=pilot, plan=plan, n_boot=N_BOOT)
     E0 = p["E_exact"]
     return {"cfg": cfg, "d": d, "rep": rep, "seed": seed, "shots_req": shots, "pilot": pilot,
+            "grouping": grouping,
             "E": r["energy"], "sigma": r["sigma"], "sigma_boot": r["sigma_boot"],
             "shots": r["shots"], "n_groups": r["n_groups"], "E_exact": E0,
             "z": (r["energy"] - E0) / r["sigma"], "z_boot": (r["energy"] - E0) / r["sigma_boot"],
@@ -110,7 +113,7 @@ def main():
     configs = [c for c in CONFIGS if args.configs is None or c[0] in args.configs]
     runs_path = os.path.join(OUT, "runs.jsonl")
     if args.quick:
-        configs = [("quick_200k", 200_000, 0.1, 4)]
+        configs = [("quick_200k", 200_000, 0.1, 4, "qwc"), ("quick_gc_200k", 200_000, 0.1, 4, "gc")]
         runs_path = os.path.join(OUT, "runs_quick.jsonl")
 
     t0 = time.time()
@@ -131,8 +134,8 @@ def main():
                     pass  # línea cortada por una interrupción
     # Orden intercalado: si se corta antes, todas las configs tienen ~la misma cantidad.
     nmax = max(int(c[3] * args.reps_scale) for c in configs)
-    jobs = [(name, d, shots, pilot, rep, job_seed(name, d, rep))
-            for rep in range(nmax) for name, shots, pilot, reps in configs
+    jobs = [(name, d, shots, pilot, grouping, rep, job_seed(name, d, rep))
+            for rep in range(nmax) for name, shots, pilot, reps, grouping in configs
             if rep < int(reps * args.reps_scale) for d in args.distances
             if (name, d, rep) not in done]
     print(f"{len(done)} hechas, {len(jobs)} pendientes, {args.workers} procesos", flush=True)
@@ -140,7 +143,8 @@ def main():
         return
 
     t0, n = time.time(), 0
-    with ProcessPoolExecutor(args.workers, initializer=_init_worker, initargs=(preps,)) as ex, \
+    with ProcessPoolExecutor(args.workers, initializer=_init_worker,
+                            initargs=(preps, sorted({c[4] for c in configs}))) as ex, \
             open(runs_path, "a") as fout:
         futs = [ex.submit(_job, *j) for j in jobs]
         for fut in as_completed(futs):

@@ -13,8 +13,16 @@ Método:
 Interfaz: measure_energy(circuit_bound, H, total_shots, ...) -> dict
 
 Asignación de shots en dos etapas (piloto + Neyman), ver measure_energy.
+
+Implementación: para cada grupo se precalcula una tabla con el valor de O_g para
+cada bitstring posible (2^n entradas). Los conteos se hacen con np.bincount
+sobre el arreglo de bits del SamplerV2 (mucho más rápido que get_counts con
+millones de shots). Los circuitos de medición se transpilan una sola vez
+(`prepare_measurement`) y se pueden reusar entre llamadas.
 """
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 import numpy as np
 from qiskit import QuantumCircuit, transpile
@@ -63,9 +71,46 @@ def rotate_and_measure(circ: QuantumCircuit, basis: str) -> QuantumCircuit:
     return qc
 
 
+def value_table(group: SparsePauliOp) -> np.ndarray:
+    """table[x] = valor de O_g = Σ c_k P_k cuando se mide el bitstring x (bit q = qubit q),
+    ya rotado a la base del grupo (cada P_k actúa como Z en su soporte)."""
+    nq = group.num_qubits
+    xs = np.arange(2 ** nq, dtype=np.uint64)
+    table = np.zeros(2 ** nq)
+    for p, c in zip(group.paulis, np.real(group.coeffs)):
+        mask = np.uint64(int(np.dot(p.z | p.x, 1 << np.arange(nq, dtype=np.int64))))
+        parity = np.bitwise_count(xs & mask) & 1
+        table += c * (1 - 2 * parity.astype(float))
+    return table
+
+
+@dataclass
+class MeasurementPlan:
+    """Lo que no depende de los shots: grupos, circuitos transpilados y tablas de valores."""
+    const: float
+    groups: list
+    circuits: list
+    tables: list
+    num_qubits: int
+
+    @property
+    def n_groups(self) -> int:
+        return len(self.groups)
+
+
+def prepare_measurement(circuit: QuantumCircuit, H: SparsePauliOp) -> MeasurementPlan:
+    const, _ = split_constant(H)
+    groups = measurement_groups(H)
+    circs = [rotate_and_measure(circuit, group_basis(g)) for g in groups]
+    circs = transpile(circs, basis_gates=BASIS_GATES + ["measure"], optimization_level=1,
+                      seed_transpiler=SEED)
+    return MeasurementPlan(const, groups, circs, [value_table(g) for g in groups],
+                           circuit.num_qubits)
+
+
 def allocate_shots(groups, total_shots: int, weights=None) -> list[int]:
     """Por defecto: N_g ∝ Σ|c_k| (proxy de la desviación del grupo).
-    Mejorable con varianzas estimadas (asignación de Neyman): N_g ∝ σ_g."""
+    Con weights = σ_g estimadas -> asignación de Neyman (N_g ∝ σ_g)."""
     if weights is None:
         weights = np.array([np.sum(np.abs(g.coeffs)) for g in groups])
     w = np.asarray(weights, float)
@@ -74,38 +119,33 @@ def allocate_shots(groups, total_shots: int, weights=None) -> list[int]:
     return shots.tolist()
 
 
-def _group_samples(group: SparsePauliOp, counts: dict) -> tuple[np.ndarray, np.ndarray]:
-    """Valores de O_g para cada bitstring observado y su multiplicidad."""
-    nq = group.num_qubits
-    z_masks = []
-    for p in group.paulis:
-        lab = p.to_label()
-        z_masks.append(sum(1 << q for q in range(nq) if lab[-1 - q] != "I"))
-    coeffs = np.real(group.coeffs)
-    vals, mult = [], []
-    for bits, n in counts.items():
-        x = int(bits, 2)
-        v = sum(c * (1 - 2 * (bin(x & mk).count("1") & 1)) for c, mk in zip(coeffs, z_masks))
-        vals.append(v)
-        mult.append(n)
-    return np.array(vals), np.array(mult)
+def _bitarray_to_int(bitarray) -> np.ndarray:
+    """BitArray del SamplerV2 -> entero por shot (bit q = qubit q)."""
+    arr = bitarray.array  # (shots, nbytes) uint8, big-endian
+    x = np.zeros(arr.shape[0], dtype=np.int64)
+    for i in range(arr.shape[1]):
+        x = (x << 8) | arr[:, i]
+    return x
 
 
-def _sample_groups(circuit, groups, shots, seed):
-    """Corre un circuito por grupo y devuelve, por grupo, (n, Σx, Σx²) de las muestras."""
-    circs = [rotate_and_measure(circuit, group_basis(g)) for g in groups]
-    circs = transpile(circs, basis_gates=BASIS_GATES + ["measure"], optimization_level=1,
-                      seed_transpiler=SEED)
+def _sample_counts(plan: MeasurementPlan, shots, seed) -> np.ndarray:
+    """Corre un circuito por grupo; devuelve conteos por bitstring, shape (n_groups, 2^n)."""
     # Una semilla INDEPENDIENTE por grupo. Con una sola corrida y seed fija, Aer usa
     # semillas consecutivas por circuito y vimos errores correlacionados entre grupos
     # (σ subestimada, desvíos de 4σ). SeedSequence da flujos independientes.
-    seeds = np.random.SeedSequence(seed).generate_state(len(circs))
-    stats = []
-    for g, c, n, sd in zip(groups, circs, shots, seeds):
+    ss = seed if isinstance(seed, np.random.SeedSequence) else np.random.SeedSequence(seed)
+    seeds = ss.generate_state(plan.n_groups)
+    counts = np.zeros((plan.n_groups, 2 ** plan.num_qubits))
+    for i, (c, n, sd) in enumerate(zip(plan.circuits, shots, seeds)):
         r = AerSampler(seed=int(sd)).run([(c, None, int(n))]).result()[0]
-        vals, mult = _group_samples(g, r.data.meas.get_counts())
-        stats.append(np.array([mult.sum(), np.sum(mult * vals), np.sum(mult * vals ** 2)], float))
-    return np.array(stats)
+        counts[i] = np.bincount(_bitarray_to_int(r.data.meas), minlength=counts.shape[1])
+    return counts
+
+
+def _stats(plan: MeasurementPlan, counts: np.ndarray) -> np.ndarray:
+    """(n, Σx, Σx²) por grupo a partir de los conteos."""
+    T = np.array(plan.tables)
+    return np.stack([counts.sum(1), (counts * T).sum(1), (counts * T ** 2).sum(1)], axis=1)
 
 
 def _combine(const, stats):
@@ -115,9 +155,31 @@ def _combine(const, stats):
     return const + mean.sum(), np.sqrt(np.sum(svar / n)), np.sqrt(svar)
 
 
+def bootstrap_sigma(plan: MeasurementPlan, stage_counts: list[np.ndarray], n_boot: int = 200,
+                    seed: int = 0) -> float:
+    """σ por bootstrap: se re-muestrean los shots de cada grupo y de cada etapa
+    (multinomial con las frecuencias observadas, mismo N) y se recalcula E.
+    Chequeo cruzado de la σ analítica, sin suponer normalidad."""
+    rng = np.random.default_rng(seed)
+    T = np.array(plan.tables)
+    n_tot = sum(c.sum(1) for c in stage_counts)                    # (n_groups,)
+    E_b = np.zeros(n_boot)
+    for g in range(plan.n_groups):
+        s = np.zeros(n_boot)
+        for counts in stage_counts:
+            n = int(counts[g].sum())
+            if n == 0:
+                continue
+            p = counts[g] / n
+            s += rng.multinomial(n, p / p.sum(), size=n_boot) @ T[g]
+        E_b += s / n_tot[g]
+    return float(np.std(E_b, ddof=1))
+
+
 def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
                    seed: int = SEED, pilot_fraction: float = 0.1,
-                   return_details: bool = False) -> dict:
+                   return_details: bool = False, plan: MeasurementPlan | None = None,
+                   weights=None, n_boot: int = 0) -> dict:
     """circuit: ansatz con parámetros YA asignados, sin mediciones.
 
     Dos etapas:
@@ -125,20 +187,34 @@ def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
       2. resto con asignación de Neyman N_g ∝ σ_g (minimiza σ total para N fijo).
     Las muestras de ambas etapas se juntan (misma distribución).
     pilot_fraction=1 -> una sola etapa con N_g ∝ Σ|c_k|.
+    weights=array -> una sola etapa con N_g ∝ weights (p. ej. σ_g teóricas).
+
+    plan: resultado de prepare_measurement(circuit, H) para no re-transpilar
+          (si se pasa, circuit y H no se usan).
+    n_boot > 0: agrega "sigma_boot" (σ por bootstrap con n_boot réplicas).
     """
-    const, _ = split_constant(H)
-    groups = measurement_groups(H)
-    n_pilot = int(total_shots * pilot_fraction)
-    stats = _sample_groups(circuit, groups, allocate_shots(groups, n_pilot), seed)
+    plan = plan or prepare_measurement(circuit, H)
+    seed_pilot, seed_rest, seed_boot = np.random.SeedSequence(seed).spawn(3)
+    if weights is not None:
+        pilot_fraction, w_pilot = 1.0, weights
+    else:
+        w_pilot = None
+    stage_counts = [_sample_counts(plan, allocate_shots(plan.groups, int(total_shots * pilot_fraction),
+                                                        weights=w_pilot), seed_pilot)]
+    stats = _stats(plan, stage_counts[0])
     rest = total_shots - int(stats[:, 0].sum())
-    if rest > 0:
-        _, _, sg = _combine(const, stats)
-        stats = stats + _sample_groups(circuit, groups,
-                                       allocate_shots(groups, rest, weights=sg + 1e-12), seed + 1)
-    E, sigma, sg = _combine(const, stats)
+    if rest > 0 and pilot_fraction < 1:
+        _, _, sg = _combine(plan.const, stats)
+        stage_counts.append(_sample_counts(plan, allocate_shots(plan.groups, rest, weights=sg + 1e-12),
+                                           seed_rest))
+        stats = stats + _stats(plan, stage_counts[1])
+    E, sigma, sg = _combine(plan.const, stats)
     out = {"energy": float(E), "sigma": float(sigma), "shots": int(stats[:, 0].sum()),
-           "n_groups": len(groups)}
+           "n_groups": plan.n_groups}
+    if n_boot:
+        out["sigma_boot"] = bootstrap_sigma(plan, stage_counts, n_boot,
+                                            int(seed_boot.generate_state(1)[0]))
     if return_details:
         out["groups"] = [{"n_terms": len(g), "shots": int(st[0]), "mean": st[1] / st[0], "std_sample": s}
-                         for g, st, s in zip(groups, stats, sg)]
+                         for g, st, s in zip(plan.groups, stats, sg)]
     return out

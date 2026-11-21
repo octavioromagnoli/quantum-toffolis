@@ -1,0 +1,1849 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Guía de H₄ con VQE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: guía larga de lectura. Índice fijo a la izquierda en pantallas anchas, columna de texto de ~68ch,
+   fórmulas en bloques con leyenda, glosario emergente al tocar palabras subrayadas con puntos.
+   Paleta tomada del deck del equipo (presentacion/project/deck.css): tinta azul noche, azul y naranja. */
+:root {
+  --paper: #F6F4EE;
+  --paper2: #ECE7DB;
+  --card: #FBFAF6;
+  --ink: #14213D;
+  --soft: #4A5568;
+  --muted: #6B7484;
+  --line: #D3CCBC;
+  --blue: #2563A8;
+  --blue-text: #1F5594;
+  --orange: #B4580C;
+  --orange-text: #96470A;
+  --green: #22573A;
+  --blue-wash: #DDE8F5;
+  --orange-wash: #F7DFC6;
+  --green-wash: #DCEBDD;
+  --c-vqe: #2563A8;
+  --c-ccsd: #B4580C;
+  --c-fci: #14213D;
+  --band: #E6E0D2;
+  --pop-shadow: 0 10px 34px rgba(20, 33, 61, .18), 0 2px 6px rgba(20, 33, 61, .10);
+  --f-display: 'Space Grotesk', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --f-body: 'Inter', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --f-math: 'STIX Two Text', 'Cambria Math', 'Times New Roman', serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1B2D; --paper2: #13223A; --card: #172842; --ink: #EEF2F7; --soft: #C3CFDD; --muted: #95A3B8;
+    --line: #2C4163; --blue: #4F8FDB; --blue-text: #8DBBEB; --orange: #D0752A; --orange-text: #F2A35C;
+    --green: #7CC79A; --blue-wash: #1B3354; --orange-wash: #3A2A1C; --green-wash: #1C3A2B;
+    --c-vqe: #4F8FDB; --c-ccsd: #D0752A; --c-fci: #EEF2F7; --band: #1A2C47;
+    --pop-shadow: 0 10px 34px rgba(0, 0, 0, .55), 0 2px 6px rgba(0, 0, 0, .4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1B2D; --paper2: #13223A; --card: #172842; --ink: #EEF2F7; --soft: #C3CFDD; --muted: #95A3B8;
+  --line: #2C4163; --blue: #4F8FDB; --blue-text: #8DBBEB; --orange: #D0752A; --orange-text: #F2A35C;
+  --green: #7CC79A; --blue-wash: #1B3354; --orange-wash: #3A2A1C; --green-wash: #1C3A2B;
+  --c-vqe: #4F8FDB; --c-ccsd: #D0752A; --c-fci: #EEF2F7; --band: #1A2C47;
+  --pop-shadow: 0 10px 34px rgba(0, 0, 0, .55), 0 2px 6px rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 16.5px; line-height: 1.62;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+  -webkit-text-size-adjust: 100%;
+}
+h1, h2, h3, h4 { font-family: var(--f-display); text-wrap: balance; color: var(--ink); line-height: 1.15; margin: 0; }
+p { margin: 0; }
+a { color: var(--blue-text); text-underline-offset: 2px; }
+:focus-visible { outline: 2.5px solid var(--blue); outline-offset: 2px; border-radius: 3px; }
+sub, sup { line-height: 0; }
+b, strong { font-weight: 650; }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1120px; margin: 0 auto; padding-block: 40px 28px; display: grid; gap: 22px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--f-display); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--orange-text); }
+.hero h1 { font-size: clamp(34px, 6vw, 60px); font-weight: 700; letter-spacing: -.01em; max-width: 16ch; }
+.hero .lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--soft); max-width: 62ch; }
+.chain { width: 100%; max-width: 560px; height: auto; }
+.chain .atom { fill: var(--blue-wash); stroke: var(--blue); stroke-width: 2; }
+.chain .atom-t { fill: var(--ink); font: 600 17px var(--f-display); }
+.chain .bond { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 5; }
+.chain .dim { stroke: var(--orange); stroke-width: 1.6; }
+.chain .dim-t { fill: var(--orange-text); font: italic 18px var(--f-math); }
+.chain .cap { fill: var(--muted); font: 12.5px var(--f-body); }
+.howto { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; max-width: 760px; }
+.howto .demo { flex: none; font-family: var(--f-display); font-weight: 700; color: var(--blue-text); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
+.oneline { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 24px; max-width: 980px; }
+.oneline div { border-top: 2px solid var(--ink); padding-top: 8px; display: grid; gap: 2px; }
+.oneline .n { font-family: var(--f-display); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.oneline .l { font-size: 14px; color: var(--soft); line-height: 1.4; }
+
+/* ---------- layout ---------- */
+.layout { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; padding-top: 28px; }
+@media (min-width: 1040px) { .layout { grid-template-columns: 232px minmax(0, 1fr); gap: 56px; } }
+.toc { font-size: 14.5px; }
+.toc details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.toc summary { cursor: pointer; font-family: var(--f-display); font-weight: 700; font-size: 15px; }
+.toc ol { list-style: none; margin: 10px 0 4px; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a { display: grid; grid-template-columns: 26px 1fr; gap: 4px; text-decoration: none; color: var(--soft); padding: 5px 6px; border-radius: 6px; line-height: 1.3; }
+.toc a::before { content: counter(toc); font-family: var(--f-display); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc a:hover { background: var(--paper2); color: var(--ink); }
+.toc a.on { color: var(--ink); background: var(--paper2); }
+.toc a.on::before { color: var(--orange-text); }
+.toc .who { display: block; font-size: 12px; color: var(--muted); }
+@media (min-width: 1040px) {
+  .toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); align-self: start; max-height: calc(100vh - 40px); overflow: auto; }
+  .toc details { background: none; border: 0; padding: 0; }
+  .toc summary { list-style: none; pointer-events: none; margin-bottom: 4px; }
+  .toc summary::-webkit-details-marker { display: none; }
+}
+
+/* ---------- secciones ---------- */
+main { min-width: 0; max-width: 760px; }
+section.sec { padding-block: 40px 8px; border-top: 1px solid var(--line); display: grid; gap: 18px; scroll-margin-top: 16px; }
+section.sec:first-child { border-top: 0; padding-top: 4px; }
+.sec-head { display: grid; gap: 8px; }
+.sec-num { font-family: var(--f-display); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--orange-text); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.owner { font-family: var(--f-body); letter-spacing: 0; text-transform: none; font-weight: 600; font-size: 12.5px; color: var(--blue-text); background: var(--blue-wash); border-radius: 999px; padding: 2px 10px; }
+h2 { font-size: clamp(26px, 3.6vw, 34px); font-weight: 700; letter-spacing: -.005em; }
+h3 { font-size: 21px; font-weight: 650; margin-top: 14px; }
+h4 { font-size: 16.5px; font-weight: 650; }
+.sec > p, .sec li, .box p { max-width: 68ch; }
+.sec ul, .sec ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.sec li::marker { color: var(--muted); }
+.small { font-size: 14.5px; color: var(--soft); }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.mono, code { font-family: var(--f-mono); font-size: .9em; }
+code { background: var(--paper2); padding: 1px 5px; border-radius: 4px; }
+.m { font-family: var(--f-math); font-size: 1.08em; }
+.m i, i.v { font-family: var(--f-math); font-style: italic; }
+.ket { font-family: var(--f-math); white-space: nowrap; }
+
+/* cajas: intuición, cuidado, decisión */
+.box { border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; background: var(--card); border: 1px solid var(--line); }
+.box > .tag { font-family: var(--f-display); font-size: 12.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.box.intu { background: var(--blue-wash); border-color: transparent; }
+.box.intu > .tag { color: var(--blue-text); }
+.box.warn { background: var(--orange-wash); border-color: transparent; }
+.box.warn > .tag { color: var(--orange-text); }
+.box.say { border-style: dashed; }
+.box.say > .tag { color: var(--green); }
+.box ul { padding-left: 20px; }
+
+/* fórmulas */
+.formula { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.formula .eq { font-family: var(--f-math); font-size: clamp(19px, 2.6vw, 24px); padding: 22px 18px 18px; text-align: center; overflow-x: auto; white-space: nowrap; line-height: 1.6; }
+.formula .eq .term { border-bottom-width: 1.5px; }
+.formula .eq i { font-style: italic; }
+.formula .eq .op { padding: 0 .18em; }
+.formula .eq .big { font-size: 1.35em; vertical-align: -.12em; }
+.formula .read { padding: 10px 18px; border-top: 1px solid var(--line); font-size: 15px; color: var(--soft); }
+.formula .read b { color: var(--ink); }
+.formula dl { margin: 0; padding: 12px 18px 16px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(64px, max-content) minmax(0, 1fr); gap: 8px 16px; font-size: 15px; }
+.formula dt { font-family: var(--f-math); font-size: 17px; white-space: nowrap; }
+.formula dd { margin: 0; color: var(--soft); }
+.formula .ftitle { padding: 10px 18px 0; font-family: var(--f-display); font-weight: 700; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* tablas */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 650; font-size: 13px; color: var(--soft); background: var(--paper2); }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; white-space: nowrap; }
+tr.hi td { background: var(--blue-wash); }
+tr.zone td:first-child { box-shadow: inset 3px 0 0 var(--orange); }
+.ok { color: var(--green); font-weight: 650; }
+.bad { color: var(--orange-text); font-weight: 650; }
+caption { caption-side: bottom; text-align: left; padding: 8px 12px; font-size: 13px; color: var(--muted); }
+
+/* flujo (secuencia real) */
+.flow { list-style: none; padding: 0 !important; margin: 0; display: grid; gap: 0 !important; counter-reset: fl; }
+.flow li { counter-increment: fl; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding-bottom: 14px; position: relative; max-width: none !important; }
+.flow li::before { content: counter(fl); width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; font: 700 14px var(--f-display); }
+.flow li::after { content: ""; position: absolute; left: 14.5px; top: 32px; bottom: 2px; width: 1.5px; background: var(--line); }
+.flow li:last-child::after { display: none; }
+.flow b { display: block; }
+.flow span.d { color: var(--soft); font-size: 15px; }
+
+/* dos fases */
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.phase { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--card); display: grid; gap: 6px; align-content: start; }
+.phase .k { font-family: var(--f-display); font-weight: 700; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.phase h4 { font-size: 17px; }
+.phase p { font-size: 15px; color: var(--soft); }
+
+/* decisiones */
+.dec { display: grid; gap: 10px; }
+.dec details { border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.dec summary { cursor: pointer; padding: 12px 16px; font-weight: 650; list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline; }
+.dec summary::-webkit-details-marker { display: none; }
+.dec summary::after { content: "+"; font-family: var(--f-display); font-size: 20px; color: var(--muted); line-height: 1; }
+.dec details[open] summary::after { content: "–"; }
+.dec .body { padding: 0 16px 14px; display: grid; gap: 8px; font-size: 15.5px; }
+.dec .body p { max-width: 66ch; }
+.dec .lbl { font-family: var(--f-display); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+
+/* gráficos */
+.chart-wrap { display: grid; gap: 8px; }
+.chart-title { font-family: var(--f-display); font-weight: 650; font-size: 16px; }
+.chart-sub { font-size: 14px; color: var(--soft); }
+.chart { position: relative; width: 100%; min-height: 240px; }
+.chart svg { display: block; overflow: visible; }
+.chart .ax { stroke: var(--muted); stroke-width: 1; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .tick { fill: var(--muted); font: 12px var(--f-body); font-variant-numeric: tabular-nums; }
+.chart .axl { fill: var(--soft); font: 600 12px var(--f-body); }
+.chart .zone { fill: var(--band); }
+.chart .zone-t { fill: var(--muted); font: 600 11.5px var(--f-body); letter-spacing: .04em; }
+.chart .ref { stroke: var(--green); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .ref-t { fill: var(--green); font: 600 12px var(--f-body); }
+.chart .l-vqe { stroke: var(--c-vqe); stroke-width: 2; fill: none; }
+.chart .l-ccsd { stroke: var(--c-ccsd); stroke-width: 2; fill: none; }
+.chart .l-fci { stroke: var(--c-fci); stroke-width: 2; fill: none; }
+.chart .l-one { stroke: var(--c-vqe); stroke-width: 2; fill: none; }
+.chart .d-vqe { fill: var(--c-vqe); stroke: var(--card); stroke-width: 2; }
+.chart .d-ccsd { fill: var(--c-ccsd); stroke: var(--card); stroke-width: 2; }
+.chart .d-fci { fill: var(--c-fci); stroke: var(--card); stroke-width: 2; }
+.chart .d-one { fill: var(--c-vqe); stroke: var(--card); stroke-width: 2; }
+.chart .eb-vqe { stroke: var(--c-vqe); stroke-width: 2; stroke-linecap: round; }
+.chart .lab { font: 600 12.5px var(--f-body); fill: var(--ink); }
+.chart .xh { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .hit { fill: transparent; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--soft); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid; }
+.legend i.dot { width: 9px; height: 9px; border: 0; border-radius: 50%; }
+.tip { position: absolute; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--pop-shadow); padding: 8px 10px; font-size: 13px; line-height: 1.45; min-width: 150px; z-index: 5; }
+.tip .h { font-weight: 650; margin-bottom: 4px; }
+.tip .row { display: grid; grid-template-columns: 14px auto 1fr; gap: 6px; align-items: center; }
+.tip .row i { display: block; width: 12px; border-top: 2.5px solid; }
+.tip .row b { font-variant-numeric: tabular-nums; }
+.tip .row span { color: var(--muted); }
+
+/* circuito */
+.circ svg { width: 100%; height: auto; display: block; }
+.circ .wire { stroke: var(--muted); stroke-width: 1.4; }
+.circ .g1 { fill: var(--blue-wash); stroke: var(--blue); stroke-width: 1.4; }
+.circ .g1t { fill: var(--ink); font: italic 12px var(--f-math); }
+.circ .gx { fill: var(--orange-wash); stroke: var(--orange); stroke-width: 1.4; }
+.circ .cz { fill: var(--ink); }
+.circ .czl { stroke: var(--ink); stroke-width: 1.8; }
+.circ .qt { fill: var(--muted); font: 12px var(--f-mono); }
+.circ .lt { fill: var(--muted); font: 600 11.5px var(--f-body); }
+
+/* preguntas */
+.qa details { border-bottom: 1px solid var(--line); }
+.qa summary { cursor: pointer; padding: 12px 0; font-weight: 650; list-style: none; display: grid; grid-template-columns: 22px 1fr; gap: 8px; }
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary::before { content: "¿"; font-family: var(--f-display); color: var(--orange-text); font-weight: 700; }
+.qa .a { padding: 0 0 14px 30px; display: grid; gap: 8px; color: var(--ink); }
+
+/* glosario */
+.gl-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.gl-tools input { font: inherit; font-size: 16px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); width: min(100%, 360px); }
+.gl-count { font-size: 14px; color: var(--muted); }
+.gl-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.gl-item { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--card); display: grid; gap: 5px; align-content: start; scroll-margin-top: 20px; }
+.gl-item h4 { font-size: 15.5px; }
+.gl-item p { font-size: 14.5px; color: var(--soft); }
+.gl-item .x { font-size: 13.5px; color: var(--muted); }
+
+/* términos tocables */
+.term { cursor: help; border-bottom: 1.5px dotted var(--blue); text-decoration: none; border-radius: 0; }
+.term:hover { background: var(--blue-wash); border-bottom-style: solid; }
+.term.on { background: var(--blue-wash); border-bottom-style: solid; }
+
+/* ventana emergente */
+#pop { position: absolute; z-index: 50; width: min(380px, calc(100vw - 32px)); background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--pop-shadow); padding: 12px 16px 16px; display: grid; gap: 8px; }
+#pop[hidden] { display: none !important; }
+#pop .ph { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+#pop .ph .kick { font-family: var(--f-display); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); flex: 1; }
+#pop button.pb { font: 600 13.5px var(--f-body); color: var(--blue-text); background: none; border: 0; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+#pop button.pb:hover { background: var(--paper2); }
+#pop button.px { font-size: 22px; line-height: 1; color: var(--muted); width: 32px; height: 32px; }
+#pop h4 { font-size: 19px; }
+#pop .pd { font-size: 15.5px; line-height: 1.55; }
+#pop .pt { font-size: 14px; color: var(--soft); border-top: 1px solid var(--line); padding-top: 8px; }
+#pop .pt b { color: var(--ink); }
+#pop .pl { font-size: 14px; }
+@media (max-width: 699px) {
+  #pop.sheet { position: fixed; left: 0; right: 0; bottom: 0; top: auto !important; width: auto; border-radius: 16px 16px 0 0; max-height: 72vh; overflow: auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+}
+.foot { max-width: 1120px; margin: 48px auto 0; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="eyebrow">Quantum Jam 2026 · equipo quantum-toffolis · Octavio, Gonzalo, Santino y Joaquín</p>
+  <h1>Romper una molécula, un qubit a la vez</h1>
+  <p class="lead">Todo el proyecto explicado desde cero: qué problema resolvemos, cada algoritmo con sus fórmulas, cada mejora que probamos y por qué elegimos lo que elegimos. Pensado para poder presentarlo y defenderlo sin saber computación cuántica de antemano.</p>
+  <svg class="chain" viewBox="0 0 560 150" role="img" aria-label="Cuatro átomos de hidrógeno en fila, separados por la misma distancia d">
+    <line class="bond" x1="84" y1="56" x2="196" y2="56"/><line class="bond" x1="244" y1="56" x2="316" y2="56"/><line class="bond" x1="364" y1="56" x2="476" y2="56"/>
+    <line class="bond" x1="224" y1="56" x2="244" y2="56"/>
+    <circle class="atom" cx="60" cy="56" r="24"/><circle class="atom" cx="220" cy="56" r="24"/><circle class="atom" cx="340" cy="56" r="24"/><circle class="atom" cx="500" cy="56" r="24"/>
+    <text class="atom-t" x="60" y="62" text-anchor="middle">H</text><text class="atom-t" x="220" y="62" text-anchor="middle">H</text><text class="atom-t" x="340" y="62" text-anchor="middle">H</text><text class="atom-t" x="500" y="62" text-anchor="middle">H</text>
+    <g class="dim"><line x1="60" y1="98" x2="220" y2="98"/><line x1="60" y1="92" x2="60" y2="104"/><line x1="220" y1="92" x2="220" y2="104"/>
+      <line x1="220" y1="98" x2="340" y2="98"/><line x1="340" y1="92" x2="340" y2="104"/>
+      <line x1="340" y1="98" x2="500" y2="98"/><line x1="500" y1="92" x2="500" y2="104"/></g>
+    <text class="dim-t" x="140" y="92" text-anchor="middle">d</text><text class="dim-t" x="280" y="92" text-anchor="middle">d</text><text class="dim-t" x="420" y="92" text-anchor="middle">d</text>
+    <text class="cap" x="280" y="136" text-anchor="middle">H₄ en cadena recta. Calculamos la energía para 18 valores de d, de 0,6 Å a 3,0 Å.</text>
+  </svg>
+  <div class="howto" role="note">
+    <span class="demo">Cómo leer</span>
+    <p>Las palabras <span class="term" data-g="__demo" tabindex="0" role="button">subrayadas con puntos</span> se pueden tocar: abren una ventanita con lo que significan, en palabras simples. Adentro de esa ventanita también podés tocar otras palabras. Al final hay un glosario completo con buscador.</p>
+  </div>
+  <div class="oneline" aria-label="Resultados principales">
+    <div><span class="n">7 de 7</span><span class="l">puntos estirados (d ≥ 1,8 Å) donde le ganamos a CCSD, contando la barra de error</span></div>
+    <div><span class="n">0,56 mHa</span><span class="l">peor error en la zona estirada. El límite de precisión química es 1,6 mHa</span></div>
+    <div><span class="n">194 CZ</span><span class="l">en el circuito de la curva, contra 582 de UCCSD ×2 (3 veces menos)</span></div>
+    <div><span class="n">0,8873 Å</span><span class="l">distancia de equilibrio medida (± 0,0018). La exacta es 0,8886 Å</span></div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Índice">
+  <details id="toc-d" open>
+    <summary>Índice</summary>
+    <ol>
+      <li><a href="#problema">El problema<span class="who">qué pide la consigna</span></a></li>
+      <li><a href="#cuantica">Lo mínimo de cuántica<span class="who">qubits, compuertas, shots</span></a></li>
+      <li><a href="#hamiltoniano">El hamiltoniano<span class="who">Octavio</span></a></li>
+      <li><a href="#vqe">VQE: la idea central<span class="who">todo el equipo</span></a></li>
+      <li><a href="#ansatz">El ansatz: de UCCSD a ADAPT<span class="who">Gonzalo</span></a></li>
+      <li><a href="#medicion">Medir con shots<span class="who">Santino</span></a></li>
+      <li><a href="#resultados">Resultados: curva, Rₑ y Dₑ<span class="who">Joaquín</span></a></li>
+      <li><a href="#confianza">Por qué confiar<span class="who">Joaquín</span></a></li>
+      <li><a href="#extras">Extras<span class="who">Octavio y Santino</span></a></li>
+      <li><a href="#decisiones">Decisiones y lo que no funcionó</a></li>
+      <li><a href="#preguntas">Preguntas para practicar</a></li>
+      <li><a href="#glosario">Glosario completo</a></li>
+    </ol>
+  </details>
+</nav>
+
+<main id="main">
+
+<!-- ======================================================= 1 -->
+<section class="sec" id="problema">
+  <div class="sec-head">
+    <p class="sec-num">1 · El problema</p>
+    <h2>Calcular cuánta energía tiene una molécula mientras la rompemos</h2>
+  </div>
+
+  <h3>Por qué importa</h3>
+  <p>Más o menos la mitad de la comida del mundo depende de fertilizantes hechos con amoníaco. El amoníaco se fabrica con el proceso Haber-Bosch: se rompen moléculas de nitrógeno a unos 450 °C y a cientos de atmósferas. Ese proceso solo se lleva entre el 1 y el 2 % de toda la energía que consume la humanidad. Unas bacterias que viven en las raíces de la soja hacen lo mismo a temperatura ambiente, con una enzima llamada nitrogenasa.</p>
+  <p>Si entendiéramos exactamente cómo lo hace, podríamos diseñar catalizadores que gasten mucho menos. Para eso hay que calcular con mucha precisión la energía de los electrones mientras se rompe un enlace, y ahí las computadoras clásicas no dan abasto. Es uno de los usos más prometedores de las computadoras cuánticas. En la Jam atacamos la misma pregunta con una molécula de juguete: H₄, cuatro hidrógenos en fila.</p>
+
+  <h3>La curva de energía</h3>
+  <p>Casi toda la química se reduce a una pregunta: ¿cuál es la energía más baja que puede tener una molécula para una cierta posición de sus núcleos? Si acercamos mucho los átomos, sus núcleos se repelen y la energía sube. Si los alejamos, la molécula se rompe y la energía se aplana en el valor de los átomos sueltos. En el medio hay un mínimo.</p>
+  <div class="chart-wrap">
+    <p class="chart-title">Energía exacta (FCI) de H₄ según la distancia d</p>
+    <p class="chart-sub">Energía en Hartree (Ha). Pasá el dedo o el mouse por la curva para ver cada punto.</p>
+    <div class="chart" id="ch-fci"></div>
+  </div>
+  <ul>
+    <li><b>Distancia de equilibrio, <span data-g="re">R<sub>e</sub></span>:</b> dónde está el fondo de la curva. Es la forma "cómoda" de la molécula. Para H₄, 0,8886 Å.</li>
+    <li><b>Energía de disociación, <span data-g="de">D<sub>e</sub></span>:</b> cuánto cuesta romper la molécula, partiendo del equilibrio. La consigna la define como <span class="m">D<sub>e</sub> = E(3,0 Å) − E(R<sub>e</sub>)</span>, porque a 3,0 Å los átomos ya se consideran separados. Para H₄, 313 mHa.</li>
+  </ul>
+
+  <h3>Por qué es difícil</h3>
+  <p>Para cada distancia, la energía mínima es el autovalor más chico del hamiltoniano de la molécula. El problema es el tamaño: cada lugar posible para un electrón puede estar ocupado o vacío, así que con <i class="v">n</i> lugares hay 2<sup><i>n</i></sup> configuraciones posibles, y el estado real es una mezcla de todas.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>sistema</th><th class="r">lugares para electrones (qubits)</th><th class="r">configuraciones posibles</th></tr></thead>
+    <tbody>
+      <tr><td>H₄ en base STO-3G (nuestro caso)</td><td class="r">8</td><td class="r">2⁸ = 256</td></tr>
+      <tr><td>FeMoco, el corazón de la nitrogenasa (modelo de 54 orbitales)</td><td class="r">108</td><td class="r">2¹⁰⁸ ≈ 3·10³²</td></tr>
+    </tbody>
+  </table></div>
+  <p>Hay dos tipos de métodos clásicos:</p>
+  <ul>
+    <li><b>FCI</b> (exacto): mezcla todas las configuraciones y da la respuesta correcta. Su costo crece exponencialmente. Con H₄ se calcula en un segundo en una notebook, así que lo usamos como "respuesta del libro" para comparar. Con FeMoco es imposible.</li>
+    <li><b>CCSD</b> (aproximado): el "estándar de oro" de la química. Es barato y anda muy bien cerca del equilibrio, pero acumula error cuando se estiran los enlaces. En H₄ llega a equivocarse en 30,6 mHa. En la <a href="#hamiltoniano">sección 3</a> explicamos por qué.</li>
+  </ul>
+  <p>La idea de la computación cuántica es que 8 qubits pueden guardar de forma natural una mezcla de 256 configuraciones, y 108 qubits una de 2¹⁰⁸, sin escribir esos números en ningún lado.</p>
+
+  <h3>Qué pide la consigna</h3>
+  <ol>
+    <li><b>Curva de energía:</b> calcular E(d) con VQE en al menos 10 distancias entre 0,6 y 3,0 Å, cada una con su barra de error ± σ, y compararla con CCSD y FCI. <span class="muted">Nosotros: 18 distancias.</span></li>
+    <li><b>Equilibrio y disociación:</b> sacar R<sub>e</sub> y D<sub>e</sub> de esa curva.</li>
+    <li><b>Ganarle a CCSD</b> desde 1,8 Å en adelante, contando la barra de error (fórmula de abajo).</li>
+    <li><b>Meta máxima:</b> precisión química en esa zona, o sea un error menor a 1,6 mHa.</li>
+  </ol>
+  <div class="formula">
+    <p class="ftitle">El criterio para ganarle a CCSD</p>
+    <div class="eq">|<i>E</i><sub>VQE</sub> − <i>E</i><sub>FCI</sub>| <span class="op">+</span> <span data-g="sigma">σ</span> <span class="op">&lt;</span> |<i>E</i><sub>CCSD</sub> − <i>E</i><sub>FCI</sub>| &nbsp;&nbsp; para <i>d</i> ≥ 1,8 Å</div>
+    <p class="read"><b>Se lee:</b> nuestro error, sumándole la barra de error, tiene que ser más chico que el error de CCSD.</p>
+    <dl>
+      <dt>E<sub>VQE</sub></dt><dd>la energía que medimos con el circuito cuántico.</dd>
+      <dt>E<sub>FCI</sub></dt><dd>la energía exacta (la respuesta del libro).</dd>
+      <dt>E<sub>CCSD</sub></dt><dd>la energía del método clásico que queremos superar.</dd>
+      <dt>σ</dt><dd>la incertidumbre estadística de nuestra medición. Sumarla es exigente: aunque tuviéramos mala suerte con los shots, igual ganamos.</dd>
+      <dt>| … |</dt><dd>valor absoluto: importa cuánto se equivoca, no para qué lado.</dd>
+    </dl>
+  </div>
+
+  <h3>Las reglas, y por qué importan</h3>
+  <ul>
+    <li><b>El algoritmo es VQE.</b> SQD no vale para la curva principal, porque con tan pocos qubits hasta muestras al azar dan la respuesta exacta.</li>
+    <li><b>La energía tiene que salir de medir circuitos</b> con SamplerV2 o EstimatorV2 de Qiskit Aer, no de leer el estado del simulador. O sea, como en una computadora cuántica real: tirando shots.</li>
+    <li><b>Los parámetros se pueden buscar como quieran, incluso sin ruido.</b> Esto lo aprovechamos (sección 4).</li>
+    <li><b>Los métodos clásicos solo sirven para comparar</b> y para elegir puntos de partida. No podemos "copiar" FCI.</li>
+    <li><b>En la zona estirada hay que argumentar por qué el resultado es confiable antes de compararlo con FCI.</b> En una molécula grande no habría FCI para chequear. Eso es la <a href="#confianza">sección 8</a>.</li>
+  </ul>
+  <p>El jurado mira la precisión contra CCSD, R<sub>e</sub> y D<sub>e</sub>; las barras de error y el argumento de confiabilidad; la cantidad de compuertas CZ y el reparto de shots; el análisis de limitaciones; la claridad del notebook y la creatividad. La consigna lo resume así: <i>"no alcanza con llegar al número correcto: importa cómo se llega, con cuántas compuertas y con cuántas mediciones"</i>.</p>
+
+  <div class="box say">
+    <span class="tag">Para decirlo en 30 segundos</span>
+    <p>"Calculamos la curva de energía de H₄ con VQE. Para cada distancia armamos el hamiltoniano en 8 qubits, preparamos el estado con un circuito ADAPT-VQE de 15 excitaciones y 194 CZ, y medimos la energía con 8 millones de shots repartidos de forma óptima. Le ganamos a CCSD en los 7 puntos estirados con precisión química, sacamos R<sub>e</sub> y D<sub>e</sub> dentro de 1σ de los exactos, y mostramos por qué el resultado es confiable sin mirar FCI. En los extras bajamos a 5 qubits y 16 CZ, y con mitigación de errores llegamos a precisión química con ruido."</p>
+  </div>
+</section>
+
+<!-- ======================================================= 2 -->
+<section class="sec" id="cuantica">
+  <div class="sec-head">
+    <p class="sec-num">2 · Lo mínimo de cuántica</p>
+    <h2>Seis ideas que alcanzan para entender todo lo demás</h2>
+  </div>
+
+  <h3>1. Un qubit es un casillero que puede estar "en los dos estados a la vez"</h3>
+  <p>Un bit clásico vale 0 o 1. Un qubit puede estar en una superposición de 0 y 1, con dos números (amplitudes) que dicen "cuánto" de cada uno tiene. Cuando lo medís, la superposición se rompe y te da 0 o 1 al azar, con probabilidades que salen de esas amplitudes.</p>
+  <div class="formula">
+    <p class="ftitle">Estado de un qubit</p>
+    <div class="eq">|<i>ψ</i>⟩ = <i>a</i> |0⟩ + <i>b</i> |1⟩ , &nbsp;&nbsp; |<i>a</i>|² + |<i>b</i>|² = 1</div>
+    <p class="read"><b>Se lee:</b> "el estado psi es a veces cero más b veces uno".</p>
+    <dl>
+      <dt>|ψ⟩</dt><dd>el estado del qubit. La notación |…⟩ ("ket") es la forma de escribir un estado cuántico.</dd>
+      <dt>|0⟩, |1⟩</dt><dd>los dos valores posibles al medir.</dd>
+      <dt>a, b</dt><dd>amplitudes. Al medir, sale 0 con probabilidad |a|² y 1 con probabilidad |b|². Por eso tienen que sumar 1.</dd>
+    </dl>
+  </div>
+  <p><b>En nuestro proyecto, cada qubit es un lugar para un electrón.</b> Vale 1 si ese lugar (un espín-orbital) está ocupado y 0 si está vacío. H₄ tiene 4 orbitales, y en cada uno entran 2 electrones (uno con espín ↑ y otro con espín ↓): son 8 lugares, 8 qubits.</p>
+
+  <h3>2. Con muchos qubits, el estado es una mezcla de configuraciones</h3>
+  <p>Con 8 qubits hay 256 resultados posibles al medir (las tiras de 8 ceros y unos, llamadas bitstrings). Un estado de 8 qubits tiene una amplitud para cada una: 256 números. Cada bitstring es una configuración de electrones, una "foto" de qué lugares están ocupados.</p>
+  <div class="formula">
+    <p class="ftitle">Estado de muchos qubits</p>
+    <div class="eq">|<i>ψ</i>⟩ = <span class="big">Σ</span><sub><i>x</i></sub> <i>a<sub>x</sub></i> |<i>x</i>⟩ &nbsp;&nbsp; con <i>x</i> ∈ {00000000, …, 11111111}</div>
+    <p class="read"><b>Se lee:</b> el estado es una suma, sobre todas las configuraciones x, de una amplitud por esa configuración.</p>
+    <dl>
+      <dt>x</dt><dd>una configuración: qué lugares están ocupados.</dd>
+      <dt>a<sub>x</sub></dt><dd>cuánto pesa esa configuración. |a<sub>x</sub>|² es la probabilidad de verla al medir.</dd>
+      <dt>Σ</dt><dd>"sumar sobre todos".</dd>
+    </dl>
+  </div>
+  <p>Ejemplo concreto: la configuración de Hartree-Fock (la "foto" más simple de la molécula) es <span class="ket mono">|00110011⟩</span>. En Qiskit se lee de derecha a izquierda: los qubits 0 y 1 (los dos orbitales ↑ más bajos) y los qubits 4 y 5 (los dos ↓ más bajos) están ocupados. En el equilibrio, el estado exacto es un 95 % esa foto. A 3,0 Å, solo un 27 %: el resto está repartido entre muchas otras configuraciones.</p>
+
+  <h3>3. Un circuito es una secuencia de compuertas</h3>
+  <p>Las compuertas son las instrucciones que cambian el estado. Hay de dos tipos:</p>
+  <ul>
+    <li><b>De 1 qubit (rotaciones):</b> por ejemplo RY(θ), que pasa amplitud de |0⟩ a |1⟩ según un ángulo θ: <span class="m">RY(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩</span>. X da vuelta el qubit (0 ↔ 1). Fallan muy poco.</li>
+    <li><b>De 2 qubits:</b> la CZ le cambia el signo al estado cuando los dos qubits valen 1. Es la que "conecta" qubits y crea entrelazamiento. Sin CZ no hay mezclas interesantes. En hardware real es la que más falla, por eso <b>contar CZ es contar errores</b>.</li>
+  </ul>
+  <p>La consigna fija las compuertas nativas cz, sx, x y rz, con qubits conectados en línea: cada qubit solo puede hacer CZ con sus vecinos. Si hay que conectar dos qubits lejanos, hay que mover estados con SWAP, y cada SWAP cuesta 3 CZ más. Por eso reportamos dos números de CZ: "todos con todos" (ideal) y "en línea" (realista).</p>
+
+  <h3>4. Medir da un resultado al azar: por eso hacen falta muchos shots</h3>
+  <p>Un shot es correr el circuito una vez y medir: devuelve un bitstring. Para saber un promedio hay que repetir muchas veces. Es como estimar la probabilidad de cara de una moneda tirándola: con más tiradas, menos incertidumbre. La incertidumbre σ baja como 1/√N: para reducirla a la mitad hacen falta 4 veces más shots.</p>
+  <div class="formula">
+    <p class="ftitle">Cuánto baja la incertidumbre con los shots</p>
+    <div class="eq"><i>σ</i> = √(<i>K</i> / <i>N</i>)</div>
+    <p class="read"><b>Se lee:</b> sigma es la raíz de K dividido N.</p>
+    <dl>
+      <dt>N</dt><dd>cantidad total de shots.</dd>
+      <dt>K</dt><dd>cuánto "tiembla" lo que medimos. Depende del estado, del hamiltoniano y de cómo repartimos los shots. Es lo que optimizamos en la <a href="#medicion">sección 6</a>.</dd>
+      <dt>σ</dt><dd>el desvío estándar de la energía medida: la barra de error.</dd>
+    </dl>
+  </div>
+
+  <h3>5. Qué se puede medir: X, Y y Z</h3>
+  <p>Las matrices de Pauli X, Y y Z son las tres "preguntas" básicas que le podés hacer a un qubit. Medir Z es directo: da +1 si el qubit sale 0 y −1 si sale 1. Para X o Y, primero se rota el qubit (con H para X, con S†H para Y) y después se mide en Z.</p>
+  <p>Una cadena de Pauli es una letra por qubit, por ejemplo <span class="mono">Z₀Z₄</span> (Z en los qubits 0 y 4, nada en el resto). Su valor en un shot es el producto de los ±1 de cada qubit: +1 si hay una cantidad par de unos en esos qubits, −1 si es impar. Promediando muchos shots sale su valor esperado.</p>
+  <div class="formula">
+    <p class="ftitle">Valor esperado de una cadena de Pauli</p>
+    <div class="eq">⟨<i>P</i>⟩ ≈ (<i>N</i><sub>+</sub> − <i>N</i><sub>−</sub>) / <i>N</i></div>
+    <dl>
+      <dt>⟨P⟩</dt><dd>el promedio de la cadena P en el estado: un número entre −1 y +1. La notación ⟨…⟩ es "valor esperado".</dd>
+      <dt>N<sub>+</sub>, N<sub>−</sub></dt><dd>cuántos shots dieron +1 y cuántos −1.</dd>
+    </dl>
+  </div>
+
+  <h3>6. El ruido arruina los circuitos largos</h3>
+  <p>Cada compuerta tiene una probabilidad de fallar. Con el modelo de ruido de la consigna (0,1 % por CZ), la chance de que no falle ninguna CZ cae rápido con la cantidad:</p>
+  <div class="formula">
+    <div class="eq"><i>P</i>(sin errores) ≈ (1 − <i>p</i>)<sup><i>n</i></sup> = 0,999<sup><i>n</i></sup></div>
+    <dl>
+      <dt>p</dt><dd>probabilidad de error por CZ: 0,001.</dd>
+      <dt>n</dt><dd>cantidad de CZ del circuito.</dd>
+    </dl>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>circuito</th><th class="r">CZ</th><th class="r">P(ninguna CZ falla)</th></tr></thead>
+    <tbody>
+      <tr><td>compacto de 5 qubits (extra)</td><td class="r">16</td><td class="r">98 %</td></tr>
+      <tr><td>ADAPT de la curva, todos con todos</td><td class="r">194</td><td class="r">82 %</td></tr>
+      <tr><td>ADAPT de la curva, en línea con nuestro ruteo</td><td class="r">378</td><td class="r">69 %</td></tr>
+      <tr><td>UCCSD ×2, todos con todos</td><td class="r">582</td><td class="r">56 %</td></tr>
+      <tr><td>UCCSD ×2, en línea</td><td class="r">1648</td><td class="r">19 %</td></tr>
+    </tbody>
+  </table></div>
+  <p>Esa es la razón de casi todas nuestras decisiones: llegar a la respuesta correcta con la menor cantidad posible de CZ y de shots.</p>
+</section>
+
+<!-- ======================================================= 3 -->
+<section class="sec" id="hamiltoniano">
+  <div class="sec-head">
+    <p class="sec-num">3 · El hamiltoniano <span class="owner">Octavio · hamiltonian.py</span></p>
+    <h2>De la molécula a una suma de cosas que se pueden medir</h2>
+  </div>
+
+  <h3>Qué es un hamiltoniano, intuitivamente</h3>
+  <p>El hamiltoniano Ĥ es la "receta de la energía" de la molécula. Le das un estado y te dice cuánta energía tiene: ese número es ⟨ψ|Ĥ|ψ⟩. Escrito como matriz, para H₄ es una tabla de 256 × 256. Sus autovalores son las energías que la molécula puede tener de verdad, y sus autoestados son los estados con energía bien definida. El más bajo es el estado fundamental, y su energía E₀ es la que buscamos.</p>
+  <div class="formula">
+    <p class="ftitle">Ecuación de autovalores</p>
+    <div class="eq">Ĥ |<i>φ</i><sub>0</sub>⟩ = <i>E</i><sub>0</sub> |<i>φ</i><sub>0</sub>⟩</div>
+    <p class="read"><b>Se lee:</b> aplicarle el hamiltoniano al estado fundamental devuelve el mismo estado multiplicado por su energía.</p>
+    <dl>
+      <dt>Ĥ</dt><dd>el hamiltoniano (el sombrerito indica que es un operador, algo que actúa sobre estados).</dd>
+      <dt>|φ<sub>0</sub>⟩</dt><dd>el estado fundamental: la forma de menor energía de la molécula.</dd>
+      <dt>E<sub>0</sub></dt><dd>la energía del estado fundamental, en Hartree. Es lo que FCI calcula exacto y lo que VQE trata de alcanzar.</dd>
+    </dl>
+  </div>
+
+  <h3>Paso a paso: cómo lo construimos</h3>
+  <ol class="flow">
+    <li><div><b>Geometría</b><span class="d">4 átomos de H sobre el eje z, separados por d. Cambia en cada punto de la curva, así que todo se rehace 18 veces.</span></div></li>
+    <li><div><b>Base STO-3G</b><span class="d">La descripción más simple posible: un orbital 1s por átomo. Son 4 orbitales atómicos.</span></div></li>
+    <li><div><b>Hartree-Fock (con PySCF)</b><span class="d">Combina esos 4 orbitales en 4 orbitales moleculares, ordenados por energía. Es la mejor "foto" de una sola configuración: los 4 electrones llenan los dos orbitales más bajos, con un ↑ y un ↓ en cada uno. Esa foto es <span class="ket mono">|00110011⟩</span> y su energía es E<sub>HF</sub>.</span></div></li>
+    <li><div><b>Integrales</b><span class="d">PySCF calcula los números h<sub>pq</sub> y h<sub>pqrs</sub> de la fórmula de abajo, en la base de esos orbitales moleculares.</span></div></li>
+    <li><div><b>Jordan-Wigner</b><span class="d">Traduce el lenguaje de electrones al de qubits. Queda una suma de 185 cadenas de Pauli.</span></div></li>
+    <li><div><b>Validación</b><span class="d">Chequeamos que el hamiltoniano en qubits da las mismas energías que PySCF.</span></div></li>
+  </ol>
+  <p>Convención de qubits: los qubits 0 a 3 son los 4 orbitales con espín ↑ (α), y los qubits 4 a 7, los mismos orbitales con espín ↓ (β). El orbital 0 es el de menor energía.</p>
+
+  <h3>El hamiltoniano con electrones</h3>
+  <div class="formula">
+    <p class="ftitle">Hamiltoniano electrónico en segunda cuantización</p>
+    <div class="eq">Ĥ = <i>E</i><sub>nuc</sub> + <span class="big">Σ</span><sub><i>pq</i></sub> <i>h<sub>pq</sub></i> <span data-g="sym-adag">a<sup>†</sup><sub><i>p</i></sub></span> <span data-g="sym-a">a<sub><i>q</i></sub></span> + ½ <span class="big">Σ</span><sub><i>pqrs</i></sub> <i>h<sub>pqrs</sub></i> a<sup>†</sup><sub><i>p</i></sub> a<sup>†</sup><sub><i>q</i></sub> a<sub><i>r</i></sub> a<sub><i>s</i></sub></div>
+    <p class="read"><b>Se lee:</b> la energía es la repulsión entre núcleos, más el costo de mover un electrón de un lugar a otro, más el costo de mover dos electrones a la vez (que es donde entra la repulsión entre ellos).</p>
+    <dl>
+      <dt>p, q, r, s</dt><dd>índices de espín-orbitales, o sea de qubits: van de 0 a 7.</dd>
+      <dt>a<sup>†</sup><sub>p</sub></dt><dd>operador de creación: pone un electrón en el lugar p.</dd>
+      <dt>a<sub>q</sub></dt><dd>operador de aniquilación: saca un electrón del lugar q. Entonces a<sup>†</sup><sub>p</sub>a<sub>q</sub> "mueve" un electrón de q a p.</dd>
+      <dt>h<sub>pq</sub></dt><dd>integral de un electrón: energía cinética más atracción de los núcleos, para un electrón que pasa de q a p. Un número que calcula PySCF.</dd>
+      <dt>h<sub>pqrs</sub></dt><dd>integral de dos electrones: la repulsión eléctrica entre dos electrones que se mueven a la vez.</dd>
+      <dt>E<sub>nuc</sub></dt><dd>repulsión entre los 4 núcleos. Es una constante para cada d. En el código se llama <code>constante</code>.</dd>
+      <dt>½</dt><dd>evita contar dos veces cada par de electrones.</dd>
+    </dl>
+  </div>
+  <div class="box intu">
+    <span class="tag">La intuición</span>
+    <p>El hamiltoniano es una lista de "movimientos" posibles de los electrones, cada uno con un precio en energía. El estado fundamental es la combinación de configuraciones que, sumando todos esos precios, da lo más barato posible.</p>
+  </div>
+
+  <h3>Jordan-Wigner: de electrones a qubits</h3>
+  <p>Un qubit en 1 ya parece un lugar ocupado. Falta un detalle: los electrones son fermiones, y si intercambiás dos electrones el estado cambia de signo. Esa antisimetría es la que hace que dos electrones no puedan estar en el mismo lugar (principio de exclusión de Pauli). Los qubits no tienen ese signo. Jordan-Wigner lo agrega con una cadena de Z.</p>
+  <div class="formula">
+    <p class="ftitle">Transformación de Jordan-Wigner</p>
+    <div class="eq"><i>a<sub>p</sub></i> = <i>Z</i><sub>0</sub> <i>Z</i><sub>1</sub> ⋯ <i>Z</i><sub><i>p</i>−1</sub> · ½ (<i>X<sub>p</sub></i> + <i>i Y<sub>p</sub></i>)</div>
+    <p class="read"><b>Se lee:</b> sacar un electrón del lugar p es bajar el qubit p de 1 a 0, con un signo menos por cada lugar ocupado antes de p.</p>
+    <dl>
+      <dt>½(X<sub>p</sub> + iY<sub>p</sub>)</dt><dd>la operación que convierte el 1 del qubit p en 0 (es la matriz |0⟩⟨1|). Si el qubit ya era 0, da cero: no se puede sacar un electrón que no está.</dd>
+      <dt>Z<sub>0</sub>⋯Z<sub>p−1</sub></dt><dd>la cadena de Z. Cada Z vale −1 si su qubit está ocupado, así que el producto da (−1)<sup>cantidad de ocupados antes de p</sup>: el signo de los fermiones.</dd>
+      <dt>i</dt><dd>la unidad imaginaria (i² = −1). Aparece porque las amplitudes cuánticas son números complejos.</dd>
+    </dl>
+  </div>
+  <p>Reemplazando cada a y a<sup>†</sup> de la fórmula anterior por esto y simplificando, el hamiltoniano queda como una suma de cadenas de Pauli:</p>
+  <div class="formula">
+    <p class="ftitle">El hamiltoniano en qubits</p>
+    <div class="eq">Ĥ = <span class="big">Σ</span><sub><i>k</i></sub> <i>c<sub>k</sub></i> <i>P<sub>k</sub></i>, &nbsp;&nbsp; <i>P<sub>k</sub></i> ∈ {<i>I</i>, <i>X</i>, <i>Y</i>, <i>Z</i>}<sup>⊗8</sup></div>
+    <p class="read"><b>Se lee:</b> el hamiltoniano es una suma de 185 cadenas de Pauli, cada una con un coeficiente.</p>
+    <dl>
+      <dt>P<sub>k</sub></dt><dd>una cadena de Pauli: una letra I, X, Y o Z para cada uno de los 8 qubits. I significa "no tocar ese qubit".</dd>
+      <dt>c<sub>k</sub></dt><dd>un número real en Hartree, que sale de las integrales. El término con todas I es una constante (incluye E<sub>nuc</sub>).</dd>
+      <dt>⊗8</dt><dd>"una letra por cada uno de los 8 qubits".</dd>
+    </dl>
+  </div>
+  <p>La ventaja: ahora la energía de cualquier estado es <span class="m">E = Σ<sub>k</sub> c<sub>k</sub> ⟨P<sub>k</sub>⟩</span>, y cada ⟨P<sub>k</sub>⟩ se mide con shots. Por ejemplo, un término del tipo c·Z₀Z₄ mira si los lugares α0 y β0 están ocupados a la vez: es parte de la repulsión entre los dos electrones del orbital más bajo.</p>
+
+  <h3>Validación: el hamiltoniano está bien</h3>
+  <p>En las 18 distancias comparamos el hamiltoniano en qubits con PySCF:</p>
+  <ul>
+    <li><b>⟨HF|Ĥ|HF⟩ = E<sub>HF</sub></b> con una diferencia máxima de 5·10⁻¹⁵ Ha (error de redondeo de la computadora).</li>
+    <li><b>El autovalor más bajo de Ĥ en el sector N<sub>α</sub> = N<sub>β</sub> = 2 coincide con E<sub>FCI</sub></b>, con la misma diferencia, y es un singlete (S² = 0). Ese sector son 36 de las 256 configuraciones.</li>
+  </ul>
+  <p>¿Por qué restringir al sector? El hamiltoniano en qubits también describe H₄ con más o menos electrones (H₄⁺, H₄⁻, …) y con otros espines. Nos interesa el de 4 electrones, 2 con espín ↑ y 2 con espín ↓.</p>
+  <div class="box intu">
+    <span class="tag">Qué nos da esta validación</span>
+    <p>Cualquier diferencia entre VQE y FCI viene del ansatz, de la optimización o de las mediciones. Nunca del hamiltoniano.</p>
+  </div>
+
+  <h3>Por qué CCSD falla al estirar</h3>
+  <div class="phases">
+    <div class="chart-wrap">
+      <p class="chart-title">Peso de la foto HF en el estado exacto</p>
+      <p class="chart-sub">|a<sub>HF</sub>|²: cuánto del estado real es la configuración de Hartree-Fock.</p>
+      <div class="chart" id="ch-whf"></div>
+    </div>
+    <div class="chart-wrap">
+      <p class="chart-title">Error de CCSD: E<sub>CCSD</sub> − E<sub>FCI</sub></p>
+      <p class="chart-sub">En mHa. Negativo quiere decir que CCSD queda por debajo de la respuesta exacta.</p>
+      <div class="chart" id="ch-ccsd"></div>
+    </div>
+  </div>
+  <ul>
+    <li><b>Cerca del equilibrio</b> (d ≈ 0,9 Å) el estado exacto es un 95 % la foto HF. CCSD es prácticamente exacto: se equivoca en 0,007 mHa.</li>
+    <li><b>Al estirar</b>, cada electrón se queda en su átomo. El estado exacto pasa a ser una mezcla de muchas configuraciones con pesos parecidos: el peso de HF baja a 0,58 a 1,8 Å y a 0,27 a 3,0 Å. Esto se llama correlación estática.</li>
+    <li><b>CCSD parte de la foto HF y le suma correcciones</b> de mover 1 o 2 electrones (excitaciones simples y dobles). Las de 3 y 4 electrones solo aparecen como combinaciones de dobles. Para 4 electrones, la respuesta exacta necesitaría hasta cuádruples (CCSDTQ). Mientras HF domina, alcanza; cuando HF es solo el 27 %, no.</li>
+    <li><b>CCSD no es variacional.</b> Su energía no es el valor esperado de ningún estado: sale de resolver ecuaciones proyectadas sobre HF y sus excitaciones simples y dobles. Por eso puede quedar por debajo de FCI, y eso es lo que pasa: desde 1,1 Å queda por debajo, con −9,1 mHa a 1,8 Å y −30,6 mHa a 2,6 Å, unas 19 veces la precisión química. Quedar abajo no es "mejor": muestra que el método salió de su rango de validez. CCSD convergió en todas las distancias, así que no es un problema numérico.</li>
+  </ul>
+  <div class="formula">
+    <p class="ftitle">Lo que separa a CCSD de VQE</p>
+    <div class="eq"><i>E</i><sub>CCSD</sub> = ⟨HF| e<sup>−<i>T</i></sup> Ĥ e<sup><i>T</i></sup> |HF⟩ &nbsp;&nbsp; vs. &nbsp;&nbsp; <i>E</i><sub>VQE</sub> = ⟨<i>ψ</i>| Ĥ |<i>ψ</i>⟩</div>
+    <p class="read"><b>Se lee:</b> CCSD "transforma" el hamiltoniano con e<sup>T</sup> y lo mira solo desde la foto HF. VQE calcula el promedio de Ĥ en un estado que existe de verdad.</p>
+    <dl>
+      <dt>T = T₁ + T₂</dt><dd>las correcciones de CCSD: excitaciones simples (T₁) y dobles (T₂) con sus amplitudes.</dd>
+      <dt>e<sup>−T</sup> … e<sup>T</sup></dt><dd>e<sup>T</sup> no es una operación unitaria (no es una compuerta posible: no conserva la "longitud" del estado). Por eso e<sup>−T</sup>Ĥe<sup>T</sup> mirado desde HF no es el promedio de Ĥ en ningún estado, y el principio variacional no se aplica.</dd>
+      <dt>⟨ψ|Ĥ|ψ⟩</dt><dd>valor esperado de la energía en el estado ψ que prepara el circuito.</dd>
+    </dl>
+  </div>
+
+  <h3>El principio variacional: por qué VQE no puede pasarse de largo</h3>
+  <div class="formula">
+    <p class="ftitle">Principio variacional (con su demostración en una línea)</p>
+    <div class="eq"><i>E</i>(<i>ψ</i>) = ⟨<i>ψ</i>|Ĥ|<i>ψ</i>⟩ = <span class="big">Σ</span><sub><i>i</i></sub> |<i>c<sub>i</sub></i>|² <i>E<sub>i</sub></i> ≥ <i>E</i><sub>0</sub> <span class="big">Σ</span><sub><i>i</i></sub> |<i>c<sub>i</sub></i>|² = <i>E</i><sub>0</sub></div>
+    <p class="read"><b>Se lee:</b> cualquier estado es una mezcla de autoestados; su energía es un promedio ponderado de sus energías; un promedio nunca puede ser menor que el valor más chico.</p>
+    <dl>
+      <dt>c<sub>i</sub></dt><dd>cuánto del autoestado i tiene ψ. Los |c<sub>i</sub>|² suman 1, como probabilidades.</dd>
+      <dt>E<sub>i</sub></dt><dd>energía del autoestado i. E<sub>0</sub> es la más chica.</dd>
+    </dl>
+  </div>
+  <p>Consecuencia práctica: entre métodos variacionales, <b>el que da la energía más baja es el mejor</b>. VQE solo puede quedar por debajo de FCI por el ruido estadístico de los shots (± σ), nunca por el método. Esa es la propiedad que le permite ganarle a CCSD en la zona estirada.</p>
+</section>
+
+<!-- ======================================================= 4 -->
+<section class="sec" id="vqe">
+  <div class="sec-head">
+    <p class="sec-num">4 · VQE: la idea central</p>
+    <h2>Un circuito con perillas, una energía medida y un optimizador que gira las perillas</h2>
+  </div>
+  <p>VQE (Variational Quantum Eigensolver) junta las dos ideas anteriores. La computadora cuántica prepara un estado de prueba con un circuito que tiene parámetros (las "perillas" θ). Se mide su energía. Una computadora clásica ajusta las perillas para bajarla. Por el principio variacional, cuanto más baja, más cerca de E₀.</p>
+  <div class="formula">
+    <p class="ftitle">La energía que minimiza VQE</p>
+    <div class="eq"><i>E</i>(<span data-g="theta">θ</span>) = ⟨<i>ψ</i>(θ)| Ĥ |<i>ψ</i>(θ)⟩ = <span class="big">Σ</span><sub><i>k</i></sub> <i>c<sub>k</sub></i> ⟨<i>ψ</i>(θ)| <i>P<sub>k</sub></i> |<i>ψ</i>(θ)⟩ ≥ <i>E</i><sub>0</sub>, &nbsp;&nbsp; |<i>ψ</i>(θ)⟩ = <i>U</i>(θ) |0…0⟩</div>
+    <p class="read"><b>Se lee:</b> la energía con las perillas θ es el promedio del hamiltoniano en el estado que prepara el circuito; se calcula sumando los promedios de las 185 cadenas de Pauli, y nunca baja de la energía exacta.</p>
+    <dl>
+      <dt>θ</dt><dd>la lista de parámetros del circuito (ángulos). En nuestro ansatz son 15.</dd>
+      <dt>U(θ)</dt><dd>el circuito (el ansatz), que arranca con todos los qubits en 0.</dd>
+      <dt>|ψ(θ)⟩</dt><dd>el estado de prueba que sale del circuito.</dd>
+      <dt>c<sub>k</sub>, P<sub>k</sub></dt><dd>los coeficientes y cadenas de Pauli del hamiltoniano (sección 3).</dd>
+    </dl>
+  </div>
+
+  <h3>Cómo lo usamos nosotros: dos fases separadas</h3>
+  <p>La consigna permite buscar los parámetros como queramos, incluso sin ruido, pero exige que la energía reportada salga de medir circuitos. Entonces separamos el trabajo:</p>
+  <div class="phases">
+    <div class="phase">
+      <span class="k">Fase A · buscar θ*</span>
+      <h4>Optimizar sin ruido</h4>
+      <p>Con un simulador exacto propio (numpy) que calcula la energía y su gradiente analítico. Optimizador L-BFGS-B. Tarda segundos por punto.</p>
+      <p>Probamos dos arranques: el θ* de la distancia anterior (warm start) y θ = 0, que es la foto HF. Nos quedamos con la energía más baja.</p>
+    </div>
+    <div class="phase">
+      <span class="k">Fase B · reportar E ± σ</span>
+      <h4>Medir con shots</h4>
+      <p>Ponemos θ* en el circuito de Qiskit y lo medimos con SamplerV2 de Aer: 8 millones de shots repartidos en 37 grupos. La energía y su σ salen de contar bitstrings.</p>
+      <p>Esta es la única energía que reportamos.</p>
+    </div>
+  </div>
+  <ul>
+    <li><b>El simulador numpy y el circuito de Qiskit son el mismo estado</b>: verificamos fidelidad 1,000000000000 entre los dos. Lo que optimizamos es exactamente lo que medimos.</li>
+    <li><b>L-BFGS-B</b> baja por la pendiente (el gradiente) y recuerda los pasos anteriores para estimar la curvatura, así da pasos más inteligentes. "Gradiente analítico" quiere decir que la pendiente se calcula exacta, no aproximando con diferencias.</li>
+    <li><b>¿Por qué dos arranques?</b> Solo con warm start, el optimizador caía en mínimos locales: 2 mHa a 2,8 Å con la lista final, 0,84 mHa a 1,4 Å con la de 13 operadores y 9,8 mHa a 2,0 Å con QEB. Como VQE es variacional, entre dos resultados el más bajo es el mejor, sin necesidad de mirar FCI.</li>
+    <li><b>¿Por qué no optimizar con shots (por ejemplo con SPSA)?</b> Es lento y ruidoso, y la consigna lo permite sin ruido. La limitación hay que decirla: nuestra curva mide qué tan bueno es el ansatz más el ruido de los shots, no la dificultad de optimizar con mediciones reales.</li>
+  </ul>
+
+  <h3>El recorrido completo para cada distancia</h3>
+  <ol class="flow">
+    <li><div><b>Molécula</b><span class="d">PySCF: Hartree-Fock, integrales, y FCI y CCSD solo como referencia.</span></div></li>
+    <li><div><b>Hamiltoniano</b><span class="d">Jordan-Wigner: 8 qubits, 185 cadenas de Pauli (sección 3).</span></div></li>
+    <li><div><b>Ansatz</b><span class="d">ADAPT-VQE: 15 excitaciones, la misma lista en toda la curva, 194 CZ (sección 5).</span></div></li>
+    <li><div><b>Optimizar θ*</b><span class="d">Sin ruido, L-BFGS-B, warm start y θ = 0.</span></div></li>
+    <li><div><b>Medir</b><span class="d">SamplerV2: 37 grupos QWC, piloto + Neyman, 8 M de shots, σ de las muestras (sección 6).</span></div></li>
+    <li><div><b>Analizar</b><span class="d">Tabla, ajuste cuártico para R<sub>e</sub>, D<sub>e</sub> con Monte Carlo (sección 7).</span></div></li>
+    <li><div><b>Confiabilidad</b><span class="d">Varianza por eco, simetrías y profundidad, todo medido con shots (sección 8).</span></div></li>
+  </ol>
+</section>
+
+<!-- ======================================================= 5 -->
+<section class="sec" id="ansatz">
+  <div class="sec-head">
+    <p class="sec-num">5 · El ansatz <span class="owner">Gonzalo · ansatz.py, adapt.py, routing.py</span></p>
+    <h2>De UCCSD a ADAPT-VQE: la misma exactitud con 3 veces menos CZ</h2>
+  </div>
+  <p>El ansatz es el "molde" del circuito: una receta fija de compuertas con perillas. Elegirlo es elegir qué estados podemos preparar y cuántas CZ cuesta. Buscábamos cuatro cosas a la vez:</p>
+  <ul>
+    <li><b>Que pueda llegar al estado exacto</b> (expresividad).</li>
+    <li><b>Pocas CZ</b>, porque cada CZ es una chance de error.</li>
+    <li><b>Que respete las simetrías:</b> 2 electrones ↑, 2 electrones ↓ y espín total 0.</li>
+    <li><b>Que se pueda optimizar</b> sin trabarse en mínimos locales.</li>
+  </ul>
+
+  <h3>Las piezas: excitaciones</h3>
+  <p>Una excitación mueve electrones de orbitales ocupados en HF a orbitales vacíos, sin cambiar su espín. En H₄ los ocupados son los orbitales 0 y 1, y los vacíos el 2 y el 3, para cada espín.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>tipo</th><th>qué mueve</th><th class="r">cuántas</th></tr></thead>
+    <tbody>
+      <tr><td>simple ↑</td><td>un electrón α: 0 o 1 → 2 o 3</td><td class="r">2 × 2 = 4</td></tr>
+      <tr><td>simple ↓</td><td>un electrón β, igual</td><td class="r">4</td></tr>
+      <tr><td>doble ↑↓</td><td>un α y un β a la vez</td><td class="r">4 × 4 = 16</td></tr>
+      <tr><td>doble ↑↑</td><td>los dos α: (0,1) → (2,3)</td><td class="r">1</td></tr>
+      <tr><td>doble ↓↓</td><td>los dos β: (0,1) → (2,3)</td><td class="r">1</td></tr>
+      <tr class="hi"><td colspan="2"><b>total</b> (el "pool" de UCCSD y de ADAPT)</td><td class="r"><b>8 + 18 = 26</b></td></tr>
+    </tbody>
+  </table></div>
+  <p>Cada excitación se convierte en una compuerta con una perilla θ:</p>
+  <div class="formula">
+    <p class="ftitle">Compuerta de excitación</p>
+    <div class="eq"><i>T</i> = <i>a</i><sup>†</sup><sub><i>a</i></sub> <i>a</i><sup>†</sup><sub><i>b</i></sub> <i>a<sub>j</sub></i> <i>a<sub>i</sub></i>, &nbsp;&nbsp; <i>G</i> = <i>i</i>(<i>T</i> − <i>T</i><sup>†</sup>), &nbsp;&nbsp; <i>U</i>(θ) = <i>e</i><sup>−<i>i</i>θ<i>G</i></sup> = <i>e</i><sup>θ(<i>T</i> − <i>T</i><sup>†</sup>)</sup></div>
+    <p class="read"><b>Se lee:</b> T saca dos electrones de i y j y los pone en a y b; la compuerta es la exponencial de esa excitación menos su inversa, con ángulo θ.</p>
+    <dl>
+      <dt>i, j → a, b</dt><dd>de qué lugares ocupados salen los electrones y a qué lugares vacíos van. En una simple hay un solo par i → a.</dd>
+      <dt>T<sup>†</sup></dt><dd>el movimiento inverso (de a, b de vuelta a i, j). Restarlo hace que la compuerta sea una rotación válida (unitaria).</dd>
+      <dt>G</dt><dd>el generador: el "eje" de la rotación.</dd>
+      <dt>θ</dt><dd>el ángulo, la perilla.</dd>
+    </dl>
+  </div>
+  <div class="formula">
+    <p class="ftitle">Qué hace sobre la foto HF</p>
+    <div class="eq"><i>U</i>(θ) |HF⟩ = cos θ |HF⟩ ± sin θ |HF con <i>i</i>,<i>j</i> → <i>a</i>,<i>b</i>⟩</div>
+    <p class="read"><b>Se lee:</b> con θ = 0 no pasa nada; al girar θ, parte del estado pasa a la configuración excitada.</p>
+    <dl>
+      <dt>cos θ, sin θ</dt><dd>cuánto queda en HF y cuánto pasa a la configuración excitada.</dd>
+      <dt>±</dt><dd>el signo de los fermiones (la cadena de Z de Jordan-Wigner).</dd>
+    </dl>
+  </div>
+  <div class="box intu">
+    <span class="tag">La intuición</span>
+    <p>Cada excitación es una canilla entre dos configuraciones: con θ elegís cuánto "agua" (amplitud) pasa de la foto HF a la otra. Encadenando canillas se arma la mezcla de configuraciones que es el estado exacto.</p>
+  </div>
+  <p>Un detalle que nos ahorra mucho tiempo: las cadenas de Pauli de un mismo G conmutan entre sí, así que el circuito implementa exactamente el producto de exponenciales, sin aproximación. Por eso el simulador numpy de la fase A y el circuito de Qiskit coinciden.</p>
+
+  <h3>Primer intento: UCCSD</h3>
+  <p>UCCSD (Unitary Coupled Cluster Singles and Doubles) es la versión "circuito" de CCSD: aplica las 26 excitaciones, una detrás de otra, desde HF. A diferencia de CCSD, es un estado real preparado por compuertas, así que es variacional. "×2" quiere decir que la receta completa se repite dos veces, con perillas propias cada vez (52 parámetros). Es lo que la teoría llama dos pasos de Trotter.</p>
+  <div class="formula">
+    <p class="ftitle">UCCSD con Trotter</p>
+    <div class="eq">|<i>ψ</i>⟩ = <span class="big">Π</span><sub><i>k</i>=1</sub><sup>26</sup> <i>e</i><sup>θ<sub><i>k</i></sub>(<i>T<sub>k</sub></i> − <i>T<sub>k</sub></i><sup>†</sup>)</sup> |HF⟩ &nbsp;&nbsp; (×2: el producto dos veces, con 52 θ)</div>
+    <dl>
+      <dt>Π</dt><dd>"aplicar una detrás de otra" (producto).</dd>
+      <dt>k</dt><dd>recorre las 26 excitaciones del pool.</dd>
+    </dl>
+  </div>
+  <ul>
+    <li><b>UCCSD ×1</b> (26 θ, 292 CZ): error de hasta 4,5 mHa a 2,0 Å, y S² hasta 0,85. Le gana a CCSD pero no llega a precisión química.</li>
+    <li><b>UCCSD ×2</b> (52 θ, 582 CZ todos con todos, 1648 en línea): llega a FCI (error &lt; 0,001 mHa). Funciona, pero con el modelo de ruido de la consigna la probabilidad de que no falle ninguna CZ en línea es 19 %, y el error con ruido da <b>561 mHa, peor que Hartree-Fock</b>.</li>
+  </ul>
+
+  <h3>La mejora: ADAPT-VQE, solo las excitaciones que hacen falta</h3>
+  <p>ADAPT-VQE (Grimsley et al., 2019) arma el ansatz de a una pieza, eligiendo en cada paso la que más ayuda:</p>
+  <ol class="flow">
+    <li><div><b>Arrancar de HF</b><span class="d">Ansatz vacío, estado |HF⟩.</span></div></li>
+    <li><div><b>Medir el gradiente de cada candidato</b><span class="d">Para cada una de las 26 excitaciones del pool: si la agregara al final con θ apenas distinto de 0, ¿cuánto bajaría la energía?</span></div></li>
+    <li><div><b>Agregar la de gradiente más grande</b><span class="d">Una misma excitación se puede elegir más de una vez.</span></div></li>
+    <li><div><b>Reoptimizar todas las perillas</b><span class="d">Desde las anteriores, con la nueva en 0.</span></div></li>
+    <li><div><b>Repetir</b><span class="d">Hasta que el gradiente más grande sea menor que 10⁻⁵. Ese criterio no usa FCI.</span></div></li>
+  </ol>
+  <div class="formula">
+    <p class="ftitle">El gradiente de ADAPT</p>
+    <div class="eq"><i>g<sub>k</sub></i> = ∂<i>E</i>/∂θ<sub>nuevo</sub> |<sub>θ=0</sub> = ⟨<i>ψ</i>| <i>i</i> [<i>G<sub>k</sub></i>, Ĥ] |<i>ψ</i>⟩ = 2 Re ⟨Ĥ<i>ψ</i>| −<i>i G<sub>k</sub></i> <i>ψ</i>⟩</div>
+    <p class="read"><b>Se lee:</b> la pendiente de la energía si agrego la excitación k al final es el valor esperado del conmutador entre su generador y el hamiltoniano.</p>
+    <dl>
+      <dt>g<sub>k</sub></dt><dd>el gradiente del candidato k: cuánto cambia la energía al girar apenas su perilla.</dd>
+      <dt>[A, B]</dt><dd>el conmutador AB − BA. Si G<sub>k</sub> y Ĥ conmutan (da 0), esa excitación no puede cambiar la energía y no sirve.</dd>
+      <dt>|ψ⟩</dt><dd>el estado actual, con las excitaciones ya elegidas.</dd>
+      <dt>Re</dt><dd>parte real. La última forma es la que calcula el código (<code>adapt.py</code>).</dd>
+    </dl>
+  </div>
+  <div class="box intu">
+    <span class="tag">La intuición</span>
+    <p>Estás en una ladera con niebla y tenés 26 direcciones posibles para caminar. En cada paso probás cuál baja más rápido, das ese paso, y reacomodás todo lo que ya caminaste. Te quedás con el camino corto en vez de recorrer todas las direcciones como hace UCCSD.</p>
+  </div>
+
+  <h3>Nuestras tres decisiones dentro de ADAPT</h3>
+  <h4>1. Una sola lista para toda la curva</h4>
+  <p>En cada paso calculamos el gradiente de cada candidato en las 18 distancias y elegimos el que tiene el mayor gradiente en cualquiera de ellas (máx<sub>d</sub> |g<sub>k</sub>(d)|). Después reoptimizamos cada distancia por separado. Resultado: <b>el mismo circuito y la misma cantidad de CZ en todos los puntos</b>, solo cambian los θ. Es más simple de reportar, de rutear y de comparar.</p>
+  <h4>2. Dónde cortar, sin usar FCI</h4>
+  <p>Usamos la varianza de la energía, <span class="m">⟨H²⟩ − ⟨H⟩²</span>, que vale 0 solo en un autoestado (sección 8). Al pasar de 12 a 13 operadores, la varianza máxima sobre la curva cae de 3,2·10⁻³ a 2,6·10⁻⁴ Ha², y el error máximo de 3,7 a 0,6 mHa. La misma varianza medida con shots por eco de Loschmidt lo confirma.</p>
+  <h4>3. Completar los pares de espín</h4>
+  <p>ADAPT eligió las simples α 0→2 y β 1→3, pero no sus "gemelas" de espín opuesto, β 0→2 y α 1→3. Eso rompe un poco el espín del estado (S² ≤ 0,013, cuando debería ser 0). Agregamos esas dos simples <b>al lado de su pareja</b>. Con 15 operadores, el error máximo baja de 0,59 a <b>0,38 mHa</b> en toda la curva, y S² baja a ≤ 6,5·10⁻³, por solo 9 CZ más. Si las agregábamos al final, el optimizador caía en un mínimo malo (2,5 mHa, S² = 0,52): el orden importa porque las compuertas no conmutan.</p>
+
+  <h3>La lista final: 15 excitaciones (<code>ADAPT_FERMIONIC</code>)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>excitación</th><th>tipo</th><th>nota</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>α1→α3, β1→β3</td><td>doble ↑↓</td><td>la primera que eligió ADAPT</td></tr>
+      <tr><td>2</td><td>α0→α3, β1→β2</td><td>doble ↑↓</td><td></td></tr>
+      <tr><td>3</td><td>α0→α2, β0→β2</td><td>doble ↑↓</td><td></td></tr>
+      <tr><td>4</td><td>α1→α2, β0→β3</td><td>doble ↑↓</td><td></td></tr>
+      <tr><td>5</td><td>α1→α2, β1→β2</td><td>doble ↑↓</td><td></td></tr>
+      <tr><td>6</td><td>α0→α2, β1→β3</td><td>doble ↑↓</td><td></td></tr>
+      <tr><td>7</td><td>α0→α3, β0→β3</td><td>doble ↑↓</td><td></td></tr>
+      <tr><td>8</td><td>α1→α3, β0→β2</td><td>doble ↑↓</td><td></td></tr>
+      <tr><td>9</td><td>α0,α1 → α2,α3</td><td>doble ↑↑</td><td></td></tr>
+      <tr><td>10</td><td>β0,β1 → β2,β3</td><td>doble ↓↓</td><td></td></tr>
+      <tr><td>11</td><td>α0→α2</td><td>simple</td><td></td></tr>
+      <tr class="hi"><td>12</td><td>β0→β2</td><td>simple</td><td>agregada: par de espín de la 11</td></tr>
+      <tr><td>13</td><td>β1→β3</td><td>simple</td><td></td></tr>
+      <tr class="hi"><td>14</td><td>α1→α3</td><td>simple</td><td>agregada: par de espín de la 13</td></tr>
+      <tr><td>15</td><td>α0→α2, β1→β3</td><td>doble ↑↓</td><td>repetida (la 6 otra vez)</td></tr>
+    </tbody>
+  </table>
+  <caption>α = espín ↑ (qubits 0–3), β = espín ↓ (qubits 4–7). Los números son orbitales: 0 y 1 ocupados en HF, 2 y 3 vacíos.</caption></div>
+
+  <h3>Comparación de ansätze</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>ansatz</th><th class="r">θ</th><th class="r">CZ todos con todos</th><th class="r">CZ en línea</th><th class="r">error máx. sin ruido</th><th class="r">S² máx.</th></tr></thead>
+    <tbody>
+      <tr><td>UCCSD ×1</td><td class="r">26</td><td class="r">292</td><td class="r">806</td><td class="r">4,5 mHa</td><td class="r">0,85</td></tr>
+      <tr><td>UCCSD ×2</td><td class="r">52</td><td class="r">582</td><td class="r">1648</td><td class="r">&lt; 0,001 mHa</td><td class="r">≈ 0</td></tr>
+      <tr><td>ADAPT, 13 ops</td><td class="r">13</td><td class="r">185</td><td class="r">370 (fSWAP)</td><td class="r">0,59 mHa</td><td class="r">0,013</td></tr>
+      <tr class="hi"><td><b>ADAPT + pares de espín, 15 ops (la curva)</b></td><td class="r"><b>15</b></td><td class="r"><b>194</b></td><td class="r"><b>378 (fSWAP)</b></td><td class="r"><b>0,38 mHa</b></td><td class="r"><b>0,0065</b></td></tr>
+      <tr><td>ADAPT-QEB, 15 ops (extra)</td><td class="r">15</td><td class="r">159</td><td class="r">~451</td><td class="r">0,81 mHa</td><td class="r">0,074</td></tr>
+      <tr><td>compacto de 5 qubits, L = 8 (extra, sección 9)</td><td class="r">45</td><td class="r">16</td><td class="r">16</td><td class="r">&lt; 0,001 mHa</td><td class="r">no conserva S² por construcción</td></tr>
+    </tbody>
+  </table>
+  <caption>ADAPT-QEB usa excitaciones "de qubit", sin las cadenas de Z de Jordan-Wigner: tocan solo 2 o 4 qubits y cuestan menos CZ, pero rompen más el espín. Quedó como extra.</caption></div>
+
+  <h3>Qubits en línea: nuestro ruteo con fSWAP</h3>
+  <p>En un chip real, cada qubit solo hace CZ con sus vecinos. Una excitación que toca los qubits 0 y 7 obliga a "acercarlos". Con SWAP comunes, el transpiler de Qiskit multiplica las CZ por ~2,8. Nuestro ruteo (<code>routing.py</code>, inspirado en Co-ADAPT y en las redes de fSWAP) hace tres cosas:</p>
+  <ol>
+    <li><b>Junta los modos de cada excitación en qubits contiguos con fSWAP</b>, un SWAP para fermiones que respeta el signo de Jordan-Wigner (2 CZ cada uno).</li>
+    <li><b>No deshace la permutación:</b> el orden de los modos se sigue llevando en la computadora clásica.</li>
+    <li><b>Aplica cada doble con un circuito pensado para la línea</b> (18 CZ, casi todas entre vecinos) y mide la energía con Ĥ reescrito en el orden final de los modos.</li>
+  </ol>
+  <p>Los θ son los mismos, porque las fSWAP solo reetiquetan lugares. Verificamos que la energía coincide hasta 10⁻¹⁵ y que la medición no tiene sesgo (16 semillas). El orden inicial se eligió entre 72 candidatos. Resultado: <b>de 543 CZ con el transpiler común a 378</b> (−30 %).</p>
+  <div class="box warn">
+    <span class="tag">El costo, y la decisión</span>
+    <p>Ĥ reescrito en el orden final se agrupa mucho peor para medir (69 grupos contra 37), y eso pide más shots. Como el circuito ruteado prepara el mismo estado, <b>la curva se mide con el circuito sin rutear y Ĥ original</b>. El ruteado se usa para contar las CZ en línea y para las pruebas con ruido.</p>
+  </div>
+
+  <h3>Qué no funcionó</h3>
+  <ul>
+    <li><b>Umbral de gradiente 10⁻⁴:</b> ADAPT se frenaba en mesetas a 1,6, 2,8 y 3,0 Å con 0,6 a 2 mHa de error, y después el gradiente volvía a crecer. Con 10⁻⁵ llega a FCI en toda la curva.</li>
+    <li><b>Agregar las simples de espín al final de la lista:</b> mínimo malo (2,5 mHa, S² = 0,52).</li>
+    <li><b>Optimizar solo con warm start:</b> mínimos locales, hasta 9,8 mHa con QEB a 2,0 Å. Se arregló probando también θ = 0.</li>
+    <li><b>Reordenar los operadores para necesitar menos fSWAP</b> (314 CZ en línea): el error sube a 5,2 mHa. Cambiar el orden cambia el ansatz.</li>
+    <li><b>Co-ADAPT</b> (elegir cada operador por gradiente dividido por su costo en CZ): necesita 16 a 19 operadores y termina en ~460 CZ en línea. En H₄ casi todas las dobles hacen falta.</li>
+    <li><b>Circuitos de excitación explícitos sin ruteo propio:</b> exactos, pero el transpiler los rutea peor (705 contra 526 CZ en línea).</li>
+    <li><b>Probar layouts y semillas del transpiler:</b> lo mejor fue ~515 CZ en línea.</li>
+  </ul>
+  <p class="small"><b>Limitaciones:</b> S² no es exactamente 0 (≤ 6,5·10⁻³), porque el pool no está adaptado al espín. Para bajar más las CZ quedan ideas: operadores CEO de 9 CNOT, podar operadores y usar orbitales localizados u optimizados.</p>
+</section>
+
+<!-- ======================================================= 6 -->
+<section class="sec" id="medicion">
+  <div class="sec-head">
+    <p class="sec-num">6 · Medir con shots <span class="owner">Santino · estimator.py</span></p>
+    <h2>Cómo sacar la energía y una barra de error honesta de millones de bitstrings</h2>
+  </div>
+  <p>La energía es <span class="m">E = c₀ + Σ<sub>k</sub> c<sub>k</sub>⟨P<sub>k</sub>⟩</span>: una constante más 184 cadenas de Pauli. Medir cada cadena por separado serían 184 circuitos distintos, cada uno con sus millones de shots. Hay que ser más inteligentes.</p>
+
+  <h3>Paso 1: agrupar lo que se puede medir junto (QWC)</h3>
+  <p>Dos cadenas de Pauli conmutan qubit a qubit (QWC) si en cada qubit tienen la misma letra, o alguna tiene I. Ejemplo: <span class="mono">ZZII</span> y <span class="mono">ZIZI</span> se pueden medir juntas (todo en Z); <span class="mono">XXYY</span> y <span class="mono">XXII</span> también. <span class="mono">ZXII</span> y <span class="mono">XXII</span> no, porque el primer qubit pide Z en una y X en la otra.</p>
+  <p>Un grupo se mide con <b>un solo circuito</b>: se rota cada qubit a la base que pide el grupo (H para X, S†H para Y) y se miden todos en Z. Cada shot da un valor ±1 para cada cadena del grupo a la vez. Estas rotaciones son de 1 qubit: <b>no agregan CZ</b>.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>cómo armamos los grupos</th><th class="r">grupos</th><th>resultado</th></tr></thead>
+    <tbody>
+      <tr><td>coloreo de Qiskit (<code>group_commuting</code>, lo que usábamos al principio)</td><td class="r">46</td><td>referencia</td></tr>
+      <tr class="hi"><td><b>sorted insertion</b> (Crawford et al., 2021): ordenar por |c| de mayor a menor y meter cada cadena en el primer grupo compatible</td><td class="r"><b>37</b></td><td><b>1,6 a 1,8 veces menos shots</b> para la misma σ</td></tr>
+      <tr><td>conmutación general (GC), diagonalizando cada grupo con un circuito Clifford</td><td class="r">9</td><td>2 a 2,8 veces menos shots que QWC, pero <b>agrega 4 a 23 CZ por grupo</b> (4 a 77 en línea)</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>¿Por qué sorted insertion gana?</b> Pone juntas las cadenas grandes. Dentro de un grupo, sus fluctuaciones se compensan en parte (covarianzas negativas), así que el grupo entero tiembla menos.</p>
+  <p><b>¿Por qué no GC, si ahorra más shots?</b> Porque suma CZ al circuito que se mide. Sin ruido da igual, pero con 0,1 % de error por CZ, ~50 CZ más son ~5 % más de error. Además QWC permite post-seleccionar por simetría (sección 9). GC quedó como opción (<code>grouping="gc"</code>).</p>
+
+  <h3>Paso 2: el estimador</h3>
+  <div class="formula">
+    <p class="ftitle">Energía y barra de error a partir de los shots</p>
+    <div class="eq"><i>E</i> = <i>c</i><sub>0</sub> + <span class="big">Σ</span><sub><i>g</i></sub> <i>Ē<sub>g</sub></i>, &nbsp;&nbsp; σ² = <span class="big">Σ</span><sub><i>g</i></sub> <i>s<sub>g</sub></i>² / <i>N<sub>g</sub></i></div>
+    <p class="read"><b>Se lee:</b> la energía es la constante más el promedio de cada grupo; la varianza total es la suma de las varianzas de los promedios de cada grupo.</p>
+    <dl>
+      <dt>g</dt><dd>un grupo de medición (37 en total).</dd>
+      <dt>O<sub>g</sub></dt><dd>el observable del grupo, Σ c<sub>k</sub>P<sub>k</sub> sobre sus cadenas. Cada shot del grupo da un número: una muestra de O<sub>g</sub>.</dd>
+      <dt>Ē<sub>g</sub></dt><dd>el promedio de esas muestras.</dd>
+      <dt>s<sub>g</sub>²</dt><dd>la varianza de las muestras (cuánto varían de shot a shot). Incluye las covarianzas entre cadenas del mismo grupo.</dd>
+      <dt>N<sub>g</sub></dt><dd>shots asignados al grupo g.</dd>
+      <dt>Σ σ²</dt><dd>las varianzas se suman porque cada grupo usa shots distintos (son independientes).</dd>
+    </dl>
+  </div>
+
+  <h3>Paso 3: repartir los shots de forma óptima (Neyman)</h3>
+  <p>No todos los grupos necesitan la misma cantidad de shots. Los que tiemblan mucho necesitan más; los que casi no varían, pocos. La asignación de Neyman es el reparto que da la menor σ para un total fijo de shots.</p>
+  <div class="formula">
+    <p class="ftitle">Asignación de Neyman</p>
+    <div class="eq"><i>N<sub>g</sub></i> ∝ √<i>V<sub>g</sub></i> &nbsp;&nbsp; ⟹ &nbsp;&nbsp; σ² = (<span class="big">Σ</span><sub><i>g</i></sub> √<i>V<sub>g</sub></i>)² / <i>N</i> &nbsp;&nbsp; ⟹ &nbsp;&nbsp; <i>K</i> = (<span class="big">Σ</span><sub><i>g</i></sub> √<i>V<sub>g</sub></i>)²</div>
+    <p class="read"><b>Se lee:</b> los shots de cada grupo son proporcionales a su desvío estándar; con eso, la σ total queda como la raíz de K sobre N.</p>
+    <dl>
+      <dt>V<sub>g</sub></dt><dd>varianza de O<sub>g</sub> en el estado: ⟨O<sub>g</sub>²⟩ − ⟨O<sub>g</sub>⟩².</dd>
+      <dt>∝</dt><dd>"proporcional a".</dd>
+      <dt>N</dt><dd>shots totales del punto (8 millones).</dd>
+      <dt>K</dt><dd>el "costo" de la estrategia: cuántos shots hacen falta por unidad de σ². Comparar estrategias es comparar K.</dd>
+    </dl>
+  </div>
+  <p>El problema: las V<sub>g</sub> no se conocen antes de medir. Por eso medimos en <b>dos etapas</b>: un piloto con el 10 % de los shots, repartidos según Σ|c<sub>k</sub>| de cada grupo, para estimar las V<sub>g</sub>; y el 90 % restante con Neyman. Al final se juntan las muestras de las dos etapas.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>reparto (QWC con sorted insertion, 2,0 Å)</th><th class="r">K (mHa² · M shots)</th></tr></thead>
+    <tbody>
+      <tr><td>proporcional a Σ|c| de cada grupo</td><td class="r">3,69</td></tr>
+      <tr><td>Neyman con las varianzas del estado HF</td><td class="r bad">24,6</td></tr>
+      <tr class="hi"><td><b>dos etapas: piloto + Neyman (lo que usamos)</b></td><td class="r"><b>2,15</b></td></tr>
+      <tr><td>Neyman ideal, con las varianzas exactas</td><td class="r">2,13</td></tr>
+    </tbody>
+  </table>
+  <caption>Las dos etapas quedan a menos de 1 % del óptimo teórico.</caption></div>
+  <p><b>¿Por qué usar las varianzas de HF da 11 veces peor?</b> HF es una sola configuración (un bitstring), así que todos los grupos que miden solo Z le dan varianza cero. Neyman les asignaría casi ningún shot, pero en el estado real esos grupos sí varían.</p>
+
+  <h3>Paso 4: cuántos shots usar</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>d (Å)</th><th class="r">QWC, coloreo</th><th class="r">QWC, sorted insertion</th><th class="r">GC, coloreo</th><th class="r">GC, sorted insertion</th></tr></thead>
+    <tbody>
+      <tr><td>0,9</td><td class="r">17,8 M</td><td class="r">11,1 M</td><td class="r">5,3 M</td><td class="r">4,3 M</td></tr>
+      <tr><td>1,8</td><td class="r">16,5 M</td><td class="r">9,1 M</td><td class="r">7,2 M</td><td class="r">4,4 M</td></tr>
+      <tr><td>2,0</td><td class="r">15,5 M</td><td class="r">8,6 M</td><td class="r">6,8 M</td><td class="r">4,1 M</td></tr>
+      <tr><td>2,4</td><td class="r">14,2 M</td><td class="r">8,0 M</td><td class="r">5,9 M</td><td class="r">3,6 M</td></tr>
+      <tr><td>3,0</td><td class="r">13,6 M</td><td class="r">8,0 M</td><td class="r">4,9 M</td><td class="r">2,9 M</td></tr>
+    </tbody>
+  </table>
+  <caption>Shots necesarios para σ = 0,5 mHa, calculados con K. Esta cuenta solo sirve para planificar; la energía reportada sale siempre de los shots.</caption></div>
+  <div class="box">
+    <span class="tag muted">La decisión</span>
+    <p><b>8 millones de shots por punto</b> con QWC y sorted insertion: σ = 0,50 a 0,54 mHa en la zona estirada y ~0,6 mHa cerca del mínimo. Con σ ≈ 0,5 mHa, la barra de error usa un tercio del margen de 1,6 mHa de la precisión química y deja lugar para el error del ansatz (≤ 0,38 mHa). En total son 144 M de shots en las 18 distancias.</p>
+  </div>
+
+  <h3>Paso 5: comprobar que la barra de error es honesta</h3>
+  <p>Una σ mal calculada hace que cualquier comparación sea humo. La forma de chequearla: medir <b>el mismo circuito</b> muchas veces con semillas distintas, y mirar cuántas σ se aleja cada resultado del valor exacto de ese circuito.</p>
+  <div class="formula">
+    <p class="ftitle">Calibración de σ</p>
+    <div class="eq"><i>z</i> = (<i>E</i><sub>medida</sub> − <i>E</i><sub>exacta del circuito</sub>) / σ &nbsp;&nbsp; debería seguir una normal N(0, 1)</div>
+    <p class="read"><b>Se lee:</b> si la σ es correcta, el error dividido por σ tiene promedio 0 y desvío 1, y |z| &gt; 2 pasa en ~4,6 % de las repeticiones.</p>
+    <dl>
+      <dt>E<sub>exacta del circuito</sub></dt><dd>⟨ψ|Ĥ|ψ⟩ calculado con el simulador para ese mismo circuito. Se usa solo para calibrar, nunca como resultado.</dd>
+      <dt>N(0, 1)</dt><dd>la campana de Gauss con media 0 y desvío 1.</dd>
+    </dl>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>configuración</th><th class="r">d (Å)</th><th class="r">σ media</th><th class="r">media de z</th><th class="r">desvío de z [IC 95 %]</th><th class="r">σ bootstrap / σ</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>QWC, 8 M, dos etapas</td><td class="r">2,0</td><td class="r">0,519</td><td class="r">−0,02 ± 0,05</td><td class="r">1,01 [0,95; 1,07]</td><td class="r">0,997</td></tr>
+      <tr class="hi"><td>QWC, 8 M, dos etapas</td><td class="r">3,0</td><td class="r">0,500</td><td class="r">+0,04 ± 0,05</td><td class="r">1,00 [0,94; 1,06]</td><td class="r">0,998</td></tr>
+      <tr><td>QWC, 1 M, dos etapas</td><td class="r">2,0</td><td class="r">1,467</td><td class="r">+0,04 ± 0,05</td><td class="r">1,03 [0,97; 1,09]</td><td class="r">0,999</td></tr>
+      <tr><td>QWC, 1 M, dos etapas</td><td class="r">3,0</td><td class="r">1,413</td><td class="r">−0,02 ± 0,05</td><td class="r">1,04 [0,98; 1,11]</td><td class="r">0,999</td></tr>
+      <tr><td>QWC, 8 M, Σ|c|</td><td class="r">2,0</td><td class="r">0,679</td><td class="r">−0,16 ± 0,06</td><td class="r">0,98 [0,91; 1,06]</td><td class="r">0,997</td></tr>
+      <tr><td>GC, 4 M, dos etapas</td><td class="r">2,0</td><td class="r">0,507</td><td class="r">+0,01 ± 0,04</td><td class="r">0,96 [0,91; 1,03]</td><td class="r">0,996</td></tr>
+    </tbody>
+  </table>
+  <caption>500 repeticiones por configuración (300 para Σ|c|), 17,8 mil millones de shots en total. σ en mHa.</caption></div>
+  <ul>
+    <li><b>La σ está calibrada:</b> con las 3600 repeticiones juntas, la media de z da −0,006 ± 0,017 y el desvío 1,011 [0,988; 1,035]. La prueba de Kolmogorov-Smirnov contra la normal da p = 0,78 (no hay evidencia de que no sea normal).</li>
+    <li><b>El "1,16" que nos preocupaba era ruido estadístico:</b> con solo 60 repeticiones, el desvío de z cae entre 0,82 y 1,18 el 95 % de las veces aunque σ sea perfecta.</li>
+    <li><b>El bootstrap coincide</b> con la fórmula dentro de 0,7 %. El bootstrap re-muestrea los propios shots y no supone que nada sea normal.</li>
+    <li><b>La fórmula σ = √(K/N) predice la σ media hasta el tercer dígito</b>, y de 1 M a 8 M de shots la σ baja √8 = 2,83 veces (medido: 2,83).</li>
+  </ul>
+
+  <h3>Detalles que parecen chicos y no lo son</h3>
+  <ul>
+    <li><b>Semillas.</b> Con semillas consecutivas de Aer vimos errores correlacionados entre grupos, con desvíos de 4σ. Y con la misma semilla en las 18 distancias, el ruido de puntos vecinos quedaba correlacionado (3σ seguidos entre 0,7 y 0,9 Å), lo que sesgaba el ajuste de R<sub>e</sub>. Ahora cada grupo, etapa, punto y diagnóstico tiene su semilla, derivada con <code>SeedSequence</code>.</li>
+    <li><b>SamplerV2 y no EstimatorV2.</b> El EstimatorV2 de Aer no mide: calcula el valor exacto y le suma un ruido gaussiano de tamaño "precision", y devuelve esa misma precision como barra de error. O sea, la σ es un número elegido a mano. Con SamplerV2 tenemos los bitstrings reales: la σ sale de los datos, y podemos usar Neyman, post-selección y corrección de lectura.</li>
+    <li><b>Velocidad.</b> Los conteos se hacen con <code>np.bincount</code> sobre los bits del Sampler. Con 8 M de shots, <code>get_counts()</code> (que arma un texto por shot) se comía la mayor parte del tiempo.</li>
+  </ul>
+  <h3>Qué no funcionó o descartamos</h3>
+  <ul>
+    <li>Neyman con varianzas de HF: 11 veces peor.</li>
+    <li>Reusar shots entre grupos (cada base QWC también estima cadenas compatibles de otros grupos): sobre sorted insertion casi no suma, y en la zona estirada empeora un poco porque ignora covarianzas.</li>
+    <li>Calibrar con 60 repeticiones: no alcanza para distinguir 1,16 de 1.</li>
+  </ul>
+  <p class="small"><b>Limitaciones:</b> la calibración es sin ruido, así que verifica la estadística de los shots, no el sesgo del ruido de compuertas (eso se trata en la sección 9). K se planificó con el estado FCI, pero el piloto re-estima las varianzas en cada punto, así que el reparto se ajusta solo.</p>
+</section>
+
+<!-- ======================================================= 7 -->
+<section class="sec" id="resultados">
+  <div class="sec-head">
+    <p class="sec-num">7 · Resultados <span class="owner">Joaquín · analysis.py, pipeline.py</span></p>
+    <h2>La curva medida, el equilibrio y la disociación</h2>
+  </div>
+  <p>Corrida completa del notebook principal: ADAPT de 15 operadores, 194 CZ, 8 M de shots por punto, 18 distancias.</p>
+  <div class="chart-wrap">
+    <p class="chart-title">Curva de energía: VQE medido contra FCI y CCSD</p>
+    <div class="legend" aria-hidden="true"><span><i class="dot" style="background:var(--c-vqe)"></i>VQE medido (± σ)</span><span><i style="border-color:var(--c-fci)"></i>FCI (exacto)</span><span><i style="border-color:var(--c-ccsd)"></i>CCSD</span></div>
+    <div class="chart" id="ch-curve"></div>
+    <p class="chart-sub">A esta escala VQE y FCI se superponen. CCSD se despega hacia abajo en la zona estirada (sombreada).</p>
+  </div>
+  <div class="chart-wrap">
+    <p class="chart-title">Error contra FCI, en escala logarítmica</p>
+    <div class="legend" aria-hidden="true"><span><i class="dot" style="background:var(--c-vqe)"></i>VQE: |error|, con la barra hasta |error| + σ</span><span><i style="border-color:var(--c-ccsd)"></i>CCSD: |error|</span><span><i style="border-color:var(--green);border-top-style:dashed"></i>precisión química, 1,6 mHa</span></div>
+    <div class="chart" id="ch-err"></div>
+    <p class="chart-sub">El criterio de la consigna es que la punta de cada barra azul quede debajo del punto naranja desde 1,8 Å. Cerca del equilibrio CCSD es mejor que nosotros: ahí nuestro error es ruido de shots, y la consigna no pide ganarle en esa zona.</p>
+  </div>
+
+  <h3>La tabla que pide la consigna</h3>
+  <div class="tbl"><table id="tbl-res">
+    <thead><tr><th class="r">d (Å)</th><th class="r">E<sub>VQE</sub> (Ha)</th><th class="r">σ (mHa)</th><th class="r">shots</th><th class="r">E<sub>VQE</sub> − E<sub>FCI</sub> (mHa)</th><th class="r">E<sub>CCSD</sub> − E<sub>FCI</sub> (mHa)</th><th>¿le gana a CCSD?</th><th>¿&lt; 1,6 mHa?</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <caption>CZ en todos los puntos: 194 con conectividad total, 543 en línea con el transpiler de Qiskit, 378 en línea con nuestro ruteo fSWAP. Los shots son ~8 M (el piloto redondea unos pocos). La raya naranja marca la zona estirada.</caption></div>
+  <ul>
+    <li><b>Zona estirada (d ≥ 1,8 Å):</b> le ganamos a CCSD en 7 de 7 puntos contando σ, y tenemos precisión química en 7 de 7. Peor error: 0,56 mHa a 2,4 Å.</li>
+    <li><b>Toda la curva:</b> precisión química en las 18 distancias. El peor error es 1,15 mHa, a 0,7 Å (≈ 2σ).</li>
+    <li><b>Algunos puntos quedan por debajo de FCI</b> (por ejemplo −0,79 mHa a 0,6 Å, −1,3σ). No contradice el principio variacional: es el ruido de los shots, del tamaño esperado.</li>
+  </ul>
+
+  <h3>Cómo sacamos R<sub>e</sub> y D<sub>e</sub></h3>
+  <p>El mínimo de la curva cae entre dos puntos medidos, así que hay que interpolar: ajustamos un polinomio a las energías medidas cerca de 0,9 Å y buscamos su mínimo. La pregunta es qué polinomio y con cuántos puntos.</p>
+  <p><b>Cómo elegimos sin hacer trampa:</b> aplicamos cada modelo a las energías FCI de la misma grilla de distancias y lo comparamos con el mínimo FCI verdadero, que sacamos minimizando PySCF directamente en d (R<sub>e</sub> = 0,8886 Å). Esa diferencia es el sesgo del método de ajuste, independiente de VQE. También lo probamos con una curva de Morse conocida, sin FCI.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>modelo</th><th class="r">sesgo en R<sub>e</sub></th><th class="r">sesgo en E<sub>min</sub></th><th class="r">σ(R<sub>e</sub>)</th></tr></thead>
+    <tbody>
+      <tr><td>cuadrático, 5 puntos (el que usábamos)</td><td class="r bad">+7,8 mÅ</td><td class="r">+126 µHa</td><td class="r">1,4 mÅ</td></tr>
+      <tr><td>cúbico, 7 puntos</td><td class="r">+0,4 mÅ</td><td class="r bad">−575 µHa</td><td class="r">1,5 mÅ</td></tr>
+      <tr class="hi"><td><b>cuártico, 7 puntos (0,7 a 1,1 Å)</b></td><td class="r"><b>−0,9 mÅ</b></td><td class="r"><b>−16 µHa</b></td><td class="r"><b>1,7 mÅ</b></td></tr>
+      <tr><td>spline cúbico, 0,6 a 1,6 Å</td><td class="r">−0,5 mÅ</td><td class="r">−5 µHa</td><td class="r bad">8,1 mÅ</td></tr>
+    </tbody>
+  </table>
+  <caption>σ(R<sub>e</sub>) con nuestras barras de error, de la corrida final.</caption></div>
+  <ul>
+    <li><b>El cuadrático tiene un sesgo de varias σ:</b> la curva es asimétrica (sube más rápido hacia la izquierda) y una parábola corre el mínimo hacia afuera.</li>
+    <li><b>El spline no tiene sesgo pero es ruidoso:</b> pasa por cada punto con su ruido y queda 3 a 5 veces más incierto.</li>
+    <li><b>El cuártico en 7 puntos</b> es el único con sesgo chico en R<sub>e</sub> y en E<sub>min</sub> a la vez, y con σ chica.</li>
+  </ul>
+  <div class="formula">
+    <p class="ftitle">Incertidumbre de R<sub>e</sub> y D<sub>e</sub> por Monte Carlo</p>
+    <div class="eq"><i>E</i>′<sub><i>i</i></sub> = <i>E<sub>i</sub></i> + σ<sub><i>i</i></sub> ξ<sub><i>i</i></sub>, &nbsp; ξ<sub><i>i</i></sub> ~ N(0, 1) &nbsp; → &nbsp; reajustar &nbsp; → &nbsp; σ(R<sub>e</sub>) = desvío de los R<sub>e</sub>′</div>
+    <p class="read"><b>Se lee:</b> inventamos miles de curvas "posibles", moviendo cada energía al azar según su barra de error, reajustamos cada una, y la dispersión de los resultados es la incertidumbre.</p>
+    <dl>
+      <dt>E<sub>i</sub>, σ<sub>i</sub></dt><dd>energía medida en la distancia i y su barra de error.</dd>
+      <dt>ξ<sub>i</sub></dt><dd>un número al azar de una campana de Gauss (media 0, desvío 1), distinto para cada punto y cada repetición.</dd>
+      <dt>D<sub>e</sub></dt><dd>E(3,0 Å) − E(R<sub>e</sub>), con E(R<sub>e</sub>) = el mínimo del ajuste. Su σ sale igual, de la misma simulación.</dd>
+    </dl>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th class="r">VQE (medido)</th><th class="r">FCI</th><th class="r">diferencia</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td><b>R<sub>e</sub></b></td><td class="r"><b>0,8873 ± 0,0018 Å</b></td><td class="r">0,8886 Å</td><td class="r">−1,2 mÅ (−0,7σ)</td></tr>
+      <tr class="hi"><td><b>D<sub>e</sub></b></td><td class="r"><b>313,00 ± 0,66 mHa</b></td><td class="r">313,21 mHa</td><td class="r">−0,21 mHa (−0,3σ)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Las dos diferencias están dentro de 1σ. El sesgo del ajuste (−0,9 mÅ) y el error de ADAPT sin ruido (≤ 0,38 mHa) quedan debajo de la σ de los shots. Para achicar la σ de D<sub>e</sub> hacen falta más shots en el mínimo y a 3,0 Å, no un ajuste mejor.</p>
+</section>
+
+<!-- ======================================================= 8 -->
+<section class="sec" id="confianza">
+  <div class="sec-head">
+    <p class="sec-num">8 · Por qué confiar <span class="owner">Joaquín · pipeline.run_reliability</span></p>
+    <h2>Seis argumentos de que el resultado es bueno, sin mirar la respuesta exacta</h2>
+  </div>
+  <p>La consigna pide argumentar la confiabilidad <b>antes</b> de comparar con FCI, porque en una molécula grande no habría FCI. Todo lo de esta sección se <b>mide con shots</b> y no usa FCI. En tres puntos estirados (1,8, 2,4 y 3,0 Å) comparamos cuatro estados: HF (θ = 0), ADAPT con 12 operadores (un paso antes del corte, 169 CZ), el ansatz de la curva (15 operadores, 194 CZ) y UCCSD ×2 (582 CZ), mucho más profundo.</p>
+
+  <h3>1. Principio variacional</h3>
+  <p>Cualquier estado da E ≥ E₀ (salvo ruido ± σ). Entre estados variacionales, el que da la energía más baja es el mejor. CCSD no es variacional, y en la zona estirada queda por debajo de la exacta: ahí "más bajo" no quiere decir "mejor".</p>
+
+  <h3>2. Varianza de la energía, medida por grupos</h3>
+  <div class="formula">
+    <p class="ftitle">Varianza de la energía</p>
+    <div class="eq">Var(Ĥ) = ⟨Ĥ²⟩ − ⟨Ĥ⟩² &nbsp;&nbsp; = 0 &nbsp; si y solo si ψ es un autoestado</div>
+    <p class="read"><b>Se lee:</b> la varianza mide cuánto "tiembla" la energía del estado. Un autoestado tiene una energía bien definida, sin temblor.</p>
+    <dl>
+      <dt>⟨Ĥ²⟩</dt><dd>promedio del hamiltoniano al cuadrado. Ĥ² tiene 1775 cadenas de Pauli, que se miden en 225 grupos QWC.</dd>
+      <dt>⟨Ĥ⟩²</dt><dd>la energía al cuadrado.</dd>
+    </dl>
+  </div>
+  <p>Resultado con 2 M de shots: HF da 0,12 a 0,18 Ha². Los tres ansätze dan entre 0 y 2·10⁻³ Ha², compatibles con 0 y al menos 50 veces menos que HF. Pero la σ de esta medición es ~2·10⁻³ Ha² (es una resta de dos números grandes), así que no separa los ansätze entre sí, y por ruido puede dar negativa. Hacía falta algo más fino.</p>
+
+  <h3>3. Varianza por eco de Loschmidt: contar eventos raros</h3>
+  <p>El circuito prepara ψ, lo deja evolucionar con el hamiltoniano durante un tiempo t, y lo "des-prepara" con el circuito al revés. Si ψ es un autoestado, la evolución solo le agrega una fase y el estado vuelve exacto a |0…0⟩. Si no lo es, a veces no vuelve.</p>
+  <div class="formula">
+    <p class="ftitle">Eco de Loschmidt</p>
+    <div class="eq"><i>P</i>(no volver a |0…0⟩) = 1 − |⟨<i>ψ</i>| <i>e</i><sup>−<i>i</i>Ĥ<i>t</i></sup> |<i>ψ</i>⟩|² = Var(Ĥ) · <i>t</i>² + O(<i>t</i>⁴)</div>
+    <p class="read"><b>Se lee:</b> la probabilidad de que el estado no vuelva al punto de partida es, para tiempos cortos, la varianza de la energía por el tiempo al cuadrado.</p>
+    <dl>
+      <dt>e<sup>−iĤt</sup></dt><dd>la evolución temporal: cómo cambia el estado con el tiempo según la ecuación de Schrödinger. Se arma con Suzuki-Trotter de 2º orden, en 4 pasos.</dd>
+      <dt>t</dt><dd>tiempo de evolución. Usamos t = 1 (en unidades de 1/Ha).</dd>
+      <dt>O(t⁴)</dt><dd>correcciones chicas para t chico.</dd>
+    </dl>
+  </div>
+  <div class="box intu">
+    <span class="tag">Por qué es mejor que restar</span>
+    <p>En vez de restar dos números grandes y parecidos, cuenta eventos raros: si ψ es casi un autoestado, casi ningún shot vuelve "mal". Con N shots y 0 eventos, la cota del 95 % es Var ≲ 3/(N t²). Con 10⁶ shots resuelve varianzas de 10⁻⁶ Ha².</p>
+  </div>
+  <p>Resultados con 10⁶ shots: el ansatz de la curva da Var = 1,9·10⁻⁴ (1,8 Å), 9·10⁻⁵ (2,4 Å) y 5·10⁻⁶ Ha² (3,0 Å). ADAPT de 12 operadores da entre 7 y 18 veces más. UCCSD ×2 no tiene ningún evento (Var ≤ 3·10⁻⁶). HF da 0,11 a 0,16 Ha².</p>
+  <p class="small"><b>Costo y cuidado:</b> el circuito del eco tiene entre 4100 y 5700 CZ. Es un diagnóstico de simulador sin ruido, no algo para hardware: con 0,1 % de error por CZ, el ruido taparía la señal. El error de Trotter lo verificamos sin FCI, comparando 2 contra 4 pasos: con 4 pasos es 9·10⁻⁸, debajo de lo que resuelven 10⁶ shots. Con 2 pasos (1,3·10⁻⁶) se confundía con la señal.</p>
+
+  <h3>Qué nos dice una varianza chica</h3>
+  <div class="formula">
+    <p class="ftitle">Cota de Weinstein y estimación de segundo orden</p>
+    <div class="eq">|<i>E</i> − <i>E<sub>k</sub></i>| ≤ √Var(Ĥ) &nbsp; para algún autovalor <i>E<sub>k</sub></i>, &nbsp;&nbsp; y &nbsp; <i>E</i> − <i>E</i><sub>0</sub> ≈ Var(Ĥ) / Δ</div>
+    <p class="read"><b>Se lee:</b> hay una energía exacta de la molécula a menos de la raíz de la varianza de la nuestra; y si hay una brecha Δ hasta el siguiente estado, el error es aproximadamente la varianza dividida por esa brecha.</p>
+    <dl>
+      <dt>E<sub>k</sub></dt><dd>algún autovalor exacto de Ĥ (no sabemos cuál; los argumentos 1, 4 y 5 dicen que es el fundamental).</dd>
+      <dt>Δ</dt><dd>la brecha entre el fundamental y el primer estado excitado del mismo sector.</dd>
+    </dl>
+  </div>
+  <p>Weinstein da cotas flojas (≤ 15 mHa a 1,8 Å). La de segundo orden es la útil: con Var ~10⁻⁴ Ha², el error queda debajo de la σ de los shots (0,5 mHa) si Δ ≳ 0,2 Ha. No medimos Δ; el argumento 5 lo chequea de otra forma.</p>
+
+  <h3>4. Simetrías medidas</h3>
+  <p>El fundamental de H₄ es un singlete con N<sub>α</sub> = N<sub>β</sub> = 2. Medimos ⟨N<sub>α</sub>⟩, ⟨N<sub>β</sub>⟩ y ⟨S²⟩ con shots:</p>
+  <ul>
+    <li><b>N<sub>α</sub> y N<sub>β</sub> dan exactamente 2 en todos los shots:</b> las excitaciones conservan el número de electrones de cada espín.</li>
+    <li><b>S² es la prueba que discrimina.</b> Al estirar, el singlete y el triplete casi se tocan: a 3,0 Å el triplete está a solo 0,95 mHa del fundamental. Un estado con la energía "correcta" y el espín equivocado pasaría el criterio de precisión química. UCCSD ×1 converge a una mezcla así (S² medido 0,64 a 2,4 Å y 0,85 a 3,0 Å), y a 3,0 Å su energía no se distingue de la buena. La energía sola no lo delata; S² sí. El ansatz de la curva da |S²| ≤ 0,011 ± 0,012, compatible con 0. Un triplete puro daría 2.</li>
+  </ul>
+
+  <h3>5. Convergencia con la profundidad</h3>
+  <div class="tbl"><table>
+    <thead><tr><th class="r">d (Å)</th><th class="r">E(12 ops) − E(curva)</th><th class="r">E(curva) − E(UCCSD ×2)</th><th class="r">Var eco, 12 ops</th><th class="r">Var eco, curva (cota 95 %)</th></tr></thead>
+    <tbody>
+      <tr><td class="r">1,8</td><td class="r">+2,38 ± 0,76 mHa</td><td class="r">+0,65 ± 0,76 mHa</td><td class="r">2,9·10⁻³</td><td class="r">≤ 2,1·10⁻⁴</td></tr>
+      <tr><td class="r">2,4</td><td class="r">+1,35 ± 0,72 mHa</td><td class="r">−0,15 ± 0,71 mHa</td><td class="r">6,2·10⁻⁴</td><td class="r">≤ 1,1·10⁻⁴</td></tr>
+      <tr><td class="r">3,0</td><td class="r">−0,59 ± 0,72 mHa</td><td class="r">+1,11 ± 0,71 mHa</td><td class="r">8,9·10⁻⁵</td><td class="r">≤ 1,1·10⁻⁵</td></tr>
+    </tbody>
+  </table>
+  <caption>Energías medidas con shots. Varianzas en Ha².</caption></div>
+  <ul>
+    <li><b>Hacia abajo (12 → 15 operadores):</b> la energía baja a 1,8 y 2,4 Å y la varianza cae 7 a 18 veces. Los operadores 13 a 15 hacen falta.</li>
+    <li><b>Hacia arriba (15 operadores → UCCSD ×2, con 3 veces más CZ):</b> la energía cambia menos de 1,6σ en los tres puntos. Profundizar mucho más no mejora nada que los shots puedan resolver.</li>
+  </ul>
+  <p>La varianza de UCCSD ×2 sí es menor (ADAPT no es un autoestado perfecto), pero la energía medida no los distingue. Por eso elegimos el circuito con menos CZ.</p>
+
+  <h3>6. Barras de error calibradas</h3>
+  <p>La calibración de la sección 6: 3600 repeticiones, desvío de z = 1,01. Cuando decimos ± 0,5 mHa, es ± 0,5 mHa.</p>
+
+  <div class="box intu">
+    <span class="tag">Recién ahora, la comparación con FCI</span>
+    <p>A 1,8, 2,4 y 3,0 Å, el error real resulta 0,08, 0,56 y 0,05 mHa, con σ ≈ 0,5 mHa. CCSD se equivoca en 9,1, 30,6 y 23,0 mHa. Los seis argumentos predecían exactamente esto.</p>
+  </div>
+</section>
+
+<!-- ======================================================= 9 -->
+<section class="sec" id="extras">
+  <div class="sec-head">
+    <p class="sec-num">9 · Extras <span class="owner">Octavio y Santino · reduction.py, noise.py, mitigation.py, hardware.py, geometry.py</span></p>
+    <h2>Menos qubits, ruido, mitigación, hardware real y otras formas de H₄</h2>
+  </div>
+  <p>Están en el segundo notebook, <code>H4_VQE_extras.ipynb</code>. La consigna dice que los extras solo cuentan si el desafío central está completo, y lo está. La historia que cuentan juntos: <b>con ruido, el circuito de 8 qubits no sirve con ningún número de shots; con 5 qubits, 16 CZ y mitigación bien hecha, sí se llega a precisión química.</b></p>
+
+  <h3 id="menos-qubits">9.1 · Menos qubits: de 8 a 6 y a 5 con simetrías <span class="owner">Octavio</span></h3>
+  <p>Si sabemos de antemano algo que el estado cumple sí o sí, no hace falta guardarlo en un qubit. Ejemplo: si sabemos que la cantidad de electrones ↑ es par, el cuarto qubit ↑ queda determinado por los otros tres. El hamiltoniano de H₄ conmuta con tres simetrías de tipo Z:</p>
+  <ul>
+    <li><b>Paridad de N<sub>α</sub>:</b> Z₀Z₁Z₂Z₃ (vale +1 porque N<sub>α</sub> = 2 es par).</li>
+    <li><b>Paridad de N<sub>β</sub>:</b> Z₄Z₅Z₆Z₇.</li>
+    <li><b>Inversión de la cadena:</b> dar vuelta la molécula (átomo 1 ↔ 4, 2 ↔ 3) la deja igual. Cada orbital molecular es par o impar ante esa operación (los orbitales 1 y 3 son impares), y se conserva el producto de Z sobre los orbitales impares, en α y en β.</li>
+  </ul>
+  <div class="formula">
+    <p class="ftitle">Tapering (Bravyi, Gambetta, Mezzacapo y Temme, 2017)</p>
+    <div class="eq"><i>U</i> = (<i>X<sub>q</sub></i> + <i>g</i>) / √2, &nbsp;&nbsp; <i>U g U</i> = <i>X<sub>q</sub></i> &nbsp;&nbsp; ⟹ &nbsp;&nbsp; en <i>U</i>Ĥ<i>U</i>, &nbsp; <i>X<sub>q</sub></i> → ±1</div>
+    <p class="read"><b>Se lee:</b> una rotación convierte cada simetría en una X sobre un solo qubit; como en nuestro sector esa simetría tiene un valor conocido, la X se reemplaza por ese número y el qubit desaparece.</p>
+    <dl>
+      <dt>g</dt><dd>una simetría (por ejemplo Z₀Z₁Z₂Z₃).</dd>
+      <dt>q</dt><dd>el qubit que se elimina (para 5 qubits: los qubits 0, 4 y 7).</dd>
+      <dt>U</dt><dd>una rotación de tipo Clifford, que solo cambia cómo se escribe Ĥ, no sus energías.</dd>
+      <dt>±1</dt><dd>el valor de la simetría en el sector de HF.</dd>
+    </dl>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th class="r">qubits</th><th>simetrías usadas</th><th class="r">cadenas de Pauli</th><th class="r">grupos QWC</th><th class="r">shots para la misma σ</th><th class="r">excitaciones que se reducen</th><th>¿orbitales rotados?</th></tr></thead>
+    <tbody>
+      <tr><td class="r">8</td><td>ninguna</td><td class="r">185</td><td class="r">37</td><td class="r">×1</td><td class="r">26/26</td><td>sí</td></tr>
+      <tr><td class="r">6</td><td>N<sub>α</sub>, N<sub>β</sub></td><td class="r">165</td><td class="r">37</td><td class="r">×1,02</td><td class="r">26/26</td><td>sí</td></tr>
+      <tr class="hi"><td class="r">5</td><td>+ inversión</td><td class="r">132</td><td class="r">35</td><td class="r">×1,13</td><td class="r">14/26</td><td>no</td></tr>
+    </tbody>
+  </table>
+  <caption>A 2,4 Å. Validado en las 18 distancias: el fundamental de Ĥ₆ y Ĥ₅ coincide con FCI con error &lt; 10⁻¹⁴ Ha.</caption></div>
+  <ul>
+    <li><b>6 qubits</b> es lo que pide el extra y equivale al mapeo de paridad. Toda excitación conserva N<sub>α</sub> y N<sub>β</sub>, así que las 26 del pool se reducen y ADAPT sigue funcionando igual.</li>
+    <li><b>5 qubits</b> elimina uno más, con dos condiciones: orbitales canónicos (con paridad definida) y solo se reducen las excitaciones simétricas ante la inversión (14 de 26).</li>
+    <li><b>La reducción no ahorra shots</b>: hay menos términos pero casi los mismos grupos, y los términos que quedan tienen más varianza. Con sorted insertion el costo es solo ×1,13 (con el coloreo de antes era ×2).</li>
+  </ul>
+
+  <h4>El ansatz compacto de 5 qubits y 16 CZ</h4>
+  <p>En 5 qubits usamos un ansatz "en ladrillo", nativo de los qubits en línea: X en los qubits ocupados de HF, una capa de RY y L capas de [CZ entre pares vecinos alternados + RY]. Con L = 8 tiene <b>16 CZ, ninguna SWAP</b> y 45 parámetros, y llega a FCI sin ruido (&lt; 0,001 mHa) en toda la curva. UCCSD ×2 necesita 1648 CZ en línea: son 100 veces menos con la misma exactitud.</p>
+  <div class="circ" id="circ-brick" role="img" aria-label="Circuito en ladrillo de 5 qubits: X de Hartree-Fock, una capa de RY y capas que alternan CZ entre los pares 0-1 y 2-3, y entre 1-2 y 3-4, cada una seguida de RY"></div>
+  <ul>
+    <li><b>Con L = 6</b> aparecen mínimos locales (hasta 3,8 mHa). Con L = 7 ya llega a FCI.</li>
+    <li><b>Si cada capa pone todas las CZ a la vez</b> (0-1, 1-2, 2-3, 3-4), el ansatz se traba en una fidelidad de 0,961 que no mejora con más capas. Con el patrón en ladrillo llega a 1.</li>
+    <li><b>No conserva N ni S² por construcción.</b> Por eso la búsqueda de θ* penaliza μ⟨S²⟩ (μ = 0,5), y hay que medir N y S². Lo vimos pasar: sin la penalización, a 3,0 Å convergió al triplete (S² = 1,99) con error de 0,95 mHa. "Precisión química" con el estado equivocado.</li>
+    <li><b>Orbitales localizados</b> (enlaces 1-2 y 3-4) no tienen paridad ante la inversión: con ellos no hay reducción a 5 qubits.</li>
+  </ul>
+  <div class="box warn">
+    <span class="tag">Por qué no es el ansatz de la curva principal</span>
+    <p>Es hardware-efficient: no respeta las simetrías por construcción, tiene mínimos locales con pocas capas y no escala a moléculas grandes (el tapering sí escala). ADAPT está motivado por la química y conserva N<sub>α</sub> y N<sub>β</sub> en cada shot. Lo acordamos así en el equipo: ADAPT en 8 qubits para la curva, el compacto para los extras con ruido.</p>
+  </div>
+
+  <h3 id="ruido">9.2 · Ruido: cuánto daño hace cada compuerta <span class="owner">Octavio</span></h3>
+  <p>El archivo <code>ruido.py</code> de la consigna no se distribuyó (los organizadores aclararon que era de una versión anterior). Armamos un modelo propio con los parámetros que describía: compuertas cz, sx, x y rz; qubits en línea; error despolarizante de 0,1 % por CZ y 0,005 % por compuerta de 1 qubit. Despolarizante quiere decir que, cuando falla, la compuerta reemplaza el estado de sus qubits por ruido al azar.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>ansatz (a 2,0 Å)</th><th class="r">qubits</th><th class="r">CZ en línea</th><th class="r">error sin ruido</th><th class="r">error con ruido, sin mitigar</th></tr></thead>
+    <tbody>
+      <tr><td>UCCSD ×1</td><td class="r">8</td><td class="r">806</td><td class="r">4,46 mHa</td><td class="r bad">340 mHa</td></tr>
+      <tr><td>UCCSD ×2</td><td class="r">8</td><td class="r">1648</td><td class="r">0,000</td><td class="r bad">561 mHa</td></tr>
+      <tr class="hi"><td><b>compacto L = 8</b></td><td class="r">5</td><td class="r">16</td><td class="r">0,000</td><td class="r"><b>13,5 mHa</b></td></tr>
+    </tbody>
+  </table>
+  <caption>Error con ruido = valor esperado exacto con el modelo de ruido, sin shots: mide solo el sesgo. Referencia a 2,0 Å: HF se equivoca en 322 mHa y CCSD en −18,3 mHa.</caption></div>
+  <p>Sin mitigar, UCCSD ×2 da peor que Hartree-Fock. El compacto deja ~14 mHa de sesgo: 16 CZ al 0,1 % son ~1,6 %, y sus ~150 compuertas de 1 qubit al 0,005 % suman ~0,7 %. Esa observación (las compuertas de 1 qubit también pesan) es la que decidió cómo hacer la ZNE.</p>
+
+  <h3 id="mitigacion">9.3 · Mitigación de errores <span class="owner">Santino</span></h3>
+  <p>Mitigar es corregir el efecto del ruido con cuentas, después de medir, sin hardware mejor. Sobre el compacto de 16 CZ y el modelo de ruido, agregamos <b>un 2 % de error de lectura por qubit</b>, porque el hardware real lo tiene y el modelo base no. Probamos tres técnicas y sus combinaciones.</p>
+
+  <h4>1. Corrección de lectura (RO)</h4>
+  <p>Al medir, el aparato a veces lee 1 cuando era 0, o al revés. Se calibra preparando todo en |0⟩ y todo en |1⟩ (20 M de shots por estado) y contando cuánto se equivoca cada qubit.</p>
+  <div class="formula">
+    <p class="ftitle">Matriz de confusión y su corrección</p>
+    <div class="eq"><i>p</i><sub>medida</sub> = <i>A</i> · <i>p</i><sub>real</sub>, &nbsp; <i>A</i> = ⊗<sub><i>q</i></sub> <i>A<sub>q</sub></i>, &nbsp; <i>A<sub>q</sub></i> = (<span class="m">1−e₀ &nbsp; e₁ ; e₀ &nbsp; 1−e₁</span>) &nbsp; ⟹ &nbsp; <i>E<sub>g</sub></i> = <span class="big">Σ</span><sub><i>x</i></sub> <i>p</i><sub>medida</sub>(<i>x</i>) · (<i>A</i><sup>−T</sup> <i>v</i>)(<i>x</i>)</div>
+    <p class="read"><b>Se lee:</b> lo que medimos es lo real "mezclado" por la matriz de errores de lectura; en vez de des-mezclar los histogramas, corregimos los valores que le asignamos a cada bitstring.</p>
+    <dl>
+      <dt>e₀, e₁</dt><dd>probabilidad de leer 1 siendo 0, y de leer 0 siendo 1, para cada qubit.</dd>
+      <dt>⊗</dt><dd>combina las matrices de cada qubit suponiendo errores independientes.</dd>
+      <dt>v(x)</dt><dd>el valor del observable del grupo para el bitstring x.</dd>
+      <dt>A<sup>−T</sup></dt><dd>la inversa transpuesta de A. Corregir los valores en vez de los conteos deja que la σ siga saliendo de las muestras.</dd>
+    </dl>
+  </div>
+
+  <h4>2. Post-selección por simetría (PS)</h4>
+  <p>Después de la reducción, N<sub>α</sub> y N<sub>β</sub> siguen siendo "solo Z". En los grupos que miden en Z todos los qubits que hacen falta, cada shot dice cuántos electrones ↑ y ↓ hay. Si da otra cosa que 2 y 2, ese shot tiene un error seguro y se descarta. Se puede en 5 de los 35 grupos, los de más peso (~45 % de Σ|c|). Para combinarla con RO usamos un estimador de cociente, E<sub>g</sub> = media(u)/media(w), con u = keep·v y w = keep, y la σ por el método delta.</p>
+
+  <h4>3. Extrapolación a ruido cero (ZNE)</h4>
+  <p>Idea: medir con el ruido normal, con el triple y con el quíntuple, ver cómo empeora, y seguir la tendencia hacia "ruido cero". Para triplicar el ruido sin cambiar lo que hace el circuito, se lo "pliega": C·C†·C es lo mismo que C (C† deshace C), pero con el triple de compuertas.</p>
+  <div class="formula">
+    <p class="ftitle">Plegado global y extrapolación</p>
+    <div class="eq"><i>C</i> → <i>C</i>(<i>C</i><sup>†</sup><i>C</i>)<sup><i>k</i></sup>, &nbsp; λ = 2<i>k</i> + 1 &nbsp;&nbsp;|&nbsp;&nbsp; lineal: <i>E</i>(0) = (3<i>E</i>₁ − <i>E</i>₃)/2 &nbsp;&nbsp;|&nbsp;&nbsp; Richardson: <i>E</i>(0) = (15<i>E</i>₁ − 10<i>E</i>₃ + 3<i>E</i>₅)/8</div>
+    <p class="read"><b>Se lee:</b> repetir el circuito ida-vuelta-ida multiplica el ruido por λ = 1, 3, 5; una recta (o una parábola) que pasa por las energías medidas se evalúa en λ = 0.</p>
+    <dl>
+      <dt>λ</dt><dd>factor de ruido: 1 es el normal, 3 el triple. λ = 0 no se puede medir, se extrapola.</dd>
+      <dt>E<sub>λ</sub></dt><dd>la energía medida con el ruido multiplicado por λ.</dd>
+      <dt>3, −1 / 2 y 15, −10, 3 / 8</dt><dd>los pesos de la extrapolación. Como son grandes, amplifican la σ: la ZNE necesita muchos más shots. Los shots se reparten en proporción a esos pesos (3:1 para la lineal).</dd>
+    </dl>
+  </div>
+  <div class="formula">
+    <p class="ftitle">Reescalado con la fidelidad del eco (idea de Octavio)</p>
+    <div class="eq"><i>E</i>′<sub>λ</sub> = ( <i>E</i><sub>λ</sub> − (1 − <i>F</i><sup>λ</sup>) · Tr(Ĥ)/2<sup><i>n</i></sup> ) / <i>F</i><sup>λ</sup></div>
+    <p class="read"><b>Se lee:</b> con probabilidad F<sup>λ</sup> el estado sobrevive al ruido; si no, se vuelve ruido puro, cuya energía conocemos. Despejamos la energía del estado bueno.</p>
+    <dl>
+      <dt>F</dt><dd>fidelidad medida con el eco C·C†|0⟩: la fracción de shots que vuelven a |00000⟩. Daba 0,981.</dd>
+      <dt>Tr(Ĥ)/2<sup>n</sup></dt><dd>la energía del estado totalmente mezclado (ruido puro): el promedio de todas las energías posibles, que es el coeficiente constante de Ĥ.</dd>
+    </dl>
+  </div>
+  <p>Solo, el reescalado sobrecorrige (queda 1,5 mHa por debajo de FCI), porque el ruido real es local y no global. Combinado con ZNE lineal funciona muy bien.</p>
+
+  <div class="box warn">
+    <span class="tag">Los dos hallazgos clave</span>
+    <ul>
+      <li><b>Hay que plegar todo, no solo las CZ.</b> Plegando solo las CZ quedan 4 mHa de sesgo, porque las compuertas de 1 qubit no se escalan. Con plegado global queda ~0,01 mHa. Y hay que verificar que C† tenga las mismas compuertas que C: transpilado sin optimizar, C† salía con 368 rz contra 72 de C, y el factor de ruido ya no era λ.</li>
+      <li><b>Hay que plegar también la rotación de medición.</b> Cada grupo agrega 2 o 3 compuertas de 1 qubit por qubit para rotar a su base (R). Si se pliega solo C y R va después, el ruido de R no escala y deja un sesgo: a 1,8 Å, Richardson da +0,16 mHa plegando solo C y +0,002 mHa plegando R·C entero.</li>
+    </ul>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>técnica (con 2 % de error de lectura)</th><th class="r">sesgo 1,8 Å</th><th class="r">sesgo 2,4 Å</th><th class="r">sesgo 3,0 Å</th><th class="r">shots para σ = 0,5 mHa</th></tr></thead>
+    <tbody>
+      <tr><td>sin mitigar</td><td class="r bad">+110,5</td><td class="r bad">+109,1</td><td class="r bad">+110,8</td><td class="r">10 M</td></tr>
+      <tr><td>RO</td><td class="r">+14,7</td><td class="r">+13,8</td><td class="r">+13,3</td><td class="r">14 M</td></tr>
+      <tr><td>PS + RO</td><td class="r">+10,9</td><td class="r">+11,0</td><td class="r">+11,4</td><td class="r">13 M</td></tr>
+      <tr><td>ZNE lineal (1, 3) + PS + RO</td><td class="r">+0,27</td><td class="r">+0,29</td><td class="r">+0,30</td><td class="r">54 M</td></tr>
+      <tr class="hi"><td><b>eco + ZNE lineal (1, 3) + RO (la recomendada)</b></td><td class="r"><b>+0,030</b></td><td class="r"><b>+0,008</b></td><td class="r"><b>+0,006</b></td><td class="r"><b>61 M</b></td></tr>
+      <tr><td>ZNE Richardson (1, 3, 5) + PS + RO</td><td class="r">−0,001</td><td class="r">−0,003</td><td class="r">−0,004</td><td class="r">164 M</td></tr>
+    </tbody>
+  </table>
+  <caption>Sesgo exacto en mHa, calculado con matriz densidad (sin shots), para elegir la técnica antes de gastar shots.</caption></div>
+  <div class="tbl"><table>
+    <thead><tr><th class="r">d (Å)</th><th class="r">sin mitigar (10 M)</th><th class="r">RO (14 M)</th><th class="r">PS + RO (14 M)</th><th class="r">ZNE + PS + RO (54 M)</th><th class="r">eco + ZNE + RO (60 M)</th><th class="r">CCSD − FCI</th></tr></thead>
+    <tbody>
+      <tr><td class="r">1,8</td><td class="r">+110,4 ± 0,6</td><td class="r">+14,2 ± 0,6</td><td class="r">+10,3 ± 0,5</td><td class="r">−0,5 ± 0,5</td><td class="r"><b>+0,3 ± 0,6</b></td><td class="r">−9,1</td></tr>
+      <tr><td class="r">2,4</td><td class="r">+109,0 ± 0,5</td><td class="r">+14,4 ± 0,5</td><td class="r">+11,3 ± 0,5</td><td class="r">−0,1 ± 0,5</td><td class="r"><b>−1,0 ± 0,5</b></td><td class="r">−30,6</td></tr>
+      <tr><td class="r">3,0</td><td class="r">+110,5 ± 0,5</td><td class="r">+14,2 ± 0,5</td><td class="r">+10,6 ± 0,5</td><td class="r">+0,3 ± 0,5</td><td class="r"><b>+0,1 ± 0,5</b></td><td class="r">−23,0</td></tr>
+    </tbody>
+  </table>
+  <caption>Energías medidas con SamplerV2, E − FCI en mHa ± σ. Entre paréntesis, shots por punto.</caption></div>
+  <ul>
+    <li><b>Con mitigación, las 6 energías quedan dentro de la precisión química</b> y dentro de 2σ de FCI, y le ganan a CCSD por 9 a 31 mHa.</li>
+    <li><b>Las 15 mediciones coinciden con el sesgo exacto</b> que predecía el estudio sin shots (χ² = 15,4 con 15 grados de libertad, p = 0,42): la σ con ruido y mitigación también está calibrada.</li>
+    <li><b>La lectura es lo que más daño hace</b>: con 2 % por qubit agrega ~95 mHa, mucho más que las 16 CZ. Plegar no amplifica la lectura, así que la ZNE sola no la saca. Su corrección es imprescindible y barata (×1,4 shots).</li>
+    <li><b>La post-selección es gratis pero rinde poco:</b> baja el sesgo 15 a 26 % descartando menos del 1 % de los shots. Solo se puede chequear en 5 de 35 grupos, y los errores de fase no cambian N.</li>
+  </ul>
+  <p class="small"><b>Qué no funcionó:</b> plegar solo el ansatz (deja 0,16 a 0,23 mHa escondidos debajo de σ ≈ 1 mHa); combinar el eco con la post-selección (el reescalado supone que el ruido lleva al estado totalmente mezclado, y post-seleccionar cambia esa referencia); guardar solo θ* para reusarlo en otro proceso: el signo de los orbitales de PySCF cambia según cómo se reparte el cálculo entre hilos, y un θ* reusado así dio +668 mHa. Ahora θ* se guarda junto con su Ĥ.</p>
+
+  <h3 id="fez">9.4 · Ruido de hardware real con FakeFez <span class="owner">Octavio</span></h3>
+  <p>FakeFez es una copia simulada del procesador IBM Fez (Heron r2, 156 qubits) con su calibración real: el error de cada compuerta, los tiempos T1 y T2 y el error de lectura de cada qubit. Corrimos el punto de 2,4 Å con el compacto de 5 qubits.</p>
+  <ul>
+    <li><b>Ubicación en el chip:</b> el compacto solo usa CZ entre vecinos de una línea, así que entra sin SWAP. Probamos las 856 líneas de 5 qubits de Fez y elegimos la de menos errores esperados (qubits 140, 141, 142, 143, 136): 0,087 contra 0,172 de la mediana. UCCSD ×2 ubicado en Fez necesitaría 1939 CZ.</li>
+    <li><b>Simulación:</b> modelo de ruido de Fez restringido a esos 5 qubits, con matriz densidad. Da el mismo valor esperado que el chip completo (lo verifica un test) y es ~20 veces más rápido.</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>método (2,4 Å, en FakeFez)</th><th class="r">E − FCI (mHa)</th><th class="r">shots</th></tr></thead>
+    <tbody>
+      <tr><td>sin mitigar</td><td class="r bad">+76,1 ± 1,1</td><td class="r">2 M</td></tr>
+      <tr><td>corrigiendo la lectura (errores de 0,4 a 0,8 % por qubit)</td><td class="r">+50,0 ± 1,2</td><td class="r">2 M</td></tr>
+      <tr class="hi"><td><b>ZNE global (λ = 1, 3, 5) + lectura</b></td><td class="r"><b>−0,7 ± 1,2</b></td><td class="r">24 M</td></tr>
+      <tr><td>CCSD, como referencia</td><td class="r">−30,6</td><td class="r">—</td></tr>
+    </tbody>
+  </table>
+  <caption>Números de la ejecución guardada del notebook de extras.</caption></div>
+  <p>Con las dos correcciones, la energía queda compatible con FCI y muy lejos de CCSD. La ZNE sola no alcanza: en una prueba aparte, ZNE sin corregir la lectura dejó +32 mHa. <span class="small">Limitaciones: no simulamos el ruido de qubits que esperan sin compuertas ni la diafonía entre qubits, y con σ ≈ 1,2 mHa no alcanza para afirmar precisión química en este punto.</span></p>
+
+  <h3 id="geometria">9.5 · Otra geometría: H₄ cuadrado y en zigzag <span class="owner">Octavio</span></h3>
+  <p>Mismo flujo (UCCSD ×2, θ* sin ruido, energía medida con 2 M de shots), cambiando solo dónde están los átomos.</p>
+  <ul>
+    <li><b>Cuadrado de lado d:</b> por simetría, los dos orbitales del medio tienen la misma energía. HF tiene que elegir uno y queda con una brecha HOMO-LUMO chica (0,42 Ha contra 0,76 en la cadena), así que hay correlación estática fuerte incluso cerca del equilibrio. HF se equivoca en 124 mHa a 0,7 Å. CCSD queda 9,4 mHa por encima de FCI a 0,7 Å, 18,9 por debajo a 1,8 Å, y a 3,0 Å no converge.</li>
+    <li><b>Zigzag</b> (ángulo de 120°): se comporta como la cadena recta. CCSD falla al estirar, hasta 31,6 mHa a 2,4 Å.</li>
+  </ul>
+  <div class="tbl"><table>
+    <thead><tr><th>forma</th><th class="r">d (Å)</th><th class="r">VQE − FCI (mHa)</th><th class="r">CCSD − FCI (mHa)</th></tr></thead>
+    <tbody>
+      <tr><td>cuadrado</td><td class="r">0,7</td><td class="r">−0,06 ± 0,90</td><td class="r">+9,44</td></tr>
+      <tr><td>cuadrado</td><td class="r">1,2</td><td class="r">−0,13 ± 0,95</td><td class="r">−6,50</td></tr>
+      <tr class="zone"><td>cuadrado</td><td class="r">1,8</td><td class="r">+0,27 ± 0,93</td><td class="r">−18,90</td></tr>
+      <tr class="zone"><td>cuadrado</td><td class="r">2,4</td><td class="r bad">+2,27 ± 0,93</td><td class="r">−14,32</td></tr>
+      <tr class="zone"><td>cuadrado</td><td class="r">3,0</td><td class="r">+1,56 ± 0,86</td><td class="r">+2,28 (no convergió)</td></tr>
+      <tr><td>zigzag</td><td class="r">0,7</td><td class="r">+1,07 ± 1,00</td><td class="r">−0,00</td></tr>
+      <tr><td>zigzag</td><td class="r">1,2</td><td class="r">+0,69 ± 1,13</td><td class="r">−0,07</td></tr>
+      <tr class="zone"><td>zigzag</td><td class="r">1,8</td><td class="r">−0,58 ± 1,04</td><td class="r">−9,34</td></tr>
+      <tr class="zone"><td>zigzag</td><td class="r">2,4</td><td class="r">+0,71 ± 0,98</td><td class="r">−31,58</td></tr>
+      <tr class="zone"><td>zigzag</td><td class="r">3,0</td><td class="r">−0,05 ± 0,98</td><td class="r">−24,28</td></tr>
+    </tbody>
+  </table>
+  <caption>Números de la ejecución guardada. Sin ruido, VQE llega a FCI en todos los puntos (&lt; 0,001 mHa): las diferencias son ruido de shots.</caption></div>
+  <p>En la zona estirada le ganamos a CCSD en 5 de 6 puntos con el criterio de la consigna. En el cuadrado a 3,0 Å no (2,4 contra 2,3 mHa), y además CCSD no convergió ahí. El cuadrado a 2,4 Å queda a 2,4σ de FCI: con 2 M de shots, σ ≈ 1 mHa no alcanza para afirmar precisión química punto por punto. Harían falta los ~8 M de la curva principal. El costo en CZ es el mismo que en la cadena (582), porque solo depende de cuántos orbitales y electrones hay.</p>
+</section>
+
+<!-- ======================================================= 10 -->
+<section class="sec" id="decisiones">
+  <div class="sec-head">
+    <p class="sec-num">10 · Decisiones</p>
+    <h2>Qué decidimos, por qué, y qué descartamos</h2>
+  </div>
+  <p>Cada decisión, con el número que la justifica. Tocá una para abrirla.</p>
+  <div class="dec">
+    <details><summary>Separar la búsqueda de θ (sin ruido) de la energía reportada (medida con shots)</summary><div class="body">
+      <p><span class="lbl">Por qué</span>La consigna permite buscar los parámetros sin ruido y exige que la energía salga de medir. Optimizar con el simulador exacto tarda segundos por punto; con shots sería lento y ruidoso.</p>
+      <p><span class="lbl">Descartamos</span>Optimizar con SPSA y shots.</p>
+      <p><span class="lbl">Costo</span>La curva no mide la dificultad de optimizar en hardware real. Lo declaramos como limitación.</p></div></details>
+    <details><summary>ADAPT-VQE fermiónico con una lista común de 15 excitaciones</summary><div class="body">
+      <p><span class="lbl">Por qué</span>194 CZ (378 en línea) con error sin ruido ≤ 0,38 mHa, y el mismo circuito en toda la curva. Conserva N<sub>α</sub> y N<sub>β</sub> en cada shot.</p>
+      <p><span class="lbl">Descartamos</span>UCCSD ×2: exacto, pero 582 CZ (1648 en línea), y con ruido da 561 mHa de error. UCCSD ×1: 4,5 mHa de error. QEB: más barato (159 CZ) pero rompe más el espín. Co-ADAPT: más operadores y más CZ. El compacto de 5 qubits: no conserva simetrías y no escala.</p></div></details>
+    <details><summary>Cortar ADAPT por la varianza de la energía y completar los pares de espín</summary><div class="body">
+      <p><span class="lbl">Por qué</span>La varianza no usa FCI y cae 12 veces al pasar de 12 a 13 operadores. Agregar las dos simples gemelas baja el error de 0,59 a 0,38 mHa y S² a la mitad, por 9 CZ.</p>
+      <p><span class="lbl">Descartamos</span>Cortar por gradiente &lt; 10⁻⁴ (mesetas con hasta 2 mHa de error). Agregar las simples al final (mínimo malo).</p></div></details>
+    <details><summary>Dos arranques en cada optimización: warm start y θ = 0</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Solo con warm start aparecían mínimos locales de hasta 2 mHa (9,8 mHa con QEB). Como VQE es variacional, quedarse con el más bajo es correcto sin mirar FCI.</p></div></details>
+    <details><summary>Medir el circuito sin rutear; usar el ruteo fSWAP para contar las CZ en línea</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Es el mismo estado. Ĥ en el orden final del ruteo necesita 69 grupos en vez de 37 (más shots). Las 378 CZ en línea se reportan en la tabla.</p>
+      <p><span class="lbl">Descartamos</span>Rutear con el transpiler (543 CZ) o reordenar operadores (314 CZ pero 5,2 mHa de error).</p></div></details>
+    <details><summary>SamplerV2 con σ calculada de las muestras</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Barras de error que salen de los datos, y la posibilidad de repartir shots con Neyman, post-seleccionar y corregir la lectura.</p>
+      <p><span class="lbl">Descartamos</span>EstimatorV2 de Aer, cuya σ es un parámetro elegido a mano.</p></div></details>
+    <details><summary>Grupos QWC armados con sorted insertion</summary><div class="body">
+      <p><span class="lbl">Por qué</span>37 grupos en vez de 46, y 1,6 a 1,8 veces menos shots. Sin CZ extra, y compatible con la post-selección.</p>
+      <p><span class="lbl">Descartamos</span>GC: 2 a 2,8 veces menos shots, pero 4 a 77 CZ más por grupo. Con ruido, no conviene.</p></div></details>
+    <details><summary>Shots en dos etapas: piloto (10 %) + Neyman</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Queda a menos de 1 % del reparto óptimo teórico (K = 2,15 contra 2,13).</p>
+      <p><span class="lbl">Descartamos</span>Repartir según Σ|c| (K = 3,69) o con las varianzas de HF (K = 24,6, 11 veces peor).</p></div></details>
+    <details><summary>8 millones de shots por punto</summary><div class="body">
+      <p><span class="lbl">Por qué</span>σ ≈ 0,5 mHa en la zona estirada: deja margen para que |error| + σ quede debajo de 1,6 mHa. Total: 144 M de shots.</p></div></details>
+    <details><summary>Una semilla independiente para cada grupo, etapa y punto</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Semillas consecutivas o repetidas daban errores correlacionados (desvíos de 4σ, rachas de 3σ en puntos vecinos), que sesgaban R<sub>e</sub> y hacían mentir a σ.</p></div></details>
+    <details><summary>R<sub>e</sub> con un ajuste cuártico en 7 puntos, y su σ por Monte Carlo</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Es el único modelo con sesgo chico en R<sub>e</sub> (−0,9 mÅ) y en E<sub>min</sub> (−16 µHa). El sesgo se midió aplicando cada modelo a FCI en la misma grilla, contra el mínimo verdadero de PySCF.</p>
+      <p><span class="lbl">Descartamos</span>Cuadrático en 5 puntos (+7,8 mÅ de sesgo, varias σ). Spline (sin sesgo pero 5 veces más ruidoso). Comparar contra un ajuste de FCI con el mismo modelo, porque esconde el sesgo del ajuste.</p></div></details>
+    <details><summary>Varianza por eco de Loschmidt como diagnóstico de confiabilidad</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Cuenta eventos raros y resuelve varianzas de 10⁻⁶ Ha² con 10⁶ shots.</p>
+      <p><span class="lbl">Descartamos</span>Solo ⟨Ĥ²⟩ − ⟨Ĥ⟩² por grupos: σ ≈ 2·10⁻³ Ha², no separa los ansätze.</p>
+      <p><span class="lbl">Costo</span>~4600 CZ: es un diagnóstico de simulador, no de hardware.</p></div></details>
+    <details><summary>Medir S², no solo la energía</summary><div class="body">
+      <p><span class="lbl">Por qué</span>A 3,0 Å el triplete está a 0,95 mHa del fundamental. Un estado de espín equivocado puede pasar el criterio de precisión química. UCCSD ×1 lo hacía (S² = 0,85) y solo S² lo delataba.</p></div></details>
+    <details><summary>Extras con 5 qubits y el compacto de 16 CZ</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Con ruido, los circuitos de 8 qubits no sirven con ningún número de shots. Con 16 CZ el sesgo sin mitigar es ~14 mHa (sin error de lectura) y la mitigación lo baja a ~0,01 mHa.</p></div></details>
+    <details><summary>ZNE con plegado global, incluida la rotación de medición; recomendada: eco + ZNE lineal + RO</summary><div class="body">
+      <p><span class="lbl">Por qué</span>Plegar solo las CZ deja 4 mHa; plegar solo C deja 0,16 mHa; plegar R·C entero deja 0,002 mHa. Eco + ZNE lineal + RO deja ≤ 0,03 mHa con ~4 veces los shots de RO sola, contra 12 veces de Richardson.</p></div></details>
+    <details><summary>Modelo de ruido propio</summary><div class="body">
+      <p><span class="lbl">Por qué</span><code>ruido.py</code> no se distribuyó. Reconstruimos sus parámetros (cz, sx, x, rz; en línea; 0,1 % por CZ y 0,005 % por compuerta de 1 qubit) y para ruido de hardware usamos FakeFez.</p></div></details>
+    <details><summary>Dos notebooks: la consigna y los extras</summary><div class="body">
+      <p><span class="lbl">Por qué</span><code>H4_VQE.ipynb</code> tiene lo que pide la consigna y corre en Colab en un tiempo razonable. <code>H4_VQE_extras.ipynb</code> tiene los extras, cada uno corre solo. Los dos se generan desde <code>h4vqe/*.py</code> y <code>notebook/md/*.md</code> con <code>build_notebook.py</code>.</p></div></details>
+  </div>
+
+  <h3>Todo lo que no funcionó, en una lista</h3>
+  <ul>
+    <li>UCCSD ×2 con ruido: 561 mHa de error, peor que Hartree-Fock.</li>
+    <li>ADAPT con umbral de gradiente 10⁻⁴: mesetas con 0,6 a 2 mHa de error.</li>
+    <li>Simples de espín al final de la lista: mínimo malo (2,5 mHa, S² = 0,52).</li>
+    <li>Optimizar solo con warm start: mínimos locales de hasta 9,8 mHa.</li>
+    <li>Reordenar operadores para menos fSWAP: 5,2 mHa de error.</li>
+    <li>Co-ADAPT: más operadores y más CZ que ADAPT común.</li>
+    <li>Semillas consecutivas o repetidas en el Sampler: σ subestimada y ruido correlacionado entre puntos.</li>
+    <li>Neyman con varianzas de HF: 11 veces peor.</li>
+    <li>Calibrar σ con 60 repeticiones: no alcanza para distinguir 1,16 de 1.</li>
+    <li>Ajuste cuadrático para R<sub>e</sub>: +7,8 mÅ de sesgo.</li>
+    <li>Varianza solo por grupos: demasiado ruidosa para separar ansätze.</li>
+    <li>Eco con 2 pasos de Trotter: el error de Trotter se confundía con la señal.</li>
+    <li>Compacto con todas las CZ por capa: techo de fidelidad 0,961.</li>
+    <li>Compacto con L = 6: mínimos locales de hasta 3,8 mHa. Sin penalizar S²: convergió al triplete.</li>
+    <li>ZNE plegando solo las CZ (4 mHa de sesgo) o solo el ansatz (0,16 mHa).</li>
+    <li>C† transpilado sin optimizar: 368 rz contra 72; el factor de ruido dejaba de ser λ.</li>
+    <li>Eco solo: sobrecorrige 1,5 mHa. Eco con post-selección: incompatibles.</li>
+    <li>ZNE sin corregir la lectura en FakeFez: +32 mHa.</li>
+    <li>Reusar θ* sin su hamiltoniano: el signo de los orbitales de PySCF cambia y dio +668 mHa.</li>
+  </ul>
+
+  <h3>Limitaciones (para decirlas antes de que las pregunten)</h3>
+  <ul>
+    <li><b>Compuertas:</b> 194 CZ (378 en línea). Con 0,1 % por CZ, la chance de que no falle ninguna es 82 % (69 % en línea). En hardware la curva principal necesitaría mitigación; eso está demostrado en los extras con 16 CZ.</li>
+    <li><b>Optimización sin ruido:</b> permitida, pero no prueba que se pueda optimizar con mediciones reales.</li>
+    <li><b>σ es solo estadística:</b> en la curva principal no hay ruido de compuertas ni de lectura, así que no hay sesgo que cubrir. Con ruido, el sesgo se trata aparte (mitigación).</li>
+    <li><b>El eco de Loschmidt</b> usa ~4600 CZ: diagnóstico de simulador.</li>
+    <li><b>Shots:</b> 144 M en la curva y ~60 M por punto con la mitigación recomendada.</li>
+    <li><b>Espín:</b> S² ≤ 6,5·10⁻³, no exactamente 0, porque el pool no está adaptado al espín.</li>
+    <li><b>Escala:</b> H₄ es trivial para una computadora clásica. El tapering escala; el compacto no; en VQE para moléculas grandes, la cantidad de mediciones es el cuello de botella conocido.</li>
+    <li><b>Ruido:</b> el modelo es propio; la corrección de lectura supone errores independientes por qubit; FakeFez no incluye ruido de espera ni diafonía.</li>
+  </ul>
+</section>
+
+<!-- ======================================================= 11 -->
+<section class="sec" id="preguntas">
+  <div class="sec-head">
+    <p class="sec-num">11 · Preguntas para practicar</p>
+    <h2>Lo que les puede preguntar el jurado, con una respuesta corta</h2>
+  </div>
+  <div class="qa">
+    <details><summary>Qué es VQE, en una frase?</summary><div class="a"><p>Un circuito cuántico con perillas prepara un estado, medimos su energía, y una computadora clásica gira las perillas para bajarla. Como la energía de cualquier estado real es mayor o igual a la exacta, minimizar nos acerca a la respuesta desde arriba.</p></div></details>
+    <details><summary>Por qué CCSD falla al estirar y VQE no?</summary><div class="a"><p>CCSD parte de una sola configuración (HF) y la corrige. Al estirar, el estado real es una mezcla de muchas configuraciones (HF pesa solo 27 % a 3,0 Å) y las correcciones no alcanzan. Además CCSD no es variacional, así que puede quedar por debajo de la exacta, y queda: hasta −30,6 mHa. VQE prepara un estado real, así que no puede bajar de la exacta, y nuestro ansatz es capaz de representar la mezcla.</p></div></details>
+    <details><summary>Si VQE es variacional, cómo puede dar por debajo de FCI en algunos puntos?</summary><div class="a"><p>Por el ruido estadístico de los shots. El valor esperado del circuito siempre está por encima de FCI, pero lo estimamos con 8 M de shots y tiene ± σ. A 0,6 Å quedó 0,79 mHa abajo con σ = 0,59: −1,3σ, algo que pasa por azar. La calibración de σ (desvío de z = 1,01 en 3600 repeticiones) muestra que esas fluctuaciones tienen el tamaño correcto.</p></div></details>
+    <details><summary>Optimizar sin ruido no es hacer trampa?</summary><div class="a"><p>No: la consigna lo permite explícitamente ("pueden buscar los parámetros como quieran, incluso sin ruido"). Lo que reportamos sale de medir el circuito con shots. Lo decimos como limitación: no probamos que se pueda optimizar con mediciones en hardware real.</p></div></details>
+    <details><summary>Por qué ADAPT y no UCCSD?</summary><div class="a"><p>UCCSD ×2 llega a la exacta pero con 582 CZ (1648 en línea); con el ruido de la consigna da 561 mHa de error. ADAPT elige solo las excitaciones que bajan la energía: con 15 llega a 0,38 mHa del exacto con 194 CZ. Y medido con shots, UCCSD ×2 no da una energía distinguible de la nuestra.</p></div></details>
+    <details><summary>Por qué una sola lista de operadores para toda la curva?</summary><div class="a"><p>Para tener el mismo circuito, y la misma cantidad de CZ, en las 18 distancias. Elegimos en cada paso el operador con mayor gradiente en cualquiera de ellas. Solo cambian los ángulos.</p></div></details>
+    <details><summary>Cómo eligieron cuántos operadores, sin mirar FCI?</summary><div class="a"><p>Con la varianza de la energía, que es 0 solo en un autoestado: al pasar de 12 a 13 operadores cae 12 veces. Después completamos dos pares de espín (15). La varianza medida con shots por eco de Loschmidt confirma el corte.</p></div></details>
+    <details><summary>Por qué 8 millones de shots?</summary><div class="a"><p>Porque dan σ ≈ 0,5 mHa en la zona estirada, y la meta es |error| + σ &lt; 1,6 mHa con margen. La σ baja como 1/√N, así que es una cuenta: con nuestro agrupamiento y reparto, σ = √(K/N) con K ≈ 2 mHa²·M. Agrupar con sorted insertion y repartir con Neyman nos ahorró casi la mitad de los shots respecto de lo que usábamos al principio.</p></div></details>
+    <details><summary>Cómo saben que la barra de error está bien?</summary><div class="a"><p>La calibramos: medimos el mismo circuito 500 veces en cada configuración (17,8 mil millones de shots en total) y miramos z = error/σ. Su desvío da 1,01 [0,99; 1,04], como debe, y el bootstrap coincide con la fórmula dentro de 0,7 %.</p></div></details>
+    <details><summary>Por qué SamplerV2 y no EstimatorV2?</summary><div class="a"><p>El EstimatorV2 de Aer no mide de verdad: calcula el valor exacto y le suma ruido gaussiano de un tamaño que elegís, y te devuelve ese mismo número como σ. Con SamplerV2 tenemos los bitstrings, y la σ sale de los datos. Además permite repartir shots de forma óptima y aplicar post-selección y corrección de lectura.</p></div></details>
+    <details><summary>Cómo saben que el resultado estirado es confiable sin FCI?</summary><div class="a"><p>Seis argumentos, todos medidos con shots: es variacional; la varianza de la energía, medida por eco de Loschmidt, es ~10⁻⁴ Ha² o menos, más de 500 veces menor que la de HF; N<sub>α</sub> = N<sub>β</sub> = 2 en todos los shots y S² ≈ 0; un ansatz con 3 veces más CZ no baja la energía más allá de 1,6σ; y la σ está calibrada.</p></div></details>
+    <details><summary>Qué es S² y por qué lo miden?</summary><div class="a"><p>El espín total. El estado que buscamos tiene S² = 0 (singlete). Al estirar, el triplete (S² = 2) queda a menos de 1 mHa: un estado equivocado puede tener una energía "buena". UCCSD ×1 caía en esa trampa y la energía no lo mostraba; S² sí.</p></div></details>
+    <details><summary>Si el compacto de 5 qubits tiene 16 CZ, por qué no lo usaron para la curva?</summary><div class="a"><p>Porque no respeta las simetrías por construcción (hay que penalizar S² y medir N), tiene mínimos locales con pocas capas y no escala a moléculas más grandes. Para la curva sin ruido preferimos ADAPT, que está motivado por la química. El compacto brilla donde hay ruido: lo usamos en mitigación y FakeFez.</p></div></details>
+    <details><summary>Qué pasa con ruido?</summary><div class="a"><p>Con el modelo de la consigna, UCCSD ×2 da 561 mHa de error. El compacto de 16 CZ deja ~14 mHa sin mitigar (110 mHa si además hay 2 % de error de lectura). Con corrección de lectura, eco y ZNE lineal queda en +0,3, −1,0 y +0,1 mHa a 1,8, 2,4 y 3,0 Å: precisión química con ruido. En FakeFez, a 2,4 Å: −0,7 ± 1,2 mHa.</p></div></details>
+    <details><summary>Qué es la ZNE y por qué hay que plegar todo?</summary><div class="a"><p>Medimos con el ruido multiplicado por 1, 3 y 5 (repitiendo el circuito ida-vuelta-ida) y extrapolamos a ruido cero. Funciona si el ruido realmente se multiplica por λ. Si plegás solo las CZ, las compuertas de 1 qubit no se multiplican y quedan 4 mHa de sesgo. Si plegás el ansatz pero no la rotación de medición, quedan 0,16 mHa. Plegando todo, 0,002 mHa.</p></div></details>
+    <details><summary>Por qué un ajuste cuártico para R<sub>e</sub>?</summary><div class="a"><p>Probamos 7 modelos aplicándolos a FCI en la misma grilla y midiendo cuánto se equivocan respecto del mínimo verdadero. La parábola se corre +7,8 mÅ porque la curva es asimétrica. El cuártico en 7 puntos tiene sesgo &lt; 1 mÅ y σ chica. Esa prueba elige un método numérico; no corrige ningún resultado.</p></div></details>
+    <details><summary>Cerca del equilibrio CCSD es mejor que ustedes. Es un problema?</summary><div class="a"><p>No. Ahí CCSD es casi exacto (0,005 mHa) y nuestro error es ruido de shots (~0,6 mHa), igual dentro de la precisión química. La consigna pide ganarle desde 1,8 Å, que es donde CCSD falla. Bajar ese ruido costaría más shots, no un mejor método.</p></div></details>
+    <details><summary>Esto escala a una molécula de verdad?</summary><div class="a"><p>H₄ se resuelve exacto en una notebook, así que acá el valor está en el método. Lo que escala: el tapering, el agrupamiento con sorted insertion, el reparto de Neyman y los diagnósticos de confiabilidad. Lo que no: el compacto, y la cantidad de mediciones, que es el cuello de botella conocido de VQE en moléculas grandes. Para algo como FeMoco las estimaciones publicadas apuntan a computadoras con corrección de errores, con otro algoritmo (estimación de fase).</p></div></details>
+  </div>
+</section>
+
+<!-- ======================================================= 12 -->
+<section class="sec" id="glosario">
+  <div class="sec-head">
+    <p class="sec-num">12 · Glosario</p>
+    <h2>Todos los términos, en palabras simples</h2>
+  </div>
+  <div class="gl-tools">
+    <label for="gl-q" class="small">Buscar</label>
+    <input id="gl-q" type="search" placeholder="Ej.: shots, tapering, Neyman" autocomplete="off">
+    <span class="gl-count" id="gl-count" aria-live="polite"></span>
+  </div>
+  <div class="gl-list" id="gl-list"></div>
+  <h3>Símbolos de las fórmulas</h3>
+  <div class="gl-list" id="gl-sym"></div>
+</section>
+
+</main>
+</div>
+
+<footer class="foot">
+  <p>Armado a partir del repositorio quantum-toffolis en main (commit 9b91256): la consigna, los textos de <code>notebook/md/</code>, el código de <code>h4vqe/</code> y las salidas guardadas de <code>H4_VQE.ipynb</code> y <code>H4_VQE_extras.ipynb</code>. Cuando el texto de un notebook y su ejecución guardada no coinciden, esta guía usa la ejecución.</p>
+</footer>
+
+<div id="pop" role="dialog" aria-labelledby="pop-t" tabindex="-1" hidden>
+  <div class="ph">
+    <button type="button" class="pb" id="pop-back" hidden>← volver</button>
+    <span class="kick">Glosario</span>
+    <button type="button" class="pb px" id="pop-x" aria-label="Cerrar">×</button>
+  </div>
+  <h4 id="pop-t"></h4>
+  <div id="pop-b"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+function E(k,t,p,d,o){o=o||{};return {k:k,t:t,p:p,d:d,cs:!!o.cs,x:o.x,s:o.s,sym:!!o.sym,hide:!!o.hide};}
+var C={cs:true};
+var GL=[
+E('__demo','¡Así se usa!',[],'Esta ventanita es el glosario. Explica cada término con palabras simples. Probá tocar una palabra subrayada acá adentro, como qubit o hamiltoniano, y después volvé con «← volver».',{hide:true}),
+E('haber','Haber-Bosch',['Haber-Bosch'],'El proceso industrial que fabrica amoníaco (la base de los fertilizantes) rompiendo moléculas de nitrógeno a ~450 °C y cientos de atmósferas. Gasta entre el 1 y el 2 % de la energía de la humanidad.'),
+E('nitro','Nitrogenasa',['nitrogenasa'],'Enzima de bacterias de las raíces de la soja que hace lo mismo que Haber-Bosch a temperatura ambiente. Entender su química es la motivación de fondo del desafío.'),
+E('femoco','FeMoco',['FeMoco'],'El cúmulo de hierro, molibdeno y azufre en el centro de la nitrogenasa. Es la molécula "meta" para estimar cuándo una computadora cuántica le ganaría a las clásicas en química. Un modelo usual: 54 orbitales, 108 qubits.',C),
+E('catal','Catalizador',['catalizadores','catalizador'],'Sustancia que acelera una reacción sin gastarse. Un buen catalizador permite hacer la reacción con menos energía.'),
+E('h4','H₄',['H₄'],'Cuatro átomos de hidrógeno en fila, separados por la misma distancia d. Es la molécula más chica que ya muestra el problema: los métodos clásicos aproximados fallan al estirarla.',C),
+E('enlace','Enlace químico',['enlaces','enlace'],'La unión entre dos átomos, hecha por electrones compartidos. Romper un enlace es separar los átomos hasta que dejan de compartirlos.'),
+E('nucleo','Núcleo',['núcleos','núcleo'],'La parte central del átomo, con carga positiva. Los núcleos se repelen entre sí; los electrones los mantienen unidos.'),
+E('electron','Electrón',['electrones','electrón'],'Partícula con carga negativa que se mueve alrededor de los núcleos. H₄ tiene 4: dos con espín ↑ y dos con espín ↓.'),
+E('ang','Å (ångström)',['Å'],'Unidad de distancia entre átomos: 0,1 nanómetros. Un enlace típico mide alrededor de 1 Å. mÅ es una milésima.',C),
+E('ma','mÅ',['mÅ'],'Una milésima de ångström. La usamos para el error de Rₑ.',C),
+E('ha','Hartree (Ha)',['Hartree','Ha','Ha²'],'La unidad de energía de la química cuántica (unos 27,2 eV). Las energías de H₄ rondan los −2 Ha.',C),
+E('mha','mHa (mili-Hartree)',['mHa','mHa²','µHa'],'Una milésima de Hartree. Los errores se miden en mHa; la precisión química es 1,6 mHa. µHa es una millonésima de Hartree.',C),
+E('curva','Curva de energía',['curva de energía','curva'],'La energía de la molécula según la distancia d entre átomos. De su forma salen Rₑ (dónde está el fondo) y Dₑ (qué tan profundo es el pozo).',{s:'problema'}),
+E('re','Rₑ (distancia de equilibrio)',['distancia de equilibrio'],'La distancia donde la energía es mínima: el fondo de la curva. Para H₄ en cadena, 0,8886 Å (FCI). Medimos 0,8873 ± 0,0018 Å.',{s:'resultados'}),
+E('de','Dₑ (energía de disociación)',['energía de disociación'],'Cuánto cuesta romper la molécula desde el equilibrio: Dₑ = E(3,0 Å) − E(Rₑ). Para H₄, 313,21 mHa (FCI); medimos 313,00 ± 0,66 mHa.',{s:'resultados'}),
+E('equil','Equilibrio',['equilibrio'],'La forma más "cómoda" de la molécula, con energía mínima. Para H₄ en cadena, d ≈ 0,89 Å.'),
+E('zona','Zona estirada',['zona estirada','estirados','estirado','estirada','estirar'],'Distancias d ≥ 1,8 Å. Cada electrón quiere quedarse en su átomo, el estado se vuelve una mezcla de muchas configuraciones y CCSD falla. Ahí la consigna pide ganarle a CCSD.'),
+E('pq','Precisión química',['precisión química'],'Un error menor a 1,6 mHa (1 kcal/mol). Por debajo de eso, el cálculo sirve para predecir química real.'),
+E('sto','STO-3G',['STO-3G'],'La descripción más simple de dónde pueden estar los electrones: un orbital 1s por átomo. Con 4 átomos hay 4 orbitales y 8 qubits.',C),
+E('orbital','Orbital',['orbitales moleculares','orbital molecular','orbitales','orbital'],'Una "región" donde puede estar un electrón. Los orbitales moleculares se extienden sobre toda la molécula. En cada uno entran 2 electrones: uno ↑ y uno ↓.'),
+E('eso','Espín-orbital',['espín-orbitales','espín-orbital'],'Un orbital con un espín fijo (↑ o ↓): un lugar para un solo electrón. H₄ tiene 4 × 2 = 8, uno por qubit.'),
+E('espin','Espín',['espín','espines'],'Una propiedad de cada electrón que vale ↑ o ↓ (α o β). Como un imán chiquito que apunta para arriba o para abajo.'),
+E('ab','α y β',['α','β'],'Los dos valores de espín: α = ↑ y β = ↓. Qubits 0 a 3 son los orbitales α; qubits 4 a 7, los β.',C),
+E('nab','N_α y N_β',[],'Cuántos electrones hay con espín ↑ (N_α) y con espín ↓ (N_β). En el estado que buscamos valen 2 y 2. Se leen directo de cada bitstring medido en Z: si un shot da otra cosa, hubo un error.'),
+E('singlete','Singlete',['singletes','singlete','singulete'],'Un estado con espín total cero (S² = 0): espines emparejados. El fundamental de H₄ es un singlete.'),
+E('triplete','Triplete',['triplete'],'Un estado con espín total 1 (S² = 2). A 3,0 Å está a solo 0,95 mHa del fundamental: con la energía sola es fácil confundirlos. Por eso medimos S².'),
+E('s2','S² (espín total)',['S²'],'Mide el espín total: 0 para un singlete, 2 para un triplete. Lo medimos con shots para comprobar que el circuito preparó el estado correcto.',{cs:true,s:'confianza'}),
+E('simetria','Simetría',['simetrías','simetría'],'Algo que el estado cumple sí o sí, por ejemplo cuántos electrones tiene de cada espín, o que no cambia al dar vuelta la molécula. Sirve para chequear errores y para ahorrar qubits.'),
+E('paridad','Paridad',['paridades','paridad'],'Si una cantidad es par o impar. N_α = 2 es par. Se mide con un producto de Z, como Z₀Z₁Z₂Z₃.'),
+E('inv','Inversión de la cadena',['inversión'],'Dar vuelta la cadena: el átomo 1 pasa a ser el 4 y el 2 el 3. La molécula queda igual, así que el estado respeta esa simetría. Nos permite sacar el quinto qubit.',{s:'menos-qubits'}),
+E('sector','Sector',['sector'],'El conjunto de estados con valores fijos de las simetrías, por ejemplo N_α = N_β = 2. Para H₄ son 36 de las 256 configuraciones.'),
+E('hf','Hartree-Fock (HF)',['Hartree-Fock','HF'],'La aproximación más simple: los electrones en una sola configuración, cada uno sintiendo el promedio de los demás. Es una "foto". Es el punto de partida de CCSD y de nuestro ansatz.',C),
+E('ehf','E_HF',[],'La energía de Hartree-Fock. A 3,0 Å se equivoca en más de 500 mHa respecto de la exacta.'),
+E('hfs','|00110011⟩ (estado HF)',['|00110011⟩'],'La configuración de Hartree-Fock como bitstring. En Qiskit se lee de derecha a izquierda: ocupados los qubits 0 y 1 (orbitales α más bajos) y 4 y 5 (β más bajos).'),
+E('det','Determinante',['determinantes','determinante'],'Otra forma de decir "configuración de electrones". El nombre viene de cómo se escribe la función de onda antisimétrica.'),
+E('config','Configuración',['configuraciones','configuración'],'Qué lugares (espín-orbitales) están ocupados: una foto de los electrones. En qubits, un bitstring. El estado real es una mezcla de configuraciones.'),
+E('corr','Correlación estática',['correlación estática'],'Cuando el estado real es una mezcla fuerte de varias configuraciones y ninguna domina. Pasa al estirar enlaces y rompe a los métodos de una sola foto, como CCSD.'),
+E('fci','FCI (respuesta exacta)',['FCI'],'Full Configuration Interaction: mezcla todas las configuraciones y da la energía exacta. Con 8 qubits es instantáneo, así que lo usamos solo para comparar. Su costo crece exponencialmente.',C),
+E('ccsd','CCSD',['CCSD'],'Coupled Cluster con excitaciones simples y dobles: el "estándar de oro" clásico. Parte de la foto HF y la corrige. Anda muy bien cerca del equilibrio, falla al estirar y no es variacional.',{cs:true,s:'hamiltoniano'}),
+E('ccsdtq','CCSDTQ',['CCSDTQ'],'CCSD más triples y cuádruples. Para 4 electrones equivale a la respuesta exacta.',C),
+E('proy','Ecuaciones proyectadas',['ecuaciones proyectadas'],'CCSD no minimiza la energía de un estado: resuelve ecuaciones que solo miran HF y sus excitaciones simples y dobles. Por eso su energía puede caer por debajo de la exacta.'),
+E('var','Variacional',['variacionales','variacional'],'Un método es variacional si su energía es el promedio de Ĥ en un estado que existe de verdad. Nunca puede dar menos que la exacta: más bajo es mejor. VQE lo es; CCSD no.'),
+E('pv','Principio variacional',['principio variacional'],'Para cualquier estado, ⟨ψ|Ĥ|ψ⟩ ≥ E₀: un promedio de energías nunca es menor que la más chica.',{s:'hamiltoniano'}),
+E('pyscf','PySCF',['PySCF'],'Librería de química en Python. Calcula Hartree-Fock, las integrales del hamiltoniano, CCSD y FCI.',C),
+E('qiskit','Qiskit / Aer',['Qiskit','Aer'],'Librería de IBM para armar y correr circuitos cuánticos. Aer es su simulador, con o sin ruido.',C),
+E('homo','Brecha HOMO-LUMO',['HOMO-LUMO'],'Diferencia de energía entre el último orbital ocupado y el primero vacío. Si es chica, los electrones "saltan" fácil y el estado se mezcla.',C),
+E('qubit','Qubit',['qubits','qubit'],'El bit cuántico: puede estar en 0, en 1 o en una superposición. Acá cada qubit dice si un espín-orbital está ocupado (1) o vacío (0).'),
+E('sup','Superposición',['superposición'],'Estar "en varios estados a la vez", con ciertas amplitudes. Al medir se rompe y da un solo resultado al azar.'),
+E('amp','Amplitud',['amplitudes','amplitud'],'El número que dice cuánto de cada configuración tiene un estado. Su módulo al cuadrado es la probabilidad de verla al medir.'),
+E('ket','Notación |ψ⟩ y ⟨ψ|',['ket'],'|ψ⟩ ("ket psi") es un estado. ⟨ψ|A|ψ⟩ es el promedio de A en el estado ψ.'),
+E('bits','Bitstring',['bitstrings','bitstring'],'La tira de 0 y 1 que devuelve una medición, una cifra por qubit. Por ejemplo 00110011.'),
+E('ent','Entrelazamiento',['entrelazamiento'],'Cuando el estado de varios qubits no se puede describir qubit por qubit. Las mezclas de configuraciones son estados entrelazados; se crean con compuertas de 2 qubits como la CZ.'),
+E('gate','Compuerta',['compuertas','compuerta'],'Una operación sobre qubits: una instrucción del circuito. Las de 1 qubit fallan poco; las de 2 qubits (CZ) los conectan y fallan más.'),
+E('circ','Circuito',['circuitos','circuito'],'La secuencia de compuertas que se aplica a los qubits, como un programa. Al final se miden.'),
+E('cz','CZ',['CZ'],'Compuerta de 2 qubits: cambia el signo del estado cuando los dos valen 1. Crea entrelazamiento y, en hardware real, es la que más falla. Por eso contamos CZ.',C),
+E('cnot','CNOT',['CNOT'],'Compuerta de 2 qubits que da vuelta el segundo si el primero vale 1. Cuesta lo mismo que una CZ.',C),
+E('ry','RY',['RY'],'Rotación de un qubit con ángulo θ: pasa amplitud de |0⟩ a |1⟩. RY(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩.',C),
+E('nat','Compuertas nativas',['sx','rz'],'Las compuertas que acepta el hardware de la consigna: cz, sx, x y rz. Todo circuito se traduce a ellas.',C),
+E('sdh','H y S†H',['S†H'],'Rotaciones de 1 qubit que se aplican antes de medir para leer X (con H) o Y (con S†H) como si fuera Z.',C),
+E('swap','SWAP',['SWAP'],'Intercambia el estado de dos qubits vecinos. Cuesta 3 CZ. Sirve para acercar qubits lejanos en un chip en línea.',C),
+E('fswap','fSWAP',['fSWAP'],'SWAP para fermiones: intercambia dos espín-orbitales con el signo de los electrones. Cuesta 2 CZ. Es la base de nuestro ruteo.',{cs:true,s:'ansatz'}),
+E('conn','Conectividad / en línea',['conectividad total','conectividad','en línea','todos con todos'],'Qué qubits pueden hacer CZ entre sí. En un chip real, solo los vecinos (en línea). "Todos con todos" es el caso ideal.'),
+E('transp','Transpiler',['transpiler','transpilado'],'La herramienta de Qiskit que traduce un circuito a las compuertas nativas y a la conectividad del chip, agregando SWAP donde hace falta.'),
+E('ruteo','Ruteo',['ruteo','ruteado','rutear'],'Decidir cómo mover los estados para que las compuertas de 2 qubits caigan entre vecinos. Hacerlo bien ahorra muchas CZ.'),
+E('prof','Profundidad',['profundidad','profundo'],'Qué tan largo es un circuito. Más profundo = más expresivo pero con más ruido.'),
+E('shot','Shot',['shots','shot'],'Una ejecución del circuito más su medición. Devuelve un bitstring. Promediando millones sale la energía, con su σ.'),
+E('med','Medición',['medición','mediciones'],'Leer los qubits. Rompe la superposición y da un bitstring al azar, con probabilidades dadas por el estado.'),
+E('pauli','Pauli (X, Y, Z)',['matrices de Pauli','Pauli'],'Las tres operaciones básicas sobre un qubit. Medir Z da +1 si el qubit es 0 y −1 si es 1. X e Y se miden rotando antes.',C),
+E('cp','Cadena de Pauli',['cadenas de Pauli','cadena de Pauli'],'Una letra I, X, Y o Z para cada qubit, como Z₀Z₄. Vale ±1 en cada shot. El hamiltoniano de H₄ es una suma de 185 cadenas con sus coeficientes.'),
+E('ve','Valor esperado',['valores esperados','valor esperado'],'El promedio que darían infinitos shots. Se escribe ⟨A⟩. Con shots finitos lo estimamos con una incertidumbre σ.'),
+E('op','Operador',['operadores','operador'],'Algo que actúa sobre estados (una matriz). El hamiltoniano es uno. En ADAPT, "operador" es una excitación del pool.'),
+E('aval','Autovalor',['autovalores','autovalor'],'Si Ĥ|φ⟩ = E|φ⟩, E es un autovalor. Los del hamiltoniano son las energías posibles de la molécula.'),
+E('aest','Autoestado',['autoestados','autoestado'],'Un estado con energía bien definida. Su varianza de energía es 0.'),
+E('fund','Estado fundamental',['estado fundamental','fundamental'],'El estado de menor energía de la molécula, con energía E₀. Es el que buscamos.'),
+E('e0','E₀',['E₀'],'La energía del estado fundamental: el autovalor más chico del hamiltoniano.',C),
+E('ham','Hamiltoniano (Ĥ)',['hamiltoniano','Ĥ'],'La "receta de la energía" de la molécula, escrita como operador. Su autovalor más chico es la energía del fundamental. En qubits, una suma de 185 cadenas de Pauli.',{s:'hamiltoniano'}),
+E('coef','Coeficiente c_k',['coeficientes','coeficiente'],'El número (en Hartree) que multiplica cada cadena de Pauli del hamiltoniano. Las de |c| grande pesan más.'),
+E('jw','Jordan-Wigner',['Jordan-Wigner'],'La traducción de electrones a qubits: un qubit por espín-orbital (1 = ocupado), más una cadena de Z que pone el signo de los fermiones.',{cs:true,s:'hamiltoniano'}),
+E('cz2','Cadena de Z',['cadenas de Z','cadena de Z'],'El producto Z₀Z₁⋯ de Jordan-Wigner: vale −1 elevado a la cantidad de lugares ocupados antes del qubit. Es el signo de los fermiones; las cadenas largas cuestan CZ.'),
+E('ferm','Fermión',['fermiones','fermión'],'El tipo de partícula del electrón: intercambiar dos le cambia el signo al estado, y por eso dos electrones no pueden estar en el mismo lugar.'),
+E('anti','Antisimetría',['antisimetría'],'Intercambiar dos fermiones le cambia el signo al estado. De ahí sale el principio de exclusión de Pauli.'),
+E('excl','Principio de exclusión',['principio de exclusión de Pauli','principio de exclusión'],'Dos electrones no pueden ocupar el mismo espín-orbital: cada qubit vale 0 o 1, nunca 2.'),
+E('crea','Creación y aniquilación',['operador de creación','operador de aniquilación'],'a†ₚ pone un electrón en el lugar p; aₚ lo saca. Con ellos el hamiltoniano se escribe como "movimientos" de electrones.'),
+E('sq','Segunda cuantización',['segunda cuantización'],'Escribir el hamiltoniano con operadores que crean y destruyen electrones en orbitales.'),
+E('integ','Integrales h_pq y h_pqrs',['integrales'],'Los números del hamiltoniano: h_pq es la energía de un electrón que pasa de q a p; h_pqrs, la repulsión entre dos electrones. Las calcula PySCF.'),
+E('mpar','Mapeo de paridad',['mapeo de paridad'],'Otra traducción de electrones a qubits que guarda paridades. Permite sacar 2 qubits; equivale a nuestro tapering a 6 qubits.'),
+E('vqe','VQE',['VQE'],'Variational Quantum Eigensolver: un circuito con perillas prepara un estado, se mide su energía y una computadora clásica gira las perillas para bajarla. Se acerca a la exacta desde arriba.',{cs:true,s:'vqe'}),
+E('ansatz','Ansatz',['ansätze','ansatz'],'El "molde" del circuito: una receta fija de compuertas con perillas θ. Elegirlo es elegir qué estados podemos preparar y cuántas CZ cuesta.',{s:'ansatz'}),
+E('theta','θ (parámetros)',['θ','parámetros'],'Los ángulos de las rotaciones del circuito: las perillas que el optimizador gira. Nuestro ansatz tiene 15.',C),
+E('ts','θ* (parámetros óptimos)',['θ*'],'Los valores de θ que dan la energía más baja. Los buscamos sin ruido y después medimos el circuito con ellos.',C),
+E('per','Perilla',['perillas','perilla'],'Forma simple de decir "parámetro θ": un número que cambia el circuito.'),
+E('opt','Optimizador',['optimizador','optimizar','optimización'],'El programa clásico que va cambiando las perillas θ para bajar la energía.'),
+E('lb','L-BFGS-B',['L-BFGS-B'],'Optimizador clásico que baja por la pendiente y recuerda los últimos pasos para estimar la curvatura. Rápido cuando el gradiente es exacto.',C),
+E('grad','Gradiente',['gradiente analítico','gradientes','gradiente'],'Cuánto cambia la energía si giro apenas una perilla: la pendiente. "Analítico" = calculado exacto con fórmulas.'),
+E('warm','Warm start',['warm start'],'Arrancar la optimización con los θ* del punto anterior de la curva. Ahorra tiempo pero a veces lleva a un mínimo local.'),
+E('ml','Mínimo local',['mínimos locales','mínimo local','mínimos malos','mínimo malo'],'Un pozo donde el optimizador se traba: cualquier cambio chico sube la energía, pero no es el punto más bajo.'),
+E('spsa','SPSA',['SPSA'],'Optimizador que estima el gradiente con mediciones ruidosas. Sirve en hardware real pero es lento.',C),
+E('exc','Excitación',['excitaciones simples y dobles','excitaciones','excitación'],'Mover 1 electrón (simple) o 2 (doble) de un orbital ocupado a uno vacío, sin cambiar su espín. En H₄ hay 8 simples y 18 dobles.',{s:'ansatz'}),
+E('gen','Generador G',['generador','generadores'],'El "eje" de rotación de una compuerta de excitación: G = i(T − T†). La compuerta es e^(−iθG).'),
+E('pool','Pool',['pool'],'La lista de candidatos de ADAPT: las 26 excitaciones de UCCSD, que se pueden repetir.'),
+E('uccsd','UCCSD',['UCCSD'],'El ansatz químico clásico: aplica las 26 excitaciones como compuertas desde HF. "×2" = la receta repetida dos veces con perillas propias. Exacto, pero 582 CZ.',{cs:true,s:'ansatz'}),
+E('trot','Trotter',['Suzuki-Trotter','Trotter'],'Aproximar la exponencial de una suma por un producto de exponenciales, repetido en pasos. Más pasos = mejor aproximación y circuito más largo.',C),
+E('adapt','ADAPT-VQE',['ADAPT-VQE','ADAPT'],'VQE que arma el ansatz de a una excitación: agrega la de mayor gradiente y reoptimiza todo. El nuestro: 15 excitaciones, 194 CZ.',{cs:true,s:'ansatz'}),
+E('qeb','QEB',['ADAPT-QEB','QEB'],'Excitaciones "de qubit", sin cadenas de Z: más baratas en CZ pero rompen más el espín.',C),
+E('coad','Co-ADAPT',['Co-ADAPT'],'ADAPT que elige por gradiente dividido costo en CZ. En H₄ terminó con más operadores y más CZ.',C),
+E('conm','Conmutador [A, B]',['conmutador'],'[A, B] = AB − BA: cuánto importa el orden de dos operaciones. Si da 0, conmutan.'),
+E('conm2','Conmutar',['conmutan','conmuta'],'Dos operaciones conmutan si da lo mismo el orden. Cadenas que conmutan se pueden medir juntas.'),
+E('pares','Pares de espín',['pares de espín','par de espín'],'Una excitación α y su gemela β. Incluir las dos ayuda a que el estado tenga espín total 0.',{s:'ansatz'}),
+E('hwe','Hardware-efficient',['hardware-efficient'],'Ansatz hecho con lo que mejor hace el chip (CZ entre vecinos), sin inspiración química. Barato, pero no respeta simetrías por construcción.'),
+E('brick','Ansatz en ladrillo',['en ladrillo'],'CZ entre vecinos alternados, como una pared de ladrillos: una capa conecta 0-1 y 2-3, la siguiente 1-2 y 3-4. Entra en un chip en línea sin SWAP.',{s:'menos-qubits'}),
+E('capa','Capa',['capas','capa'],'Una fila del ansatz en ladrillo: CZ entre vecinos más RY. 8 capas = 16 CZ.'),
+E('comp','Ansatz compacto',['compacto'],'Nuestro ansatz en ladrillo de 5 qubits y 8 capas: 16 CZ, 45 parámetros, exacto sin ruido. Lo usamos en los extras con ruido.',{s:'menos-qubits'}),
+E('taper','Tapering',['tapering'],'Sacar un qubit por cada simetría conocida sin cambiar las energías. Con 3 simetrías pasamos de 8 a 5 qubits.',{s:'menos-qubits'}),
+E('cliff','Clifford',['Clifford'],'Circuitos "fáciles" (H, S, CNOT) que convierten cadenas de Pauli en otras cadenas de Pauli.',C),
+E('sampler','SamplerV2',['SamplerV2'],'La herramienta de Qiskit que devuelve los bitstrings de cada shot. Con ellos calculamos la energía y su σ.',{cs:true,s:'medicion'}),
+E('estim','EstimatorV2',['EstimatorV2'],'Devuelve promedios directamente. El de Aer calcula el valor exacto y le suma ruido gaussiano de tamaño elegido a mano: su σ no sale de mediciones.',{cs:true,s:'medicion'}),
+E('sigma','σ (barra de error)',['barras de error','barra de error','σ'],'La incertidumbre estadística por medir con shots finitos (un desvío estándar). Baja como 1/√shots: para la mitad hacen falta 4 veces más.',C),
+E('varz','Varianza',['varianzas','varianza','Var'],'Cuánto "tiembla" una cantidad alrededor de su promedio. La varianza de la energía es 0 solo en un autoestado: es un chequeo que no necesita FCI.'),
+E('desv','Desvío estándar',['desvío estándar'],'Cuánto se aleja típicamente un valor de su promedio. Es la raíz de la varianza.'),
+E('qwc','QWC',['QWC'],'Qubit-Wise Commuting: cadenas que en cada qubit tienen la misma letra o una I. Se miden juntas rotando cada qubit, sin CZ extra.',{cs:true,s:'medicion'}),
+E('gc','GC (conmutación general)',['conmutación general','GC'],'Agrupar cadenas que conmutan en general: 9 grupos en vez de 37 y menos shots, pero cada grupo necesita CZ extra para medirse.',C),
+E('grupo','Grupo de medición',['grupos de medición','grupos','grupo'],'Cadenas de Pauli que se miden con el mismo circuito. Menos grupos y mejor armados = menos shots.'),
+E('sorted','Sorted insertion',['sorted insertion'],'Ordenar las cadenas de mayor a menor |coeficiente| y meter cada una en el primer grupo compatible. Para H₄: 37 grupos y 1,6 a 1,8 veces menos shots que el coloreo.'),
+E('color','Coloreo',['coloreo'],'El agrupamiento por defecto de Qiskit (group_commuting): 46 grupos para H₄.'),
+E('ney','Asignación de Neyman',['Neyman'],'Repartir los shots en proporción a cuánto fluctúa cada grupo. Es el reparto que da la menor σ para un total fijo.',{cs:true,s:'medicion'}),
+E('pil','Piloto',['piloto'],'Primera etapa de la medición: 10 % de los shots para estimar cuánto fluctúa cada grupo. El 90 % restante se reparte con Neyman.'),
+E('cov','Covarianza',['covarianzas','covarianza'],'Si dos cantidades suben y bajan juntas (positiva) o al revés (negativa). Covarianzas negativas dentro de un grupo hacen que el total fluctúe menos.'),
+E('calib','Calibración',['calibración','calibrada','calibramos','calibrar'],'Medir algo cuya respuesta ya sabemos para ver cuánto se equivoca el aparato, o si la σ es honesta.'),
+E('z','z (error en unidades de σ)',['media de z','desvío de z'],'z = (medido − exacto)/σ. Si la σ es correcta, z sigue una campana con desvío 1.'),
+E('norm','Distribución normal',['campana de Gauss','N(0, 1)'],'La campana de Gauss. N(0, 1): promedio 0 y desvío 1; el 95 % de los valores cae entre −2 y 2.'),
+E('ic','IC 95 %',['IC 95 %'],'Intervalo de confianza del 95 %: el rango donde, con 95 % de seguridad, está el valor verdadero.',C),
+E('ks','Kolmogorov-Smirnov',['Kolmogorov-Smirnov'],'Test que compara una muestra con una distribución. p = 0,78: nuestros z son compatibles con una normal.',C),
+E('boot','Bootstrap',['bootstrap'],'Estimar la σ re-muestreando los propios shots muchas veces y viendo cuánto varía el resultado. No supone nada sobre la distribución.'),
+E('seed','Semilla',['semillas','semilla','SeedSequence'],'El número que inicializa el azar del simulador. Semillas repetidas o consecutivas pueden dar ruido correlacionado que hace mentir a σ.'),
+E('mc','Monte Carlo',['Monte Carlo'],'Estimar una incertidumbre simulando muchas veces: mover cada energía al azar según su σ, reajustar y mirar cuánto varía el resultado.',{cs:true,s:'resultados'}),
+E('ajuste','Ajuste polinomial',['cuártico','cuadrático','cúbico','spline'],'Pasar un polinomio por los puntos cerca del mínimo para ubicar Rₑ entre los medidos. Elegimos el cuártico (grado 4) en 7 puntos por su bajo sesgo.',{s:'resultados'}),
+E('morse','Curva de Morse',['Morse'],'Fórmula clásica para la energía de un enlace. Sirve como curva de prueba con mínimo conocido.',C),
+E('sesgo','Sesgo',['sesgos','sesgo'],'Error sistemático: el resultado se corre siempre para el mismo lado, aunque midas infinitos shots. No baja midiendo más.'),
+E('eco','Eco',['eco de Loschmidt','eco'],'Correr el circuito de ida y de vuelta. Con evolución temporal en el medio (Loschmidt), lo que no vuelve a |0…0⟩ mide la varianza de la energía. Sin evolución (C·C†), mide cuánto ruido hubo: la fidelidad F.',{s:'confianza'}),
+E('evo','Evolución temporal',['evolución temporal','evolución'],'Cómo cambia un estado con el tiempo, e^(−iĤt). Un autoestado solo gana una fase: no cambia en nada medible.'),
+E('wein','Cota de Weinstein',['Weinstein'],'Siempre hay una energía exacta de la molécula a menos de √Var de la energía medida.',C),
+E('gap','Brecha Δ',['Δ','brecha'],'La diferencia de energía entre el fundamental y el primer excitado. Con brecha grande, varianza chica implica error chico (≈ Var/Δ).',C),
+E('schr','Ecuación de Schrödinger',['Schrödinger'],'La ecuación que dice cómo evolucionan los estados cuánticos. Su versión sin tiempo, Ĥ|φ⟩ = E|φ⟩, da las energías posibles.',C),
+E('ruido','Ruido',['modelo de ruido','ruido'],'Los errores del hardware: compuertas imperfectas, lectura que se equivoca, estados que se desdibujan. Nuestro modelo: 0,1 % por CZ y 0,005 % por compuerta de 1 qubit.',{s:'ruido'}),
+E('depol','Despolarizante',['despolarizante'],'Modelo de error: con cierta probabilidad, la compuerta reemplaza el estado de sus qubits por ruido al azar.'),
+E('lect','Error de lectura',['error de lectura','errores de lectura','lectura'],'Al medir, el aparato a veces lee 1 cuando era 0, o al revés. En Fez, 0,4 a 0,8 % por qubit. Se calibra y se corrige.',{s:'mitigacion'}),
+E('confm','Matriz de confusión',['matriz de confusión','matrices de confusión'],'Con qué probabilidad cada valor real se lee como cada valor medido. Se calibra midiendo todo en 0 y todo en 1.'),
+E('t12','T1 y T2',['T1','T2'],'Cuánto tarda un qubit en "olvidar" su estado. Más cortos = más ruido en circuitos largos.',C),
+E('diaf','Diafonía',['diafonía'],'Cuando una compuerta en un qubit afecta sin querer a sus vecinos.'),
+E('dens','Matriz densidad',['matriz densidad'],'Forma de describir estados con ruido. Simular con ella da los valores esperados exactos con ruido, sin shots.'),
+E('fid','Fidelidad',['fidelidad'],'Cuánto se parecen dos estados: 1 = idénticos, 0 = nada que ver.'),
+E('sim','Simulador',['simulador'],'Programa clásico que calcula lo que haría una computadora cuántica. Con 8 qubits es exacto y rápido.'),
+E('mit','Mitigación de errores',['mitigación','mitigar','sin mitigar'],'Corregir el efecto del ruido con cuentas, después de medir, sin hardware mejor. Usamos corrección de lectura, post-selección y ZNE.',{s:'mitigacion'}),
+E('ro','RO (corrección de lectura)',['RO','corrección de lectura','corrigiendo la lectura'],'Corregir los errores de lectura con la matriz de confusión calibrada. Barata (×1,4 shots) e imprescindible.',C),
+E('ps','PS (post-selección)',['PS','post-selección','post-seleccionar'],'Tirar los shots que rompen una simetría conocida (que no tienen 2 electrones de cada espín): seguro son errores.',C),
+E('zne','ZNE',['ZNE'],'Zero-Noise Extrapolation: medir con el ruido normal, triple y quíntuple (plegando el circuito) y extrapolar a ruido cero.',{cs:true,s:'mitigacion'}),
+E('fold','Plegado (folding)',['plegado global','plegado','plegando','plegar','pliega'],'Reemplazar C por C·C†·C: hace lo mismo con el triple de compuertas y de ruido. "Global" = plegar todo, no solo las CZ.'),
+E('cdag','C† (circuito inverso)',['C†'],'El circuito C al revés: deshace lo que hizo C.',C),
+E('lam','λ (factor de ruido)',['λ'],'Cuántas veces amplificamos el ruido: 1 normal, 3 triple, 5 quíntuple. λ = 0 no se mide: se extrapola.',C),
+E('rich','Extrapolación de Richardson',['Richardson'],'Pasar un polinomio exacto por λ = 1, 3, 5 y evaluarlo en 0: (15E₁ − 10E₃ + 3E₅)/8. Saca más sesgo pero amplifica más la σ.',C),
+E('extr','Extrapolar',['extrapolación','extrapolar','extrapola'],'Seguir la tendencia de los puntos medidos hasta un punto que no se puede medir (ruido cero).'),
+E('resc','Reescalado por fidelidad',['reescalado'],'Suponer que con probabilidad F el estado sobrevive y si no se vuelve ruido puro, y despejar la energía buena. Solo sobrecorrige; con ZNE lineal funciona muy bien.'),
+E('mix','Estado totalmente mezclado',['estado totalmente mezclado','totalmente mezclado'],'Ruido puro: todas las configuraciones igual de probables. Su energía es el promedio de todas, Tr(Ĥ)/2ⁿ.'),
+E('coc','Estimador de cociente',['estimador de cociente'],'Promedio sobre los shots que se quedan, media(u)/media(w). Combina post-selección con corrección de lectura.'),
+E('delta','Método delta',['método delta'],'Fórmula para propagar la incertidumbre a través de una cuenta, usando derivadas.'),
+E('chi','χ²',['χ²'],'Cuánto se apartan los datos de una predicción, en unidades de σ. Si χ² ≈ grados de libertad, son compatibles.',C),
+E('fez','FakeFez / IBM Fez',['FakeFez','IBM Fez','Fez'],'IBM Fez es un procesador real de 156 qubits (Heron r2). FakeFez es un simulador que copia su ruido medido: compuertas, lectura y T1/T2.',{cs:true,s:'fez'}),
+E('chip','Chip',['chip'],'El procesador cuántico físico. Sus qubits solo se conectan con sus vecinos y cada operación tiene un error medido.'),
+E('sqd','SQD',['SQD'],'Diagonalización basada en muestras: usar muestras de un circuito para elegir configuraciones y diagonalizar en una computadora clásica. No vale para la curva principal porque con tan pocos qubits hasta muestras al azar dan la respuesta exacta.',C),
+E('colab','Colab',['Colab'],'Google Colab: notebooks de Python en la nube. El jurado corre ahí nuestro notebook de punta a punta.',C),
+E('nb','Notebook',['notebooks','notebook'],'Archivo de Jupyter con código, texto y resultados. Entregamos dos: H4_VQE.ipynb (la consigna) y H4_VQE_extras.ipynb.'),
+E('sym-adag','a†ₚ (creación)',[],'Pone un electrón en el espín-orbital p (el qubit p pasa de 0 a 1).',{sym:true}),
+E('sym-a','a_q (aniquilación)',[],'Saca un electrón del espín-orbital q (el qubit q pasa de 1 a 0). a†ₚa_q mueve un electrón de q a p.',{sym:true})
+];
+var BY={};GL.forEach(function(e){BY[e.k]=e;});
+
+/* ---------- autolink ---------- */
+var pats=[];GL.forEach(function(e){e.p.forEach(function(p){pats.push({p:p,e:e});});});
+pats.sort(function(a,b){return b.p.length-a.p.length;});
+var esc=function(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');};
+var RE;try{RE=new RegExp('(?<![\\p{L}\\p{N}_])(?:'+pats.map(function(x){return esc(x.p);}).join('|')+')(?![\\p{L}\\p{N}_])','giu');}catch(err){RE=null;}
+var LK={};pats.forEach(function(x){var k=x.p.toLowerCase();(LK[k]=LK[k]||[]).push(x);});
+function find(m){var a=LK[m.toLowerCase()];if(!a)return null;for(var i=0;i<a.length;i++){if(!a[i].e.cs||a[i].p===m)return a[i].e;}return null;}
+var BLOCKS='p,li,td,th,dd,caption';
+var SKIP='h1,h2,h3,h4,.formula .eq,code,pre,button,a,svg,sub,sup,.term,input,label,summary,.toc,.chart,.legend,.oneline,.sec-num,.ftitle,.tag,.lbl';
+var SUBSYM={'N|α':'nab','N|β':'nab','R|e':'re','D|e':'de','E|0':'e0','E|HF':'ehf'};
+function mk(k){var s=document.createElement('span');s.className='term';s.dataset.g=k;s.tabIndex=0;s.setAttribute('role','button');return s;}
+function linkify(root,excl){
+  var blocks=[].slice.call(root.querySelectorAll(BLOCKS));
+  if(root.matches&&root.matches(BLOCKS))blocks.unshift(root);
+  blocks.forEach(function(b){
+    if(b.closest(SKIP))return;
+    var used={};if(excl)used[excl]=1;
+    [].slice.call(b.querySelectorAll('sub')).forEach(function(sub){
+      if(sub.closest(BLOCKS)!==b||sub.parentElement.closest(SKIP))return;
+      var pv=sub.previousSibling;if(!pv||pv.nodeType!==3)return;
+      var m=pv.data.match(/(^|[^\p{L}\p{N}])([A-Z])$/u);if(!m)return;
+      var k=SUBSYM[m[2]+'|'+sub.textContent];if(!k||used[k])return;used[k]=1;
+      pv.data=pv.data.slice(0,-1);var s=mk(k);sub.parentNode.insertBefore(s,sub);s.appendChild(document.createTextNode(m[2]));s.appendChild(sub);
+    });
+    if(!RE)return;
+    var w=document.createTreeWalker(b,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p||p.closest(SKIP)||p.closest(BLOCKS)!==b)return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT;}});
+    var nodes=[];while(w.nextNode())nodes.push(w.currentNode);
+    nodes.forEach(function(n){
+      var t=n.data,last=0,frag=null,m;RE.lastIndex=0;
+      while((m=RE.exec(t))){var e=find(m[0]);if(!e||used[e.k])continue;used[e.k]=1;
+        frag=frag||document.createDocumentFragment();frag.appendChild(document.createTextNode(t.slice(last,m.index)));
+        var s=mk(e.k);s.textContent=m[0];frag.appendChild(s);last=m.index+m[0].length;}
+      if(frag){frag.appendChild(document.createTextNode(t.slice(last)));n.parentNode.replaceChild(frag,n);}
+    });
+  });
+}
+[].slice.call(document.querySelectorAll('[data-g]:not(.term)')).forEach(function(el){el.classList.add('term');el.tabIndex=0;el.setAttribute('role','button');});
+linkify(document.getElementById('main'));
+
+/* ---------- ventana emergente ---------- */
+var pop=document.getElementById('pop'),pt=document.getElementById('pop-t'),pb=document.getElementById('pop-b'),back=document.getElementById('pop-back');
+var stack=[],anchor=null;
+function render(){var e=BY[stack[stack.length-1]];if(!e)return;pt.textContent=e.t;
+  var h='<p class="pd">'+e.d+'</p>';if(e.x)h+='<p class="pt"><b>Más técnico:</b> '+e.x+'</p>';
+  if(e.s)h+='<p class="pl"><a href="#'+e.s+'" data-close="1">Ir a la sección →</a></p>';
+  pb.innerHTML=h;linkify(pb,e.k);back.hidden=stack.length<2;}
+function place(){var narrow=window.innerWidth<700;pop.classList.toggle('sheet',narrow);
+  if(narrow||!anchor){pop.style.left='';pop.style.top='';return;}
+  var r=anchor.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight,sx=window.scrollX,sy=window.scrollY,cw=document.documentElement.clientWidth;
+  var left=Math.max(sx+16,Math.min(r.left+sx-12,sx+cw-pw-16));var top=r.bottom+sy+8;
+  if(r.bottom+ph+16>window.innerHeight&&r.top-ph-8>0)top=r.top+sy-ph-8;
+  pop.style.left=left+'px';pop.style.top=top+'px';}
+function open(el){if(anchor)anchor.classList.remove('on');anchor=el;el.classList.add('on');stack=[el.dataset.g];pop.hidden=false;render();place();try{pop.focus({preventScroll:true});}catch(e){}}
+function close(){pop.hidden=true;if(anchor){anchor.classList.remove('on');try{anchor.focus({preventScroll:true});}catch(e){}}anchor=null;stack=[];}
+document.addEventListener('click',function(ev){
+  var t=ev.target.closest&&ev.target.closest('.term');
+  if(t){ev.preventDefault();if(pop.contains(t)){stack.push(t.dataset.g);render();place();}else open(t);return;}
+  if(ev.target.closest('[data-close]')){close();return;}
+  if(!pop.hidden&&!pop.contains(ev.target))close();
+});
+document.addEventListener('keydown',function(ev){
+  if(ev.key==='Escape'&&!pop.hidden){close();return;}
+  var t=ev.target.closest&&ev.target.closest('.term');
+  if(t&&(ev.key==='Enter'||ev.key===' ')){ev.preventDefault();t.click();}
+});
+document.getElementById('pop-x').addEventListener('click',function(ev){ev.stopPropagation();close();});
+back.addEventListener('click',function(ev){ev.stopPropagation();stack.pop();render();place();});
+window.addEventListener('resize',function(){if(!pop.hidden)place();});
+
+/* ---------- glosario ---------- */
+function glList(id,items){var host=document.getElementById(id);
+  items.forEach(function(e){var d=document.createElement('div');d.className='gl-item';d.id='g-'+e.k;
+    var h=document.createElement('h4');h.textContent=e.t;var p=document.createElement('p');p.innerHTML=e.d;d.appendChild(h);d.appendChild(p);
+    if(e.s){var a=document.createElement('p');a.className='x';a.innerHTML='<a href="#'+e.s+'">Ver la sección →</a>';d.appendChild(a);}
+    host.appendChild(d);linkify(d,e.k);});}
+var terms=GL.filter(function(e){return !e.hide&&!e.sym;}).sort(function(a,b){return a.t.localeCompare(b.t,'es');});
+glList('gl-list',terms);glList('gl-sym',GL.filter(function(e){return e.sym;}));
+var q=document.getElementById('gl-q'),cnt=document.getElementById('gl-count');
+function filt(){var v=(q.value||'').trim().toLowerCase(),n=0;
+  [].slice.call(document.querySelectorAll('#gl-list .gl-item')).forEach(function(d){var ok=!v||d.textContent.toLowerCase().indexOf(v)>=0;d.hidden=!ok;if(ok)n++;});
+  cnt.textContent=n+' de '+terms.length+' términos';}
+q.addEventListener('input',filt);filt();
+
+/* ---------- índice ---------- */
+var tocd=document.getElementById('toc-d');if(window.innerWidth<1040)tocd.open=false;
+var links=[].slice.call(document.querySelectorAll('.toc a'));
+links.forEach(function(a){a.addEventListener('click',function(){if(window.innerWidth<1040)tocd.open=false;});});
+if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+en.target.id);});}});},{rootMargin:'-30% 0px -60% 0px'});
+  [].slice.call(document.querySelectorAll('section.sec')).forEach(function(s){io.observe(s);});}
+
+/* ---------- datos ---------- */
+var D=[0.6,0.7,0.8,0.85,0.9,0.95,1.0,1.1,1.2,1.4,1.6,1.8,2.0,2.2,2.4,2.6,2.8,3.0];
+var EV=[-1.960988,-2.105850,-2.167708,-2.177530,-2.179990,-2.176401,-2.165495,-2.138347,-2.102567,-2.027987,-1.966977,-1.924350,-1.897287,-1.882680,-1.874095,-1.870658,-1.868846,-1.867339];
+var EF=[-1.960194,-2.106997,-2.167561,-2.178314,-2.180317,-2.175780,-2.166387,-2.137971,-2.102608,-2.029070,-1.967560,-1.924431,-1.897781,-1.882713,-1.874652,-1.870473,-1.868350,-1.867291];
+var EC=[-1.960189,-2.106993,-2.167556,-2.178308,-2.180309,-2.175772,-2.166380,-2.137975,-2.102671,-2.029707,-1.970572,-1.933538,-1.916086,-1.909120,-1.905212,-1.901099,-1.896024,-1.890304];
+var SG=[0.589,0.582,0.580,0.549,0.590,0.595,0.595,0.593,0.593,0.579,0.568,0.537,0.522,0.511,0.505,0.501,0.510,0.508];
+var ERV=[-0.794,1.147,-0.148,0.784,0.327,-0.621,0.892,-0.377,0.041,1.084,0.583,0.080,0.493,0.032,0.557,-0.186,-0.496,-0.048];
+var ERC=[0.0048,0.0042,0.0050,0.0060,0.0072,0.0082,0.0079,-0.0049,-0.0627,-0.636,-3.012,-9.108,-18.305,-26.408,-30.560,-30.627,-27.675,-23.013];
+var WHF=[0.985,0.978,0.968,0.961,0.954,0.946,0.936,0.913,0.883,0.801,0.694,0.581,0.482,0.405,0.350,0.312,0.286,0.269];
+var SH=[7999980,7999978,7999978,7999982,7999983,7999980,7999979,7999981,7999981,7999983,7999981,7999983,7999982,7999981,7999979,7999981,7999981,7999978];
+function f(v,d){var s=Math.abs(v).toFixed(d).replace('.',',');return (v<0?'−':'')+s;}
+function fs(v,d){return (v>0?'+':'')+f(v,d);}
+
+/* tabla */
+var tb=document.querySelector('#tbl-res tbody');
+D.forEach(function(d,i){var tr=document.createElement('tr');if(d>=1.8)tr.className='zone';
+  var str=d>=1.8;var beat=Math.abs(ERV[i])+SG[i]<Math.abs(ERC[i]);
+  var cells=[f(d,2),f(EV[i],6),f(SG[i],2),SH[i].toLocaleString('es-AR'),fs(ERV[i],2),fs(ERC[i],Math.abs(ERC[i])<0.1?3:1),str?(beat?'sí':'no'):'—',Math.abs(ERV[i])<1.6?'sí':'no'];
+  cells.forEach(function(c,j){var td=document.createElement('td');td.textContent=c;if(j<6)td.className='r';if(j===6&&str)td.className=beat?'ok':'bad';if(j===7)td.className=c==='sí'?'ok':'bad';tr.appendChild(td);});
+  tb.appendChild(tr);});
+
+/* ---------- gráficos ---------- */
+function chart(host,o){if(!host)return;var lastW=0;
+  function draw(){var W=Math.max(280,Math.floor(host.clientWidth));lastW=W;var H=o.h||Math.round(Math.max(230,Math.min(340,W*0.56)));
+    var m={l:o.ml||54,r:14,t:12,b:36},iw=W-m.l-m.r,ih=H-m.t-m.b;
+    var X=function(v){return m.l+(v-o.x[0])/(o.x[1]-o.x[0])*iw;};
+    var lg=Math.log10||function(v){return Math.log(v)/Math.LN10;};
+    var Y=o.log?function(v){v=Math.max(v,o.y[0]);return m.t+ih-(lg(v)-lg(o.y[0]))/(lg(o.y[1])-lg(o.y[0]))*ih;}:function(v){return m.t+ih-(v-o.y[0])/(o.y[1]-o.y[0])*ih;};
+    var s='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" tabindex="0" aria-label="'+o.label+'">';
+    if(o.zone)s+='<rect class="zone" x="'+X(1.8)+'" y="'+m.t+'" width="'+(X(o.x[1])-X(1.8))+'" height="'+ih+'"/><text class="zone-t" x="'+(X(1.8)+6)+'" y="'+(m.t+14)+'">zona estirada</text>';
+    o.yt.forEach(function(v){var y=Y(v);s+='<line class="grid" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y+'" y2="'+y+'"/><text class="tick" x="'+(m.l-8)+'" y="'+(y+4)+'" text-anchor="end">'+o.yf(v)+'</text>';});
+    [0.6,1.0,1.4,1.8,2.2,2.6,3.0].forEach(function(v){s+='<text class="tick" x="'+X(v)+'" y="'+(H-m.b+18)+'" text-anchor="middle">'+f(v,1)+'</text>';});
+    s+='<line class="ax" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+(m.t+ih)+'" y2="'+(m.t+ih)+'"/><text class="axl" x="'+(W-m.r)+'" y="'+(H-2)+'" text-anchor="end">d (Å)</text>';
+    (o.refs||[]).forEach(function(r){var y=Y(r.y);s+='<line class="ref" x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y+'" y2="'+y+'"/><text class="ref-t" x="'+(m.l+6)+'" y="'+(y-6)+'">'+r.t+'</text>';});
+    if(o.ann)s+=o.ann(X,Y,m,ih);
+    o.series.forEach(function(se){var pts=D.map(function(d,i){return [X(d),Y(se.v[i])];});
+      if(se.line)s+='<path class="l-'+se.c+'" d="M'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L')+'"/>';
+      if(se.bar)D.forEach(function(d,i){var b=se.bar(i);s+='<line class="eb-vqe" x1="'+X(d)+'" x2="'+X(d)+'" y1="'+Y(b[0])+'" y2="'+Y(b[1])+'"/>';});
+      if(se.dots)pts.forEach(function(p){s+='<circle class="d-'+se.c+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(se.r||4.5)+'"/>';});});
+    s+='<line class="xh" x1="-20" x2="-20" y1="'+m.t+'" y2="'+(m.t+ih)+'"/><rect class="hit" x="'+m.l+'" y="'+m.t+'" width="'+iw+'" height="'+ih+'"/></svg>';
+    host.innerHTML=s;var tip=document.createElement('div');tip.className='tip';tip.hidden=true;host.appendChild(tip);
+    var svg=host.querySelector('svg'),xh=svg.querySelector('.xh'),cur=-1;
+    function show(i){cur=i;var x=X(D[i]);xh.setAttribute('x1',x);xh.setAttribute('x2',x);tip.textContent='';
+      var h=document.createElement('div');h.className='h';h.textContent='d = '+f(D[i],2)+' Å';tip.appendChild(h);
+      o.tip(i).forEach(function(r){var row=document.createElement('div');row.className='row';var k=document.createElement('i');k.style.borderColor='var(--c-'+r[0]+')';var b=document.createElement('b');b.textContent=r[2];var sp=document.createElement('span');sp.textContent=r[1];row.appendChild(k);row.appendChild(b);row.appendChild(sp);tip.appendChild(row);});
+      tip.hidden=false;var tw=tip.offsetWidth;tip.style.left=(x+12+tw>W?x-12-tw:x+12)+'px';tip.style.top=(m.t+6)+'px';}
+    function hide(){tip.hidden=true;xh.setAttribute('x1',-20);xh.setAttribute('x2',-20);cur=-1;}
+    svg.addEventListener('pointermove',function(ev){var r=svg.getBoundingClientRect(),px=ev.clientX-r.left,bi=0,bd=1e9;D.forEach(function(d,i){var dd=Math.abs(X(d)-px);if(dd<bd){bd=dd;bi=i;}});show(bi);});
+    svg.addEventListener('pointerleave',hide);svg.addEventListener('blur',hide);
+    svg.addEventListener('keydown',function(ev){if(ev.key==='ArrowRight'){ev.preventDefault();show(Math.min(D.length-1,cur+1));}else if(ev.key==='ArrowLeft'){ev.preventDefault();show(Math.max(0,cur<0?0:cur-1));}});
+    svg.addEventListener('focus',function(){show(0);});}
+  draw();if('ResizeObserver' in window)new ResizeObserver(function(){if(Math.abs(host.clientWidth-lastW)>2)draw();}).observe(host);
+  else window.addEventListener('resize',draw);}
+var Ha=function(v){return f(v,2);};
+chart(document.getElementById('ch-fci'),{x:[0.5,3.1],y:[-2.22,-1.84],yt:[-2.2,-2.1,-2.0,-1.9],yf:Ha,label:'Energía FCI de H4 según la distancia, con el mínimo en 0,889 Å y la energía de disociación de 313 mHa',
+  series:[{v:EF,c:'fci',line:1,dots:1,r:3.5}],
+  ann:function(X,Y){var xr=X(0.8886),ym=Y(-2.1805),y3=Y(-1.867291),x3=X(3.0);
+    return '<line class="xh" x1="'+xr+'" x2="'+xr+'" y1="'+ym+'" y2="'+Y(-2.22)+'"/><text class="lab" x="'+(xr+6)+'" y="'+(Y(-2.22)-8)+'">Rₑ = 0,889 Å</text>'+
+    '<line class="xh" x1="'+xr+'" x2="'+x3+'" y1="'+ym+'" y2="'+ym+'"/><line class="ax" x1="'+(x3-10)+'" x2="'+(x3-10)+'" y1="'+ym+'" y2="'+y3+'"/>'+
+    '<text class="lab" x="'+(x3-16)+'" y="'+((ym+y3)/2)+'" text-anchor="end">Dₑ = 313 mHa</text>';},
+  tip:function(i){return [['fci','FCI',f(EF[i],4)+' Ha']];}});
+chart(document.getElementById('ch-whf'),{x:[0.5,3.1],y:[0,1],yt:[0,0.25,0.5,0.75,1],yf:function(v){return f(v,2);},zone:1,ml:44,h:240,label:'El peso de Hartree-Fock en el estado exacto baja de 0,985 a 0,6 Å a 0,27 a 3,0 Å',
+  series:[{v:WHF,c:'vqe',line:1,dots:1,r:3.5}],tip:function(i){return [['vqe','peso de HF',f(WHF[i],3)]];}});
+chart(document.getElementById('ch-ccsd'),{x:[0.5,3.1],y:[-34,4],yt:[-30,-20,-10,0],yf:function(v){return f(v,0);},zone:1,ml:44,h:240,label:'El error de CCSD es casi cero cerca del equilibrio y cae hasta 30,6 mHa por debajo de FCI a 2,6 Å',
+  refs:[{y:-1.6,t:'−1,6 mHa'}],series:[{v:ERC,c:'ccsd',line:1,dots:1,r:3.5}],tip:function(i){return [['ccsd','CCSD − FCI',fs(ERC[i],Math.abs(ERC[i])<0.1?3:1)+' mHa']];}});
+chart(document.getElementById('ch-curve'),{x:[0.5,3.1],y:[-2.22,-1.84],yt:[-2.2,-2.1,-2.0,-1.9],yf:Ha,zone:1,label:'Curva de energía de H4: VQE medido coincide con FCI; CCSD queda por debajo en la zona estirada',
+  series:[{v:EF,c:'fci',line:1},{v:EC,c:'ccsd',line:1},{v:EV,c:'vqe',dots:1}],
+  tip:function(i){return [['vqe','VQE',f(EV[i],4)+' ± '+f(SG[i]/1000,4)],['fci','FCI',f(EF[i],4)],['ccsd','CCSD',f(EC[i],4)]];}});
+chart(document.getElementById('ch-err'),{x:[0.5,3.1],y:[0.001,100],log:1,yt:[0.001,0.01,0.1,1,10,100],yf:function(v){return v>=1?String(v):String(v).replace('.',',');},zone:1,label:'Error contra FCI en escala logarítmica: en la zona estirada VQE más sigma queda debajo de CCSD en los 7 puntos',
+  refs:[{y:1.6,t:'1,6 mHa'}],
+  series:[{v:ERC.map(Math.abs),c:'ccsd',line:1,dots:1,r:3.5},{v:ERV.map(Math.abs),c:'vqe',dots:1,bar:function(i){return [Math.abs(ERV[i]),Math.abs(ERV[i])+SG[i]];}}],
+  tip:function(i){return [['vqe','VQE |error| (+σ = '+f(Math.abs(ERV[i])+SG[i],2)+')',f(Math.abs(ERV[i]),2)+' mHa'],['ccsd','CCSD |error|',f(Math.abs(ERC[i]),Math.abs(ERC[i])<0.1?3:1)+' mHa']];}});
+
+/* ---------- circuito en ladrillo ---------- */
+(function(){var host=document.getElementById('circ-brick');if(!host)return;
+  var W=660,y0=24,dy=34,H=y0+dy*4+40,s='<svg viewBox="0 0 '+W+' '+H+'" style="min-width:540px">';
+  for(var q=0;q<5;q++){var y=y0+q*dy;s+='<line class="wire" x1="34" x2="'+(W-10)+'" y1="'+y+'" y2="'+y+'"/><text class="qt" x="4" y="'+(y+4)+'">q'+q+'</text>';}
+  s+='<rect class="gx" x="40" y="'+(y0-12)+'" width="36" height="'+(dy*4+24)+'" rx="4"/><text class="g1t" x="58" y="'+(y0+dy*2+4)+'" text-anchor="middle">HF</text>';
+  function ry(x){for(var q=0;q<5;q++){var y=y0+q*dy;s+='<rect class="g1" x="'+x+'" y="'+(y-11)+'" width="34" height="22" rx="4"/><text class="g1t" x="'+(x+17)+'" y="'+(y+4)+'" text-anchor="middle">RY</text>';}}
+  function cz(x,a,b){var ya=y0+a*dy,yb=y0+b*dy;s+='<line class="czl" x1="'+x+'" x2="'+x+'" y1="'+ya+'" y2="'+yb+'"/><circle class="cz" cx="'+x+'" cy="'+ya+'" r="5"/><circle class="cz" cx="'+x+'" cy="'+yb+'" r="5"/>';}
+  ry(90);cz(150,0,1);cz(150,2,3);ry(170);cz(230,1,2);cz(230,3,4);ry(250);cz(310,0,1);cz(310,2,3);ry(330);cz(390,1,2);cz(390,3,4);ry(410);
+  s+='<text class="lt" x="470" y="'+(y0+dy*2+4)+'">⋯ hasta L = 8 capas</text>';
+  s+='<text class="lt" x="150" y="'+(H-8)+'" text-anchor="middle">capa 1</text><text class="lt" x="230" y="'+(H-8)+'" text-anchor="middle">capa 2</text><text class="lt" x="310" y="'+(H-8)+'" text-anchor="middle">capa 3</text><text class="lt" x="390" y="'+(H-8)+'" text-anchor="middle">capa 4</text>';
+  s+='<text class="lt" x="'+(W-10)+'" y="'+(H-8)+'" text-anchor="end">2 CZ por capa · 16 CZ · 45 RY</text></svg>';
+  host.innerHTML=s;})();
+})();
+</script>
+
+</body>
+</html>

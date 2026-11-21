@@ -91,27 +91,50 @@ def _group_samples(group: SparsePauliOp, counts: dict) -> tuple[np.ndarray, np.n
     return np.array(vals), np.array(mult)
 
 
-def _sample_groups(circuit, groups, shots, seed):
-    """Corre un circuito por grupo y devuelve, por grupo, (n, Σx, Σx²) de las muestras."""
+def group_outcome_values(group: SparsePauliOp) -> np.ndarray:
+    """Valor de O_g = Σ c_k P_k para cada uno de los 2^n resultados posibles (entero x = bitstring)."""
+    nq = group.num_qubits
+    x = np.arange(2 ** nq)
+    bits = (x[:, None] >> np.arange(nq)) & 1                       # (2^n, n), bit q = qubit q
+    masks = np.array([[lab[-1 - q] != "I" for q in range(nq)]
+                      for lab in (p.to_label() for p in group.paulis)], dtype=int)  # (T, n)
+    parity = (bits @ masks.T) & 1                                  # (2^n, T)
+    return (1 - 2 * parity) @ np.real(group.coeffs)
+
+
+def _outcome_hist(bit_array, nq: int) -> np.ndarray:
+    """Histograma de resultados leyendo el BitArray con numpy (get_counts arma 1 string por shot: lento)."""
+    a = bit_array.array.astype(np.int64)                            # (shots, n_bytes), big-endian
+    ints = np.zeros(a.shape[0], dtype=np.int64)
+    for k in range(a.shape[1]):
+        ints = (ints << 8) | a[:, k]
+    return np.bincount(ints, minlength=2 ** nq)
+
+
+def _prepare(circuit, groups, seed=SEED):
     circs = [rotate_and_measure(circuit, group_basis(g)) for g in groups]
-    circs = transpile(circs, basis_gates=BASIS_GATES + ["measure"], optimization_level=1,
-                      seed_transpiler=SEED)
+    return transpile(circs, basis_gates=BASIS_GATES + ["measure"], optimization_level=1,
+                     seed_transpiler=seed)
+
+
+def _sample_groups(circs, nq, shots, seed):
+    """Corre un circuito por grupo y devuelve el histograma de resultados de cada uno."""
     # Una semilla INDEPENDIENTE por grupo. Con una sola corrida y seed fija, Aer usa
     # semillas consecutivas por circuito y vimos errores correlacionados entre grupos
     # (σ subestimada, desvíos de 4σ). SeedSequence da flujos independientes.
     seeds = np.random.SeedSequence(seed).generate_state(len(circs))
-    stats = []
-    for g, c, n, sd in zip(groups, circs, shots, seeds):
+    hists = []
+    for c, n, sd in zip(circs, shots, seeds):
         r = AerSampler(seed=int(sd)).run([(c, None, int(n))]).result()[0]
-        vals, mult = _group_samples(g, r.data.meas.get_counts())
-        stats.append(np.array([mult.sum(), np.sum(mult * vals), np.sum(mult * vals ** 2)], float))
-    return np.array(stats)
+        hists.append(_outcome_hist(r.data.meas, nq))
+    return np.array(hists)
 
 
-def _combine(const, stats):
-    n, s1, s2 = stats[:, 0], stats[:, 1], stats[:, 2]
-    mean = s1 / n
-    svar = np.maximum(s2 - n * mean ** 2, 0) / (n - 1)
+def _combine(const, hists, values):
+    """E = const + Σ_g media_g ; σ² = Σ_g var_g / N_g, a partir de los histogramas."""
+    n = hists.sum(axis=1)
+    mean = np.einsum("gx,gx->g", hists, values) / n
+    svar = np.einsum("gx,gx->g", hists, (values - mean[:, None]) ** 2) / (n - 1)
     return const + mean.sum(), np.sqrt(np.sum(svar / n)), np.sqrt(svar)
 
 
@@ -128,17 +151,21 @@ def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
     """
     const, _ = split_constant(H)
     groups = measurement_groups(H)
+    nq = H.num_qubits
+    values = np.array([group_outcome_values(g) for g in groups])   # (G, 2^n)
+    circs = _prepare(circuit, groups)                               # se transpila una sola vez
     n_pilot = int(total_shots * pilot_fraction)
-    stats = _sample_groups(circuit, groups, allocate_shots(groups, n_pilot), seed)
-    rest = total_shots - int(stats[:, 0].sum())
+    hists = _sample_groups(circs, nq, allocate_shots(groups, n_pilot), seed)
+    rest = total_shots - int(hists.sum())
     if rest > 0:
-        _, _, sg = _combine(const, stats)
-        stats = stats + _sample_groups(circuit, groups,
-                                       allocate_shots(groups, rest, weights=sg + 1e-12), seed + 1)
-    E, sigma, sg = _combine(const, stats)
-    out = {"energy": float(E), "sigma": float(sigma), "shots": int(stats[:, 0].sum()),
+        _, _, sg = _combine(const, hists, values)
+        hists = hists + _sample_groups(circs, nq, allocate_shots(groups, rest, weights=sg + 1e-12),
+                                       seed + 1)
+    E, sigma, sg = _combine(const, hists, values)
+    out = {"energy": float(E), "sigma": float(sigma), "shots": int(hists.sum()),
            "n_groups": len(groups)}
     if return_details:
-        out["groups"] = [{"n_terms": len(g), "shots": int(st[0]), "mean": st[1] / st[0], "std_sample": s}
-                         for g, st, s in zip(groups, stats, sg)]
+        n = hists.sum(axis=1)
+        out["groups"] = [{"n_terms": len(g), "shots": int(ng), "mean": float(h @ v / ng), "std_sample": s}
+                         for g, h, v, ng, s in zip(groups, hists, values, n, sg)]
     return out

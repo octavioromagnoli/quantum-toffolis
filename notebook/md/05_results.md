@@ -13,7 +13,9 @@ Para cada distancia: hamiltoniano → ansatz → θ* (sin ruido, con warm start 
 | **cuártico, 7 puntos (0,7–1,1 Å)** | **−0,9 mÅ** | **−16 µHa** | 2,3 mÅ |
 | spline 0,6–1,6 Å | −0,5 mÅ | −5 µHa | 7,6 mÅ |
 
-El cuadrático tiene un sesgo de 3σ: la curva es asimétrica (sube más rápido hacia la izquierda) y una parábola corre el mínimo hacia afuera. El spline no tiene sesgo, pero pasa por cada punto con su ruido y queda 3 veces más ruidoso. **Elegimos el cuártico en 7 puntos**: es el único con sesgo chico en R_e *y* en E_min a la vez, y su σ es de las más chicas. Las diferencias entre modelos de bajo sesgo (≈ 2 mÅ en R_e, ≲ 0,1 mHa en D_e) quedan dentro de la σ estadística.
+El cuadrático tiene un sesgo de 3σ: la curva es asimétrica (sube más rápido hacia la izquierda) y una parábola corre el mínimo hacia afuera. El spline no tiene sesgo, pero pasa por cada punto con su ruido y queda 3 veces más ruidoso. La elección tampoco depende de FCI: el cuártico en 7 puntos recupera el mínimo de una curva de Morse conocida en esta misma grilla, con error < 2 mÅ en R_e y < 0,1 mHa en E_min (`tests/test_analysis.py`). La comparación con FCI solo elige un método numérico; no corrige ningún resultado.
+
+**Elegimos el cuártico en 7 puntos**: es el único con sesgo chico en R_e *y* en E_min a la vez, y su σ es de las más chicas. Las diferencias entre modelos de bajo sesgo (≈ 2 mÅ en R_e, ≲ 0,1 mHa en D_e) quedan dentro de la σ estadística.
 
 **Resultado** (corrida completa, UCCSD ×2, 8M shots por punto):
 

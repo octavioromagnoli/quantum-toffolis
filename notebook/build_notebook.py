@@ -104,8 +104,12 @@ rel = pd.DataFrame(run_reliability(ctxs, rel_d, shots=shots,
                                    echo_shots=200_000 if QUICK else 1_000_000,
                                    sym_shots=100_000 if QUICK else 200_000))
 print(f"total: {time.time()-t0:.0f} s")
-show = rel[["d","estado","cz","E","sigma","var","var_sigma","var_echo","var_echo_up95","echo_events",
-            "N_alpha","N_alpha_sigma","N_beta","N_beta_sigma","S2","S2_sigma","var_exacta"]]
+# Var(grupos) puede salir negativa por ruido (σ ≈ 2e-3 Ha²): se muestra recortada en 0, con su σ.
+# Solo separa HF del resto; la que resuelve es la del eco.
+rel["var_grupos (≥0)"] = rel["var"].clip(lower=0)
+# echo_cz: CZ del circuito de eco (U, e^{−iHt}, U†). Es un diagnóstico de simulador, no de hardware.
+show = rel[["d","estado","cz","E","sigma","var_grupos (≥0)","var_sigma","var_echo","var_echo_up95","echo_events",
+            "echo_cz","N_alpha","N_alpha_sigma","N_beta","N_beta_sigma","S2","S2_sigma","var_exacta"]]
 with pd.option_context("display.float_format", lambda v: f"{v:.3g}"):
     display(show)'''
 

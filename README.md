@@ -34,7 +34,7 @@ uv pip install --python .venv/bin/python --only-binary pyscf "qiskit==2.6.2" "qi
 
 En macOS, `--only-binary pyscf` evita compilar PySCF, que falla.
 
-## Probar en Colab desde la terminal
+## Probar en Colab
 
 ```bash
 uv tool install google-colab-cli
@@ -42,3 +42,5 @@ colab new -s h4
 colab exec -s h4 -f notebook/H4_VQE.ipynb
 colab stop -s h4
 ```
+
+Con nuestra cuenta, el login de `colab` (OAuth) devolvió solo los permisos de email y perfil, sin el de Colab, y no anduvo. Lo que sí funciona: subir el `.ipynb` a Drive, abrirlo con Colab y hacer "Entorno de ejecución → Ejecutar todo". La curva completa tarda ~25 min en Colab gratis.

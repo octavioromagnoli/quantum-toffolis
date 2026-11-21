@@ -16,7 +16,8 @@ CHEM_ACC = 1.6e-3             # Ha
 # Presupuesto de shots por punto de la curva (estimación final, no optimización).
 SHOTS_PER_POINT = 8_000_000   # σ ≈ 0,7 mHa con QWC + Neyman (medido a 2,0 Å)
 
-# Compuertas nativas del modelo de ruido de la consigna (ruido.py).
+# Compuertas nativas que fija la consigna para el extra con ruido: cz, sx, x y rz.
+# (ruido.py no se distribuye; el modelo de ruido propio está en noise.py.)
 BASIS_GATES = ["cz", "rz", "sx", "x"]
 
 SEED = 1234

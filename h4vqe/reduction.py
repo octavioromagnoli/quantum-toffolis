@@ -1,4 +1,4 @@
-"""Reducción por simetrías (8 -> 5 qubits) y ansatz compacto nativo de la línea.
+"""Reducción por simetrías (8 -> 6 o 5 qubits) y ansatz compacto nativo de la línea.
 
 Dueño: Octavio.
 
@@ -9,20 +9,30 @@ Simetrías Z2 del H4 lineal en Jordan-Wigner (todas de tipo Z; conmutan con H, N
 Tapering (Bravyi, Gambetta, Mezzacapo, Temme 2017): se lleva el conjunto de generadores a forma
 escalonada sobre GF(2), así cada generador g_i tiene un qubit "exclusivo" q_i. Con
 U_i = (X_{q_i} + g_i)/√2 se cumple U_i g_i U_i = X_{q_i}; en U H U el qubit q_i solo aparece como
-I o X, y X_{q_i} se reemplaza por el autovalor de g_i en el sector del estado HF. Quedan 5 qubits.
+I o X, y X_{q_i} se reemplaza por el autovalor de g_i en el sector del estado HF.
 El estado HF reducido sigue siendo un bitstring (los bits HF de los qubits que quedan).
 
+Dos niveles (`n_qubits`):
+    6  solo P_alfa y P_beta (equivale al mapeo de paridad con la reducción de 2 qubits). Toda
+       excitación conserva N_alfa y N_beta, así que los 26 generadores del pool de UCCSD/ADAPT se
+       reducen con .apply(G). No usa la inversión: sirve también con orbitales rotados o localizados.
+       Es la versión para el ansatz de excitaciones (ADAPT, Gonzalo).
+    5  además P_u (default). Solo se reducen las excitaciones simétricas ante la inversión (14 de 26)
+       y exige orbitales canónicos (con paridad definida). Es la del ansatz compacto de 16 CZ.
+
 Ansatz compacto ("brickwork"): X en HF, una capa de RY y L capas de [CZ en ladrillo + RY].
-Cada capa tiene 2 CZ entre vecinos (qubits en línea: 0 SWAP). Con L = 8 son 16 CZ y 45 parámetros,
-y llega a FCI (< 0,001 mHa) en toda la curva. OJO: la versión con TODAS las CZ en cada capa
-(cadena 0-1,1-2,2-3,3-4 simultánea) tiene un techo de fidelidad 0,961 que no mejora con más capas.
+CZ solo entre vecinos (qubits en línea: 0 SWAP). En 5 qubits cada capa tiene 2 CZ: con L = 8 son
+16 CZ y 45 parámetros, y llega a FCI (< 0,001 mHa) en toda la curva. OJO: la versión con TODAS las
+CZ en cada capa (cadena 0-1,1-2,2-3,3-4 simultánea) tiene un techo de fidelidad 0,961 que no mejora
+con más capas.
 
 Interfaz (la misma que ansatz.Ansatz, así optimize/pipeline/estimator funcionan igual):
-    tapering(m) -> Tapering           .apply(op8) -> op5, .hf_index, .removed, .kept
-    reduced_hamiltonian(m) -> SparsePauliOp (5 qubits)
-    reduced_number_operators(m) -> {"N_alpha","N_beta","S2"} en 5 qubits
-    build_compact_ansatz(m, layers=8) -> Ansatz (5 qubits)
-    optimize_compact(ans, H5, S2_5=None, mu=0.5, x0=None, n_random=3) -> dict como optimize_params
+    tapering(m, n_qubits=5) -> Tapering    .apply(op8) -> op reducido, .hf_index, .removed, .kept
+    reduced_hamiltonian(m, n_qubits=5) -> SparsePauliOp
+    reduced_number_operators(m, n_qubits=5) -> {"N_alpha","N_beta","S2"} reducidos
+    build_compact_ansatz(m, layers=None, n_qubits=5) -> Ansatz  (layers=None: COMPACT_LAYERS)
+    optimize_compact(ans, H, S2=None, mu=0.5, x0=None, n_random=3) -> dict como optimize_params
+    neyman_cost(H, psi) -> (Σ_g √Var_g)²: shots · σ² con los grupos y el reparto de estimator.py
 """
 from __future__ import annotations
 
@@ -32,10 +42,11 @@ from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 from scipy.optimize import minimize
 
-from .ansatz import Ansatz, build_ansatz, cz_count, hf_occupation
+from .ansatz import (Ansatz, build_ansatz, cz_count, excitation_generator, hf_occupation,
+                     uccsd_excitations)
 from .config import ANSATZ_REPS, BASIS_GATES, SEED
 from .estimator import measurement_groups
-from .hamiltonian import molecule, number_operators, qubit_hamiltonian
+from .hamiltonian import molecule, number_operators, qubit_hamiltonian, sector_ground_state
 from .optimize import optimize_params
 
 
@@ -56,12 +67,17 @@ def _zstring(qubits, n):
     return SparsePauliOp.from_sparse_list([("Z" * len(qubits), sorted(qubits), 1.0)], n)
 
 
-def z2_symmetries(m: dict) -> list[SparsePauliOp]:
+def z2_symmetries(m: dict, n_qubits: int = 5) -> list[SparsePauliOp]:
+    """Generadores que se eliminan: las 2 paridades (-> 6 qubits) o también la inversión (-> 5)."""
     norb = m["norb"]
     nq = 2 * norb
+    gens = [_zstring(range(norb), nq), _zstring(range(norb, nq), nq)]
+    if n_qubits == nq - 2:
+        return gens
+    if n_qubits != nq - 3:
+        raise ValueError(f"n_qubits tiene que ser {nq - 2} o {nq - 3}, no {n_qubits}")
     u = [p for p, s in enumerate(inversion_parities(m)) if s < 0]
-    return [_zstring(range(norb), nq), _zstring(range(norb, nq), nq),
-            _zstring(u + [norb + p for p in u], nq)]
+    return gens + [_zstring(u + [norb + p for p in u], nq)]
 
 
 def _commutes(A: SparsePauliOp, B: SparsePauliOp) -> bool:
@@ -88,12 +104,15 @@ def _rref_gf2(rows: np.ndarray):
     return R[:r], pivots
 
 
-PREFERRED_REMOVED = (0, 4, 7)   # la elección validada en el análisis (ver docs/ideas/diferencial.md)
+# Qubits que se eliminan en cada nivel. 5: la elección validada con el ansatz compacto (ver
+# docs/ideas/diferencial.md). 6: la de menos shots para la misma σ con el estimador de main
+# (sorted insertion): ×1,02–1,07 de los de 8 qubits a 2,0–2,4 Å, contra ×1,21–1,27 con (0, 4).
+PREFERRED_REMOVED = {5: (0, 4, 7), 6: (3, 5)}
 
 
 class Tapering:
     def __init__(self, generators: list[SparsePauliOp], hf_index: int,
-                 prefer_removed=PREFERRED_REMOVED):
+                 prefer_removed=PREFERRED_REMOVED[5]):
         nq = generators[0].num_qubits
         Z = np.array([g.paulis[0].z.astype(np.uint8) for g in generators])
         # Las columnas preferidas van primero: si son independientes, quedan como pivotes (qubits que
@@ -116,7 +135,8 @@ class Tapering:
         self.hf_index = sum(((hf_index >> q) & 1) << k for k, q in enumerate(self.kept))
 
     def apply(self, op: SparsePauliOp) -> SparsePauliOp:
-        """Operador de 8 qubits que conmuta con las simetrías -> operador de 5 qubits en el sector HF."""
+        """Operador de 8 qubits que conmuta con las simetrías -> operador reducido en el sector HF.
+        Si no conmuta (por ejemplo, una excitación σg -> σu en 5 qubits) tira ValueError."""
         for U in self.U:
             op = U.dot(op).dot(U).simplify(atol=1e-12)
         labels, coefs = [], []
@@ -132,22 +152,23 @@ class Tapering:
         return SparsePauliOp(labels, coefs).simplify(atol=1e-12).chop(1e-12)
 
 
-def tapering(m: dict, H: SparsePauliOp | None = None) -> Tapering:
-    gens = z2_symmetries(m)
+def tapering(m: dict, H: SparsePauliOp | None = None, n_qubits: int = 5) -> Tapering:
+    """Tapering a 6 (paridades) o 5 qubits (+ inversión). Orden de qubits: el de qubit_hamiltonian."""
+    gens = z2_symmetries(m, n_qubits)
     if H is not None:
         for g in gens:
             assert _commutes(H, g), "una simetría no conmuta con H"
     hf_index = sum(1 << q for q in hf_occupation(m))
-    return Tapering(gens, hf_index)
+    return Tapering(gens, hf_index, prefer_removed=PREFERRED_REMOVED[n_qubits])
 
 
-def reduced_hamiltonian(m: dict, H: SparsePauliOp | None = None) -> SparsePauliOp:
+def reduced_hamiltonian(m: dict, H: SparsePauliOp | None = None, n_qubits: int = 5) -> SparsePauliOp:
     H = qubit_hamiltonian(m) if H is None else H
-    return tapering(m, H).apply(H)
+    return tapering(m, H, n_qubits).apply(H)
 
 
-def reduced_number_operators(m: dict) -> dict[str, SparsePauliOp]:
-    tp = tapering(m)
+def reduced_number_operators(m: dict, n_qubits: int = 5) -> dict[str, SparsePauliOp]:
+    tp = tapering(m, n_qubits=n_qubits)
     return {k: tp.apply(v) for k, v in number_operators(m["norb"]).items()}
 
 
@@ -217,9 +238,13 @@ class FastBrickwork:
         return e, g
 
 
-def build_compact_ansatz(m: dict, layers: int = 8) -> Ansatz:
-    tp = tapering(m)
+COMPACT_LAYERS = {5: 8, 6: 10}   # capas que llegan a FCI en toda la curva (5q: 16 CZ; 6q: 25 CZ)
+
+
+def build_compact_ansatz(m: dict, layers: int | None = None, n_qubits: int = 5) -> Ansatz:
+    tp = tapering(m, n_qubits=n_qubits)
     n = tp.n_qubits
+    layers = COMPACT_LAYERS[n_qubits] if layers is None else layers
     ops, n_params = brickwork_ops(n, layers, tp.hf_index)
     theta = ParameterVector("θ", n_params)
     qc = QuantumCircuit(n)
@@ -232,7 +257,7 @@ def build_compact_ansatz(m: dict, layers: int = 8) -> Ansatz:
             qc.cz(op[1], op[2])
     native = transpile(qc, basis_gates=BASIS_GATES, optimization_level=1, seed_transpiler=SEED)
     return Ansatz(native, [], FastBrickwork(n, ops, n_params, tp.hf_index), theta,
-                  {"kind": "brickwork-5q", "layers": layers, "n_qubits": n, "logical": qc,
+                  {"kind": f"brickwork-{n}q", "layers": layers, "n_qubits": n, "logical": qc,
                    "removed_qubits": tp.removed, "sector": tp.sector})
 
 
@@ -259,20 +284,64 @@ def optimize_compact(ans: Ansatz, H5: SparsePauliOp, S2_5: SparsePauliOp | None 
 
 
 # --------------------------------------------------------------------------- tablas para el notebook
+def neyman_cost(H: SparsePauliOp, psi: np.ndarray) -> float:
+    """(Σ_g √Var_g)² en el estado psi, con los grupos de estimator.measurement_groups. Con el reparto
+    de Neyman, σ² = costo / shots: para la misma σ, los shots son proporcionales a este número."""
+    total = 0.0
+    for g in measurement_groups(H):
+        v = g.to_matrix(sparse=True) @ psi
+        total += np.sqrt(max(float(np.vdot(v, v).real - np.vdot(psi, v).real ** 2), 0.0))
+    return total ** 2
+
+
 def reduction_table(distances) -> list[dict]:
-    """Por distancia: términos de Pauli y grupos QWC en 8 y 5 qubits, y chequeo de H₅ contra PySCF
-    (fundamental de H₅ = E_FCI y <HF|H₅|HF> = E_HF)."""
+    """Por distancia: términos de Pauli y grupos QWC en 8, 6 y 5 qubits, y chequeo de Ĥ₆ y Ĥ₅ contra
+    PySCF (fundamental = E_FCI y <HF|Ĥ|HF> = E_HF). err_fci y err_hf: el peor de los dos."""
     rows = []
     for d in distances:
         m = molecule(d)
         H8 = qubit_hamiltonian(m)
-        tp = tapering(m, H8)
-        H5 = tp.apply(H8)
-        M5 = H5.to_matrix(sparse=True)
-        rows.append({"d": d, "paulis_8q": len(H8), "paulis_5q": len(H5),
-                     "groups_8q": len(measurement_groups(H8)), "groups_5q": len(measurement_groups(H5)),
-                     "err_fci": float(np.linalg.eigvalsh(M5.toarray())[0] - m["e_fci"]),
-                     "err_hf": float(M5[tp.hf_index, tp.hf_index].real - m["e_hf"])})
+        row = {"d": d, "paulis_8q": len(H8), "groups_8q": len(measurement_groups(H8)),
+               "err_fci": 0.0, "err_hf": 0.0}
+        for n in (6, 5):
+            tp = tapering(m, H8, n)
+            Hr = tp.apply(H8)
+            M = Hr.to_matrix(sparse=True)
+            e_fci = float(np.linalg.eigvalsh(M.toarray())[0] - m["e_fci"])
+            e_hf = float(M[tp.hf_index, tp.hf_index].real - m["e_hf"])
+            row[f"paulis_{n}q"], row[f"groups_{n}q"] = len(Hr), len(measurement_groups(Hr))
+            row["err_fci"] = max(row["err_fci"], e_fci, key=abs)
+            row["err_hf"] = max(row["err_hf"], e_hf, key=abs)
+        rows.append(row)
+    return rows
+
+
+def levels_table(d: float = 2.0) -> list[dict]:
+    """8 -> 6 -> 5 qubits en una distancia: términos, grupos, shots para la misma σ (relativos a 8
+    qubits, en el estado exacto) y cuántas excitaciones del pool de UCCSD/ADAPT se pueden reducir."""
+    m = molecule(d)
+    H8 = qubit_hamiltonian(m)
+    pool = [excitation_generator(e, H8.num_qubits) for e in uccsd_excitations(m)]
+    _, psi8 = sector_ground_state(H8, m["norb"], m["nelec"])
+    base = neyman_cost(H8, psi8)
+    rows = [{"qubits": H8.num_qubits, "simetrías": "—", "términos de Pauli": len(H8),
+             "grupos QWC": len(measurement_groups(H8)), "shots (misma σ)": 1.0,
+             "excitaciones del pool": f"{len(pool)}/{len(pool)}"}]
+    for n, sym in ((6, "N_α, N_β (paridad)"), (5, "+ inversión")):
+        tp = tapering(m, H8, n)
+        Hr = tp.apply(H8)
+        psi = np.linalg.eigh(Hr.to_matrix())[1][:, 0]
+        ok = 0
+        for G in pool:
+            try:
+                tp.apply(G)
+                ok += 1
+            except ValueError:
+                pass
+        rows.append({"qubits": n, "simetrías": sym, "términos de Pauli": len(Hr),
+                     "grupos QWC": len(measurement_groups(Hr)),
+                     "shots (misma σ)": round(neyman_cost(Hr, psi) / base, 2),
+                     "excitaciones del pool": f"{ok}/{len(pool)}"})
     return rows
 
 

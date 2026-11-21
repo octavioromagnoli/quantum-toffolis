@@ -57,12 +57,14 @@ plt.tight_layout(); plt.show()'''
 REDUCTION = '''\
 import pandas as pd
 from h4vqe import config
-from h4vqe.reduction import reduction_table, compare_ansatze
+from IPython.display import display
+from h4vqe.reduction import reduction_table, levels_table, compare_ansatze
 red = pd.DataFrame(reduction_table(config.DISTANCES))
-print(f"{len(red)} distancias | máx |E_0(H₅) − E_FCI| = {red.err_fci.abs().max():.1e} Ha | "
-      f"máx |<HF|H₅|HF> − E_HF| = {red.err_hf.abs().max():.1e} Ha")
-print(f"términos de Pauli: {red.paulis_8q.max()} → {red.paulis_5q.max()} | "
-      f"grupos QWC: {red.groups_8q.max()} → {red.groups_5q.max()}")
+print(f"{len(red)} distancias | máx |E_0(Ĥ₆, Ĥ₅) − E_FCI| = {red.err_fci.abs().max():.1e} Ha | "
+      f"máx |<HF|Ĥ₆, Ĥ₅|HF> − E_HF| = {red.err_hf.abs().max():.1e} Ha")
+print(f"8 → 6 → 5 qubits | términos de Pauli: {red.paulis_8q.max()} → {red.paulis_6q.max()} → {red.paulis_5q.max()} | "
+      f"grupos QWC (máx. en la curva): {red.groups_8q.max()} → {red.groups_6q.max()} → {red.groups_5q.max()}")
+display(pd.DataFrame(levels_table(2.4)))   # zona estirada
 pd.DataFrame(compare_ansatze(2.0))'''
 
 GEOMETRY = '''\

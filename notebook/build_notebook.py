@@ -603,8 +603,36 @@ def update_text() -> None:
     print("texto actualizado en", OUT)
 
 
+
+MD_CORTO = ROOT / "notebook" / "md_corto"
+OUT_CORTO = ROOT / "notebook" / "H4_VQE_corto.ipynb"
+
+
+def build_corto() -> None:
+    """Copia del notebook YA EJECUTADO con el texto corto de notebook/md_corto: las mismas celdas de
+    código y las mismas salidas; solo cambian las celdas de texto. No hace falta volver a correr."""
+    global MD
+    md_orig, MD = MD, MD_CORTO
+    try:
+        new = build()
+    finally:
+        MD = md_orig
+    nb = nbf.read(OUT, as_version=4)
+    if [c.cell_type for c in nb.cells] != [c.cell_type for c in new.cells]:
+        raise ValueError("la estructura de celdas no coincide: regenerá y ejecutá H4_VQE.ipynb primero")
+    for c_old, c_new in zip(nb.cells, new.cells):
+        if c_new.cell_type == "markdown":
+            c_old.source = c_new.source
+        elif c_old.source != c_new.source:
+            raise ValueError("cambió una celda de código: ejecutá H4_VQE.ipynb con --run primero")
+    nbf.write(nb, OUT_CORTO)
+    print("escrito", OUT_CORTO)
+
 if __name__ == "__main__":
     args = sys.argv[1:]
+    if "--corto" in args:
+        build_corto()
+        sys.exit()
     kernel = args[args.index("--kernel") + 1] if "--kernel" in args else "h4vqe-local"
     if "--text-only" in args:
         update_text()

@@ -1,4 +1,4 @@
-## 7 · Qué decidimos, qué no funcionó y limitaciones
+## 6 · Qué decidimos, qué no funcionó y limitaciones
 
 | decisión | por qué | alternativa descartada |
 |---|---|---|
@@ -16,4 +16,9 @@
 - Medir la varianza como ⟨H²⟩ − ⟨H⟩² con grupos QWC: (H−c)² tiene 1775 Paulis en 225 grupos y cada grupo fluctúa mucho aunque el total sea ≈ 0, así que la σ queda en ~10⁻³ Ha² aunque se usen millones de shots. Restar la constante de H (c) reduce σ a la mitad, pero no alcanza. Lo dejamos como medición directa y sumamos el eco.
 - Eco con 2 pasos de Trotter: el error de Trotter (1,3·10⁻⁶) se confundía con la señal. Con 4 pasos baja a 9·10⁻⁸.
 
-> TODO (todos): agregar lo que vayan probando.
+**Limitaciones**
+- **Compuertas:** el ansatz de la curva tiene 194 CZ con conectividad total y 378 con qubits en línea (columnas `cz_all` y `cz_line_fswap`). Sin ruido no importa, pero con 0,1 % de error por CZ la probabilidad de que no falle ninguna es 0,999^194 ≈ 82 % (todos con todos) y 0,999^378 ≈ 69 % (en línea). En hardware haría falta mitigar; eso está en el notebook de extras, con un ansatz de 16 CZ.
+- **Optimización sin ruido:** los parámetros se buscan con el simulador exacto, como permite la consigna. La curva mide qué tan expresivo es el ansatz más el ruido de los shots, no la dificultad de optimizar con mediciones.
+- **σ es solo estadística:** cubre la dispersión de los shots (calibrada en la sección 3), no sesgos de ruido de compuertas o de lectura, que en esta simulación no hay.
+- **Diagnósticos de la sección 5:** se miden con shots, pero el eco de Loschmidt usa ~4600 CZ. Es un diagnóstico de simulador; en hardware el equivalente es la varianza por grupos, con más shots.
+- **Costo en shots:** 8 M por punto (144 M en las 18 distancias) para σ ≈ 0,5–0,6 mHa.

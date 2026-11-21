@@ -305,6 +305,7 @@ def build_extras() -> nbf.NotebookNode:
     """Extras: menos qubits, mitigación, ruido de hardware (FakeFez) y otra geometría."""
     return _finish([md("00_extras.md"), md("01_setup.md"), code(INSTALL_EXTRAS), *_modules(EXTRA_MODULES),
                     md("02_reduction.md"), code(REDUCTION),
+                    md("07_ansatz_comparison.md"),
                     md("07_mitigation.md"), code(MITIGATION),
                     md("07_hardware.md"), code(HARDWARE),
                     md("07_geometry.md"), code(GEOMETRY)])

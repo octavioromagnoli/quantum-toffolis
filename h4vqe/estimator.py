@@ -13,12 +13,20 @@ Método:
 Interfaz: measure_energy(circuit_bound, H, total_shots, ...) -> dict
 
 Asignación de shots en dos etapas (piloto + Neyman), ver measure_energy.
+
+Implementación: para cada grupo se precalcula una tabla con el valor de O_g para
+cada bitstring posible (2^n entradas). Los conteos se hacen con np.bincount
+sobre el arreglo de bits del SamplerV2 (mucho más rápido que get_counts con
+millones de shots). Los circuitos de medición se transpilan una sola vez
+(`prepare_measurement`) y se pueden reusar entre llamadas.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 from qiskit import QuantumCircuit, transpile
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, StabilizerState
 from qiskit_aer.primitives import SamplerV2 as AerSampler
 
 from .config import BASIS_GATES, SEED
@@ -31,9 +39,70 @@ def split_constant(H: SparsePauliOp) -> tuple[float, SparsePauliOp]:
     return float(np.real(const)), rest
 
 
-def measurement_groups(H: SparsePauliOp) -> list[SparsePauliOp]:
+def measurement_groups(H: SparsePauliOp, method: str = "sorted",
+                       grouping: str = "qwc") -> list[SparsePauliOp]:
+    """Grupos de términos que se miden juntos.
+    grouping="qwc": conmutan qubit a qubit (se miden con H / S†H por qubit).
+    grouping="gc":  conmutan en general (se miden con un Clifford, ver diagonalize_group).
+    method="sorted": sorted insertion (Crawford et al., Quantum 5, 385 (2021)): se recorren
+        los términos por |c| decreciente y cada uno va al primer grupo compatible. Pone los
+        términos grandes juntos y sus covarianzas se compensan: para H4 baja la σ²·N
+        de Neyman ~1,9× (QWC) contra el coloreo (scripts/shots_study.py).
+    method="coloring": group_commuting de qiskit (lo que se usaba antes)."""
     _, rest = split_constant(H)
-    return rest.group_commuting(qubit_wise=True)
+    if method == "coloring":
+        return rest.group_commuting(qubit_wise=(grouping == "qwc"))
+    labels = [p.to_label() for p in rest.paulis]
+    groups: list[tuple[list[str], list[int]]] = []  # (base común por qubit, índices)
+    for k in np.argsort(-np.abs(rest.coeffs), kind="stable"):
+        lab = labels[k]
+        for basis, idx in groups:
+            if grouping == "qwc":
+                ok = all(a == "I" or b == "I" or a == b for a, b in zip(lab, basis))
+            else:
+                ok = all(rest.paulis[k].commutes(rest.paulis[j]) for j in idx)
+            if ok:
+                for q, a in enumerate(lab):
+                    if a != "I":
+                        basis[q] = a
+                idx.append(k)
+                break
+        else:
+            groups.append((list(lab), [k]))
+    return [rest[idx] for _, idx in groups]
+
+
+def _independent_generators(paulis) -> list:
+    """Subconjunto independiente (en GF(2), vectores simplécticos [x|z]) que genera el grupo."""
+    rows, gens = [], []
+    for p in paulis:
+        v = np.concatenate([p.x, p.z]).astype(np.uint8)
+        for r, piv in rows:  # reducir contra los ya elegidos
+            if v[piv]:
+                v ^= r
+        if v.any():
+            piv = int(np.flatnonzero(v)[0])
+            rows = [(r ^ v if r[piv] else r, pv) for r, pv in rows]
+            rows.append((v, piv))
+            gens.append(p)
+    return gens
+
+
+def diagonalize_group(group: SparsePauliOp) -> tuple[QuantumCircuit, SparsePauliOp]:
+    """Clifford U tal que U P U† es un string de Z (con signo) para todo P del grupo.
+    Se completa un conjunto independiente de generadores a un estado estabilizador
+    C|0>; entonces C† P C = ±Z... y medir O_g en |ψ> = medir Σ c ±Z en C†|ψ>.
+    Devuelve (circuito C†, O_g reescrito en Z con los signos en los coeficientes)."""
+    gens = _independent_generators(group.paulis)
+    C = StabilizerState.from_stabilizer_list([g.to_label() for g in gens],
+                                             allow_underconstrained=True).clifford
+    labels, coeffs = [], []
+    for p, c in zip(group.paulis, group.coeffs):
+        q = p.evolve(C, frame="h")  # C† P C
+        assert not q.x.any() and q.phase in (0, 2), (p, q)
+        labels.append(Pauli((q.z, np.zeros_like(q.x))).to_label())
+        coeffs.append(c * (-1 if q.phase == 2 else 1))
+    return C.adjoint().to_circuit(), SparsePauliOp(labels, coeffs)
 
 
 def group_basis(group: SparsePauliOp) -> str:
@@ -63,9 +132,63 @@ def rotate_and_measure(circ: QuantumCircuit, basis: str) -> QuantumCircuit:
     return qc
 
 
+def value_table(group: SparsePauliOp) -> np.ndarray:
+    """table[x] = valor de O_g = Σ c_k P_k cuando se mide el bitstring x (bit q = qubit q),
+    ya rotado a la base del grupo (cada P_k actúa como Z en su soporte)."""
+    nq = group.num_qubits
+    xs = np.arange(2 ** nq, dtype=np.uint64)
+    table = np.zeros(2 ** nq)
+    for p, c in zip(group.paulis, np.real(group.coeffs)):
+        mask = np.uint64(int(np.dot(p.z | p.x, 1 << np.arange(nq, dtype=np.int64))))
+        parity = np.bitwise_count(xs & mask) & 1
+        table += c * (1 - 2 * parity.astype(float))
+    return table
+
+
+def group_outcome_values(group: SparsePauliOp) -> np.ndarray:
+    """Alias de value_table (nombre que usa h4vqe/noise.py)."""
+    return value_table(group)
+
+
+@dataclass
+class MeasurementPlan:
+    """Lo que no depende de los shots: grupos, circuitos transpilados y tablas de valores."""
+    const: float
+    groups: list
+    circuits: list
+    tables: list
+    num_qubits: int
+
+    @property
+    def n_groups(self) -> int:
+        return len(self.groups)
+
+
+def prepare_measurement(circuit: QuantumCircuit, H: SparsePauliOp,
+                        grouping: str = "qwc") -> MeasurementPlan:
+    """grouping="qwc": rotaciones de 1 qubit (sin CZ extra).
+    grouping="gc": un Clifford por grupo (menos shots, pero agrega CZ al circuito medido)."""
+    const, _ = split_constant(H)
+    groups = measurement_groups(H, grouping=grouping)
+    if grouping == "qwc":
+        circs = [rotate_and_measure(circuit, group_basis(g)) for g in groups]
+        tables = [value_table(g) for g in groups]
+    else:
+        circs, tables = [], []
+        for g in groups:
+            diag, gz = diagonalize_group(g)
+            qc = circuit.compose(diag)
+            qc.measure_all()
+            circs.append(qc)
+            tables.append(value_table(gz))
+    circs = transpile(circs, basis_gates=BASIS_GATES + ["measure"], optimization_level=1,
+                      seed_transpiler=SEED)
+    return MeasurementPlan(const, groups, circs, tables, circuit.num_qubits)
+
+
 def allocate_shots(groups, total_shots: int, weights=None) -> list[int]:
     """Por defecto: N_g ∝ Σ|c_k| (proxy de la desviación del grupo).
-    Mejorable con varianzas estimadas (asignación de Neyman): N_g ∝ σ_g."""
+    Con weights = σ_g estimadas -> asignación de Neyman (N_g ∝ σ_g)."""
     if weights is None:
         weights = np.array([np.sum(np.abs(g.coeffs)) for g in groups])
     w = np.asarray(weights, float)
@@ -74,73 +197,69 @@ def allocate_shots(groups, total_shots: int, weights=None) -> list[int]:
     return shots.tolist()
 
 
-def _group_samples(group: SparsePauliOp, counts: dict) -> tuple[np.ndarray, np.ndarray]:
-    """Valores de O_g para cada bitstring observado y su multiplicidad."""
-    nq = group.num_qubits
-    z_masks = []
-    for p in group.paulis:
-        lab = p.to_label()
-        z_masks.append(sum(1 << q for q in range(nq) if lab[-1 - q] != "I"))
-    coeffs = np.real(group.coeffs)
-    vals, mult = [], []
-    for bits, n in counts.items():
-        x = int(bits, 2)
-        v = sum(c * (1 - 2 * (bin(x & mk).count("1") & 1)) for c, mk in zip(coeffs, z_masks))
-        vals.append(v)
-        mult.append(n)
-    return np.array(vals), np.array(mult)
+def _bitarray_to_int(bitarray) -> np.ndarray:
+    """BitArray del SamplerV2 -> entero por shot (bit q = qubit q)."""
+    arr = bitarray.array  # (shots, nbytes) uint8, big-endian
+    x = np.zeros(arr.shape[0], dtype=np.int64)
+    for i in range(arr.shape[1]):
+        x = (x << 8) | arr[:, i]
+    return x
 
 
-def group_outcome_values(group: SparsePauliOp) -> np.ndarray:
-    """Valor de O_g = Σ c_k P_k para cada uno de los 2^n resultados posibles (entero x = bitstring)."""
-    nq = group.num_qubits
-    x = np.arange(2 ** nq)
-    bits = (x[:, None] >> np.arange(nq)) & 1                       # (2^n, n), bit q = qubit q
-    masks = np.array([[lab[-1 - q] != "I" for q in range(nq)]
-                      for lab in (p.to_label() for p in group.paulis)], dtype=int)  # (T, n)
-    parity = (bits @ masks.T) & 1                                  # (2^n, T)
-    return (1 - 2 * parity) @ np.real(group.coeffs)
+def _outcome_hist(bitarray, nq: int) -> np.ndarray:
+    """Histograma de resultados (2^nq entradas) de un BitArray del SamplerV2. Lo usa noise.py."""
+    return np.bincount(_bitarray_to_int(bitarray), minlength=2 ** nq)
 
 
-def _outcome_hist(bit_array, nq: int) -> np.ndarray:
-    """Histograma de resultados leyendo el BitArray con numpy (get_counts arma 1 string por shot: lento)."""
-    a = bit_array.array.astype(np.int64)                            # (shots, n_bytes), big-endian
-    ints = np.zeros(a.shape[0], dtype=np.int64)
-    for k in range(a.shape[1]):
-        ints = (ints << 8) | a[:, k]
-    return np.bincount(ints, minlength=2 ** nq)
-
-
-def _prepare(circuit, groups, seed=SEED):
-    circs = [rotate_and_measure(circuit, group_basis(g)) for g in groups]
-    return transpile(circs, basis_gates=BASIS_GATES + ["measure"], optimization_level=1,
-                     seed_transpiler=seed)
-
-
-def _sample_groups(circs, nq, shots, seed):
-    """Corre un circuito por grupo y devuelve el histograma de resultados de cada uno."""
+def _sample_counts(plan: MeasurementPlan, shots, seed) -> np.ndarray:
+    """Corre un circuito por grupo; devuelve conteos por bitstring, shape (n_groups, 2^n)."""
     # Una semilla INDEPENDIENTE por grupo. Con una sola corrida y seed fija, Aer usa
     # semillas consecutivas por circuito y vimos errores correlacionados entre grupos
     # (σ subestimada, desvíos de 4σ). SeedSequence da flujos independientes.
-    seeds = np.random.SeedSequence(seed).generate_state(len(circs))
-    hists = []
-    for c, n, sd in zip(circs, shots, seeds):
+    ss = seed if isinstance(seed, np.random.SeedSequence) else np.random.SeedSequence(seed)
+    seeds = ss.generate_state(plan.n_groups)
+    counts = np.zeros((plan.n_groups, 2 ** plan.num_qubits))
+    for i, (c, n, sd) in enumerate(zip(plan.circuits, shots, seeds)):
         r = AerSampler(seed=int(sd)).run([(c, None, int(n))]).result()[0]
-        hists.append(_outcome_hist(r.data.meas, nq))
-    return np.array(hists)
+        counts[i] = _outcome_hist(r.data.meas, plan.num_qubits)
+    return counts
 
 
 def _combine(const, hists, values):
-    """E = const + Σ_g media_g ; σ² = Σ_g var_g / N_g, a partir de los histogramas."""
+    """E = const + Σ_g media_g ; σ² = Σ_g var_g / N_g, a partir de los histogramas
+    hists (G, 2^n) y las tablas de valores values (G, 2^n). Firma usada también por noise.py."""
+    hists, values = np.asarray(hists, float), np.asarray(values, float)
     n = hists.sum(axis=1)
     mean = np.einsum("gx,gx->g", hists, values) / n
     svar = np.einsum("gx,gx->g", hists, (values - mean[:, None]) ** 2) / (n - 1)
     return const + mean.sum(), np.sqrt(np.sum(svar / n)), np.sqrt(svar)
 
 
+def bootstrap_sigma(plan: MeasurementPlan, stage_counts: list[np.ndarray], n_boot: int = 200,
+                    seed: int = 0) -> float:
+    """σ por bootstrap: se re-muestrean los shots de cada grupo y de cada etapa
+    (multinomial con las frecuencias observadas, mismo N) y se recalcula E.
+    Chequeo cruzado de la σ analítica, sin suponer normalidad."""
+    rng = np.random.default_rng(seed)
+    T = np.array(plan.tables)
+    n_tot = sum(c.sum(1) for c in stage_counts)                    # (n_groups,)
+    E_b = np.zeros(n_boot)
+    for g in range(plan.n_groups):
+        s = np.zeros(n_boot)
+        for counts in stage_counts:
+            n = int(counts[g].sum())
+            if n == 0:
+                continue
+            p = counts[g] / n
+            s += rng.multinomial(n, p / p.sum(), size=n_boot) @ T[g]
+        E_b += s / n_tot[g]
+    return float(np.std(E_b, ddof=1))
+
+
 def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
                    seed: int = SEED, pilot_fraction: float = 0.1,
-                   return_details: bool = False) -> dict:
+                   return_details: bool = False, plan: MeasurementPlan | None = None,
+                   weights=None, n_boot: int = 0, grouping: str = "qwc") -> dict:
     """circuit: ansatz con parámetros YA asignados, sin mediciones.
 
     Dos etapas:
@@ -148,24 +267,37 @@ def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
       2. resto con asignación de Neyman N_g ∝ σ_g (minimiza σ total para N fijo).
     Las muestras de ambas etapas se juntan (misma distribución).
     pilot_fraction=1 -> una sola etapa con N_g ∝ Σ|c_k|.
+    weights=array -> una sola etapa con N_g ∝ weights (p. ej. σ_g teóricas).
+
+    plan: resultado de prepare_measurement(circuit, H) para no re-transpilar
+          (si se pasa, circuit y H no se usan).
+    n_boot > 0: agrega "sigma_boot" (σ por bootstrap con n_boot réplicas).
+    grouping: "qwc" (default) o "gc" (conmutación general + Clifford), ver prepare_measurement.
     """
-    const, _ = split_constant(H)
-    groups = measurement_groups(H)
-    nq = H.num_qubits
-    values = np.array([group_outcome_values(g) for g in groups])   # (G, 2^n)
-    circs = _prepare(circuit, groups)                               # se transpila una sola vez
-    n_pilot = int(total_shots * pilot_fraction)
-    hists = _sample_groups(circs, nq, allocate_shots(groups, n_pilot), seed)
-    rest = total_shots - int(hists.sum())
-    if rest > 0:
-        _, _, sg = _combine(const, hists, values)
-        hists = hists + _sample_groups(circs, nq, allocate_shots(groups, rest, weights=sg + 1e-12),
-                                       seed + 1)
-    E, sigma, sg = _combine(const, hists, values)
-    out = {"energy": float(E), "sigma": float(sigma), "shots": int(hists.sum()),
-           "n_groups": len(groups)}
+    plan = plan or prepare_measurement(circuit, H, grouping=grouping)
+    seed_pilot, seed_rest, seed_boot = np.random.SeedSequence(seed).spawn(3)
+    if weights is not None:
+        pilot_fraction, w_pilot = 1.0, weights
+    else:
+        w_pilot = None
+    T = np.array(plan.tables)
+    stage_counts = [_sample_counts(plan, allocate_shots(plan.groups, int(total_shots * pilot_fraction),
+                                                        weights=w_pilot), seed_pilot)]
+    counts = stage_counts[0]
+    rest = total_shots - int(counts.sum())
+    if rest > 0 and pilot_fraction < 1:
+        _, _, sg = _combine(plan.const, counts, T)
+        stage_counts.append(_sample_counts(plan, allocate_shots(plan.groups, rest, weights=sg + 1e-12),
+                                           seed_rest))
+        counts = counts + stage_counts[1]
+    E, sigma, sg = _combine(plan.const, counts, T)
+    n = counts.sum(axis=1)
+    out = {"energy": float(E), "sigma": float(sigma), "shots": int(n.sum()),
+           "n_groups": plan.n_groups}
+    if n_boot:
+        out["sigma_boot"] = bootstrap_sigma(plan, stage_counts, n_boot,
+                                            int(seed_boot.generate_state(1)[0]))
     if return_details:
-        n = hists.sum(axis=1)
-        out["groups"] = [{"n_terms": len(g), "shots": int(ng), "mean": float(h @ v / ng), "std_sample": s}
-                         for g, h, v, ng, s in zip(groups, hists, values, n, sg)]
+        out["groups"] = [{"n_terms": len(g), "shots": int(ng), "mean": float(c @ t / ng), "std_sample": s}
+                         for g, c, t, ng, s in zip(plan.groups, counts, T, n, sg)]
     return out

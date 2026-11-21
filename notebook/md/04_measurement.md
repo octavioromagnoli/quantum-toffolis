@@ -48,7 +48,7 @@ Repetimos la medición del **mismo circuito** con semillas independientes y mira
 | GC, 4 M, dos etapas | 2,0 | 0,507 | 0,507 | +0,01 ± 0,04 | 0,96 [0,91; 1,03] | 0,996 | 3,4 % |
 | GC, 4 M, dos etapas | 3,0 | 0,424 | 0,424 | +0,01 ± 0,05 | 1,04 [0,98; 1,11] | 0,994 | 5,8 % |
 
-- **σ está calibrada**: la dispersión de z es compatible con 1 en las 8 configuraciones, y |z|>2 aparece en ~5 % de los casos, como en una normal (4,6 %). La fórmula √(K/N) predice la σ media hasta el tercer dígito, y de 1 M a 8 M la σ baja en √8 = 2,83 (medido: 2,83).
+- **σ está calibrada**: la dispersión de z es compatible con 1 en las 8 configuraciones. Con las 3600 repeticiones juntas: media de z = −0,006 ± 0,017, dispersión = 1,011 [0,988; 1,035], |z|>2 en 5,0 % (normal: 4,6 %), 11 casos con |z|>3 (esperados ~10) y prueba KS contra N(0,1) con p = 0,78. No hay correlación entre repeticiones seguidas (|r| < 0,12). Histogramas: `results/calib_sigma/hist_z.png`. La fórmula √(K/N) predice la σ media hasta el tercer dígito, y de 1 M a 8 M la σ baja en √8 = 2,83 (medido: 2,83).
 - **El 1,16 de antes era ruido estadístico**: con 60 repeticiones, aunque σ sea exacta, la dispersión de z cae en [0,82; 1,18] el 95 % de las veces.
 - **El bootstrap coincide** con la σ analítica dentro de 0,7 %: la σ no depende de suponer normalidad.
 - La media de z = −0,16 ± 0,06 (Σ|c| a 2,0 Å) es un desvío de 2,7σ entre unas 18 pruebas, algo que por azar pasa ~10 % de las veces. No es un sesgo: el mismo circuito medido con dos etapas da −0,02 ± 0,05.

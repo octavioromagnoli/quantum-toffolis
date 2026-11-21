@@ -19,17 +19,84 @@ PKG = ROOT / "h4vqe"
 OUT = ROOT / "notebook" / "H4_VQE.ipynb"
 
 MODULES = ["__init__", "config", "hamiltonian", "ansatz", "optimize", "estimator",
-           "analysis", "pipeline"]
+           "analysis", "pipeline", "geometry", "reduction", "noise", "hardware"]
 
 INSTALL = '''\
 # Instala dependencias si faltan (Colab arranca sin Qiskit ni PySCF).
 import importlib.util, os, subprocess, sys
-REQS = {"qiskit": "qiskit==2.6.2", "qiskit_aer": "qiskit-aer==0.18.4", "pyscf": "pyscf==2.15.0"}
+REQS = {"qiskit": "qiskit==2.6.2", "qiskit_aer": "qiskit-aer==0.18.4", "pyscf": "pyscf==2.15.0",
+        "qiskit_ibm_runtime": "qiskit-ibm-runtime==0.52.1"}   # runtime: solo para FakeFez
 missing = [pip for mod, pip in REQS.items() if importlib.util.find_spec(mod) is None]
 if missing:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", *missing])
 os.makedirs("h4vqe", exist_ok=True)
 print("python", sys.version.split()[0], "- instalado:", missing or "nada (ya estaba)")'''
+
+HAMILTONIAN = '''\
+import pandas as pd, matplotlib.pyplot as plt
+from h4vqe import config
+from h4vqe.hamiltonian import validation_table
+val = pd.DataFrame(validation_table(config.DISTANCES))
+print(f"{len(val)} distancias | máx |<HF|H|HF> − E_HF| = {val.err_hf.abs().max():.1e} Ha | "
+      f"máx |E_0(H, sector 2α2β) − E_FCI| = {val.err_fci.abs().max():.1e} Ha | máx |S²| = {val.s2.abs().max():.1e}")
+worst = val.loc[val.ccsd_minus_fci_mHa.idxmin()]
+print(f"CCSD convergió en todas: {val.ccsd_converged.all()} | peor CCSD − FCI = {worst.ccsd_minus_fci_mHa:.1f} mHa a {worst.d} Å")
+fig, (a1, a2) = plt.subplots(1, 2, figsize=(11, 3.6))
+for a in (a1, a2):
+    a.axvspan(config.STRETCHED_FROM, val.d.max() + 0.1, color="0.93", zorder=0)
+    a.set_xlabel("d (Å)"); a.set_xlim(val.d.min() - 0.1, val.d.max() + 0.1)
+a1.axhspan(-1e3 * config.CHEM_ACC, 1e3 * config.CHEM_ACC, color="tab:green", alpha=0.25, label="±1,6 mHa (precisión química)")
+a1.axhline(0, color="k", lw=0.8)
+a1.plot(val.d, val.ccsd_minus_fci_mHa, "o-", label="CCSD − FCI")
+a1.set_ylabel("E − E_FCI (mHa)"); a1.legend(loc="lower left")
+a2.plot(val.d, val.w_hf, "o-", color="tab:red")
+a2.set_ylabel(r"peso de HF en FCI  $|\\langle \\mathrm{HF}|\\Psi_\\mathrm{FCI}\\rangle|^2$"); a2.set_ylim(0, 1)
+plt.tight_layout(); plt.show()'''
+
+REDUCTION = '''\
+import pandas as pd
+from h4vqe import config
+from h4vqe.reduction import reduction_table, compare_ansatze
+red = pd.DataFrame(reduction_table(config.DISTANCES))
+print(f"{len(red)} distancias | máx |E_0(H₅) − E_FCI| = {red.err_fci.abs().max():.1e} Ha | "
+      f"máx |<HF|H₅|HF> − E_HF| = {red.err_hf.abs().max():.1e} Ha")
+print(f"términos de Pauli: {red.paulis_8q.max()} → {red.paulis_5q.max()} | "
+      f"grupos QWC: {red.groups_8q.max()} → {red.groups_5q.max()}")
+pd.DataFrame(compare_ansatze(2.0))'''
+
+GEOMETRY = '''\
+import pandas as pd, matplotlib.pyplot as plt
+from h4vqe import config
+from h4vqe.geometry import scan_geometry
+from h4vqe.hamiltonian import ZIGZAG_ANGLE
+GEO_D = [0.7, 1.2, 1.8, 2.4, 3.0]
+GEO_SHOTS = 2_000_000   # σ ≈ 1,4 mHa por punto
+geo = pd.DataFrame(scan_geometry("square", GEO_D, GEO_SHOTS) + scan_geometry("zigzag", GEO_D, GEO_SHOTS))
+geo["beats_ccsd"] = geo.err_vqe_mHa.abs() + 1e3 * geo.sigma < geo.err_ccsd_mHa.abs()
+fig, axs = plt.subplots(1, 2, figsize=(11, 3.6), sharey=True)
+for a, shape, title in zip(axs, ["square", "zigzag"], ["H$_4$ cuadrado (lado d)", f"H$_4$ en zigzag ({ZIGZAG_ANGLE:.0f}°)"]):
+    g = geo[geo["shape"] == shape]
+    a.axhspan(-1e3 * config.CHEM_ACC, 1e3 * config.CHEM_ACC, color="tab:green", alpha=0.25, label="±1,6 mHa")
+    a.axhline(0, color="k", lw=0.8)
+    a.errorbar(g.d, g.err_vqe_mHa, yerr=1e3 * g.sigma, fmt="o-", capsize=3, label="VQE − FCI (medido, ±σ)")
+    a.plot(g.d, g.err_ccsd_mHa, "s--", color="tab:orange", label="CCSD − FCI")
+    bad = g[~g.ccsd_converged]
+    a.plot(bad.d, bad.err_ccsd_mHa, "x", color="k", ms=10, mew=2, label="CCSD no convergió")
+    a.set_title(title); a.set_xlabel("d (Å)")
+axs[0].set_ylabel("E − E_FCI (mHa)"); axs[0].legend(loc="lower left", fontsize=8)
+plt.tight_layout(); plt.show()
+geo[["shape", "d", "E_vqe", "sigma", "err_vqe_mHa", "err_ccsd_mHa", "ccsd_converged", "beats_ccsd", "cz_all", "cz_line"]]'''
+
+HARDWARE = '''\
+import pandas as pd
+from h4vqe.hardware import run_fez
+fz = run_fez(2.4)
+print(f"línea de Fez: qubits {fz['line']} | errores esperados {fz['expected_errors']:.3f} "
+      f"(mediana de las {fz['n_lines']} líneas posibles: {fz['median_expected_errors']:.3f})")
+print(f"CZ: compacto {fz['cz']} (sin SWAP) | UCCSD ×2 ubicado en Fez: {fz['cz_uccsd_fez']} | "
+      f"error del compacto sin ruido: {fz['err_exact_mHa']:.1e} mHa")
+print("lectura por qubit, P(1|0) / P(0|1): " + ", ".join(f"{a:.2%} / {b:.2%}" for a, b in fz["readout"]))
+pd.DataFrame(fz["rows"]).astype({"shots": "Int64"})'''
 
 CHECKS = '''\
 import numpy as np, importlib, time
@@ -110,12 +177,16 @@ def build() -> nbf.NotebookNode:
     for mod in MODULES:
         src = (PKG / f"{mod}.py").read_text()
         cells.append(nbf.v4.new_code_cell(f"%%writefile h4vqe/{mod}.py\n{src}"))
-    cells += [md("02_hamiltonian.md"), md("03_ansatz.md"), md("04_measurement.md"),
+    cells += [md("02_hamiltonian.md"), nbf.v4.new_code_cell(HAMILTONIAN),
+              md("02_reduction.md"), nbf.v4.new_code_cell(REDUCTION),
+              md("03_ansatz.md"), md("04_measurement.md"),
               nbf.v4.new_code_cell(CHECKS),
               md("05_results.md"), nbf.v4.new_code_cell(RUN), nbf.v4.new_code_cell(TABLE),
               nbf.v4.new_code_cell(PLOT), nbf.v4.new_code_cell(RE_DE),
               md("06_reliability.md"), nbf.v4.new_code_cell(RELIABILITY),
-              md("07_extras.md"), md("08_decisions.md")]
+              md("07_extras.md"), md("07_geometry.md"), nbf.v4.new_code_cell(GEOMETRY),
+              md("07_hardware.md"), nbf.v4.new_code_cell(HARDWARE),
+              md("08_decisions.md")]
     nb.cells = cells
     nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
     nb.metadata["colab"] = {"provenance": []}

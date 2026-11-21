@@ -1,0 +1,16 @@
+<section id="ruido" class="alt">
+<p class="eyebrow">Con ruido · Octavio</p>
+<h2>Con ruido, el circuito corto es el único que sobrevive</h2>
+<p class="lead">Error de energía a 2,0 Å con nuestro modelo de ruido, sin mitigar.</p>
+<div class="bars" style="margin-top:40px;">
+<div class="barrow"><p class="barlabel">UCCSD ×2</p><div class="bartrack"><div class="bar g" style="width:100%;"></div></div><p class="barval">561 mHa</p></div>
+<div class="barrow"><p class="barlabel">UCCSD ×1</p><div class="bartrack"><div class="bar g" style="width:60.6%;"></div></div><p class="barval">340 mHa</p></div>
+<div class="barrow"><p class="barlabel">HF (sin circuito)</p><div class="bartrack"><div class="bar o" style="width:57.4%;"></div></div><p class="barval">322 mHa</p></div>
+<div class="barrow"><p class="barlabel">Compacto, 16 CZ</p><div class="bartrack"><div class="bar" style="width:2.4%;"></div></div><p class="barval blue-t">13,5 mHa</p></div>
+</div>
+<div class="cards" style="margin-top:40px;">
+<div class="card"><p class="txt">UCCSD con ruido es <b>peor que no hacer nada</b> (HF). El compacto queda a 13,5 mHa, y ese sesgo sí se puede corregir.</p></div>
+<div class="card hi"><p class="txt">Compacto + mitigación, medido con shots: <b class="blue-t">−1,1 ± 0,9 · +0,4 ± 0,9 · −0,8 ± 0,8 mHa</b> a 1,8, 2,4 y 3,0 Å. CCSD: −9,1 · −30,6 · −23,0.</p></div>
+</div>
+<aside>Modelo: 0,1 % de error por CZ y 0,005 % por compuerta de 1 qubit, qubits en línea. La consigna mencionaba un ruido.py con estos parámetros; los organizadores aclararon que quedó de una versión anterior y no entra. Por eso lo presentamos como un modelo propio, simple y controlado. Para ruido de hardware real usamos FakeFez (más adelante). La mitigación de estos números es eco + ZNE lineal con 42 M de shots por punto.</aside>
+</section>

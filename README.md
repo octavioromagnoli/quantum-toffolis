@@ -2,7 +2,9 @@
 
 - Consigna: [CONSIGNA.md](CONSIGNA.md)
 - **Plan y tareas por persona: [PLAN.md](PLAN.md)**
-- Notebook de entrega (generado, no editar a mano): [notebook/H4_VQE.ipynb](notebook/H4_VQE.ipynb)
+- Notebooks de entrega (generados, no editar a mano):
+  - [notebook/H4_VQE.ipynb](notebook/H4_VQE.ipynb): lo que pide la consigna.
+  - [notebook/H4_VQE_extras.ipynb](notebook/H4_VQE_extras.ipynb): menos qubits, mitigación, FakeFez y otra geometría.
 
 ## Estructura
 
@@ -23,7 +25,7 @@ h4vqe/                 paquete (un dueño por módulo, ver PLAN.md)
   geometry.py          extra H4 cuadrado y en zigzag                        (Octavio)
 notebook/
   md/*.md              texto de cada sección del notebook
-  build_notebook.py    arma H4_VQE.ipynb (módulos con %%writefile + texto)
+  build_notebook.py    arma H4_VQE.ipynb y H4_VQE_extras.ipynb (módulos con %%writefile + texto)
 tests/                 test_smoke, test_routing, test_analysis, test_reduction, test_hardware
 ```
 
@@ -34,13 +36,15 @@ uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python --only-binary pyscf "qiskit==2.6.2" "qiskit-aer==0.18.4" "pyscf==2.15.0" "qiskit-ibm-runtime==0.52.1" scipy matplotlib pandas nbformat nbconvert ipykernel pytest
 .venv/bin/python -m ipykernel install --sys-prefix --name h4vqe-local
 .venv/bin/python -m pytest -q tests                  # ~30 s
-.venv/bin/python notebook/build_notebook.py          # solo genera
-.venv/bin/python notebook/build_notebook.py --run    # genera y ejecuta (~8 min en una Mac)
+.venv/bin/python notebook/build_notebook.py                # genera los dos notebooks
+.venv/bin/python notebook/build_notebook.py --run          # genera y ejecuta los dos en carpetas vacías
+.venv/bin/python notebook/build_notebook.py --run core     # solo el principal (~6 min en una Mac)
+.venv/bin/python notebook/build_notebook.py --text-only    # solo actualiza el texto de los ya ejecutados
 ```
 
 En macOS, `--only-binary pyscf` evita compilar PySCF, que falla. `qiskit-ibm-runtime` solo hace falta para el extra de FakeFez (`hardware.py`, `tests/test_hardware.py`).
 
-El kernel `h4vqe-local` es uno solo por usuario: si hay varios worktrees, apunta al `.venv` del último que lo registró. Para ejecutar el notebook desde otro worktree, registrá un kernel con otro nombre (`ipykernel install --sys-prefix --name ...`) y pasalo a `nbconvert` con `--ExecutePreprocessor.kernel_name`.
+El kernel `h4vqe-local` es uno solo por usuario: si hay varios worktrees, apunta al `.venv` del último que lo registró. Para ejecutar el notebook desde otro worktree, registrá un kernel con otro nombre (`ipykernel install --sys-prefix --name ...`) y pasalo con `build_notebook.py --run --kernel NOMBRE`.
 
 ## Probar en Colab
 

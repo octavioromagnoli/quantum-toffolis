@@ -1,0 +1,14 @@
+<section id="choques">
+<p class="eyebrow">Dónde chocamos · el resto</p>
+<h2>Alternativas que probamos y con cuál nos quedamos</h2>
+<table class="t" style="margin-top:40px;">
+<tr><th style="width:20%;">Tema</th><th style="width:52%;">Qué probamos y qué dio</th><th style="width:28%;">Nos quedamos con</th></tr>
+<tr><td>ZNE</td><td>Plegar solo las CZ: 4,0 mHa de sesgo. Plegar todo: 0,01 mHa.</td><td>Plegado global</td></tr>
+<tr><td>Quién mitiga</td><td>Octavio ya hizo ZNE y lectura en noise.py; el plan se lo daba a Santino.</td><td>noise.py; Santino suma post-selección</td></tr>
+<tr><td>Grupos de medición</td><td>QWC: 37 grupos, sin CZ extra. GC: 9 grupos, 2 a 2,8× menos shots, pero suma CZ.</td><td>GC sin ruido, QWC con ruido (propuesta)</td></tr>
+<tr><td>Ajuste de R_e</td><td>Cuadrático de 5 puntos: +7,8 mÅ de sesgo. Cuártico de 7 puntos: −0,9 mÅ.</td><td>Cuártico de 7 puntos</td></tr>
+<tr><td>Cuántos qubits</td><td>6 con paridad (lo pedido). 5 sumando la inversión, misma energía.</td><td>5 qubits</td></tr>
+<tr><td>Modelo de ruido</td><td>ruido.py de la consigna: no existe y no entra. Modelo propio + FakeFez real.</td><td>Los dos, declarado como propio</td></tr>
+</table>
+<aside>Cada fila es un lugar donde dos personas (o dos ideas) fueron por caminos distintos. Las de GC y del ansatz todavía son propuestas para el sync; el resto ya está decidido con números. Sobre la ZNE: plegar solo las CZ deja sesgo porque las ~150 compuertas de 1 qubit también suman ruido y no se escalan.</aside>
+</section>

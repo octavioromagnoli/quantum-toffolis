@@ -1,0 +1,16 @@
+<section id="cz" class="alt">
+<p class="eyebrow">Paso 2 · el costo real</p>
+<h2>Lo que más se rompe en hardware: las CZ</h2>
+<p class="lead">CZ necesarias con qubits en línea, como en un chip real. Sin ruido todas llegan a la respuesta exacta o cerca; lo que cambia es cuánto cuestan.</p>
+<div class="bars" style="margin-top:44px;">
+<div class="barrow"><p class="barlabel">UCCSD ×2 · 8 qubits</p><div class="bartrack"><div class="bar g" style="width:100%;"></div></div><p class="barval">1648 · exacto</p></div>
+<div class="barrow"><p class="barlabel">UCCSD ×1 · 8 qubits</p><div class="bartrack"><div class="bar g" style="width:49%;"></div></div><p class="barval">806 · 4,5 mHa</p></div>
+<div class="barrow"><p class="barlabel">ADAPT 13 ops (Gonzalo)</p><div class="bartrack"><div class="bar o" style="width:22.5%;"></div></div><p class="barval">370 · ≤ 0,84 mHa</p></div>
+<div class="barrow"><p class="barlabel">Compacto (Octavio)</p><div class="bartrack"><div class="bar" style="width:1%; min-width:10px;"></div></div><p class="barval blue-t">16 · exacto</p></div>
+</div>
+<div class="cards" style="margin-top:44px;">
+<div class="card"><p class="txt">En un chip real cada CZ falla ~1 % de las veces. Con 1648 CZ no queda nada de señal; con 16 queda ~85 %, y eso se puede corregir.</p></div>
+<div class="card"><p class="txt">Con conectividad total: UCCSD ×2 usa 582, ADAPT 185 y el compacto 16. ADAPT baja de 526 a 370 en línea con fSWAP.</p></div>
+</div>
+<aside>UCCSD es el ansatz químico clásico (excitaciones simples y dobles), repetido 2 veces para llegar exacto. ADAPT-VQE (Gonzalo) agrega operadores de a uno, eligiendo el de mayor gradiente, y corta en 13 sin mirar FCI (la varianza cae ahí). El compacto (Octavio) trabaja en 5 qubits gracias a las simetrías; lo explica la diapositiva siguiente. El error de ADAPT es el máximo de la curva (a 1,4 Å); en la zona estirada es ≤ 0,6 mHa.</aside>
+</section>

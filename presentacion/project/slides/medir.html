@@ -1,0 +1,20 @@
+<section id="medir">
+<p class="eyebrow">Paso 4 · Santino</p>
+<h2>Medir cuesta: la energía es el promedio de millones de shots</h2>
+<div class="body">
+<div class="col" style="flex:1.2;">
+<p class="txt">Cada shot devuelve un bitstring, no una energía. Los 185 términos se miden por grupos que se pueden medir juntos. Menos grupos significa menos circuitos y menos shots para la misma σ.</p>
+<div class="bars" style="margin-top:16px;">
+<div class="barrow"><p class="barlabel" style="width:360px;">QWC, versión inicial</p><div class="bartrack"><div class="bar g" style="width:100%;"></div></div><p class="barval" style="width:180px;">46 grupos</p></div>
+<div class="barrow"><p class="barlabel" style="width:360px;">QWC con sorted insertion</p><div class="bartrack"><div class="bar" style="width:80%;"></div></div><p class="barval" style="width:180px;">37 grupos</p></div>
+<div class="barrow"><p class="barlabel" style="width:360px;">Conmutación general (GC)</p><div class="bartrack"><div class="bar o" style="width:20%;"></div></div><p class="barval" style="width:180px;">9 grupos</p></div>
+</div>
+<p class="small" style="margin-top:8px;">GC necesita 2 a 2,8 veces menos shots, pero agrega CZ para rotar cada grupo. Los shots se reparten con Neyman: más shots a los grupos que más fluctúan.</p>
+</div>
+<div class="col" style="flex:0.8;">
+<div class="card hi"><p class="big blue">σ ≈ 0,5 mHa</p><p class="txt">con 8 M de shots por punto (QWC), o con 4 M usando GC.</p></div>
+<div class="card"><p class="big">std z = 1,01</p><p class="txt">3600 repeticiones: la σ que reportamos coincide con la dispersión real (ideal: 1).</p></div>
+</div>
+</div>
+<aside>Analogía: es una encuesta. Cada shot es una respuesta; el promedio converge y la σ baja como 1/√N, así que para bajar la σ a la mitad hacen falta 4 veces más shots. El 1,16 que habíamos visto antes era ruido estadístico de 60 repeticiones. Calibrado con 17,8 G shots en la PC de Santino; el bootstrap coincide con la σ analítica dentro de 0,7 %.</aside>
+</section>

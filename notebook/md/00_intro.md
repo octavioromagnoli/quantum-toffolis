@@ -12,6 +12,8 @@ Calculamos con **VQE** la curva de energía de la cadena lineal H₄ (STO-3G, 8 
 5. R_e por ajuste cuártico en 7 puntos, elegido por su sesgo contra el mínimo FCI verdadero; incertidumbre por Monte Carlo. D_e = E(3,0 Å) − E(R_e).
 6. Confiabilidad sin FCI, todo **medido con shots**: varianza de la energía (por grupos y por eco de Loschmidt), simetrías N_α, N_β y S², y convergencia con la profundidad.
 
+Los extras (menos qubits, mitigación de errores, ruido de hardware con `FakeFez` y otra geometría) están en `H4_VQE_extras.ipynb`.
+
 **Resultados** (ADAPT 15 operadores, 8M shots por punto, 194 CZ todos con todos):
 - Precisión química en las 18 distancias (error máximo 1,15 mHa, a 0,7 Å). En la zona estirada (d ≥ 1,8 Å), error ≤ 0,56 mHa con σ ≈ 0,5 mHa, contra 9–31 mHa de CCSD: le ganamos en 7/7 puntos.
 - R_e = 0,8873 ± 0,0018 Å (FCI: 0,8886 Å); D_e = 313,00 ± 0,66 mHa (FCI: 313,21 mHa).

@@ -1,0 +1,33 @@
+<section id="zne">
+<p class="eyebrow">Mitigación</p>
+<h2>ZNE: exagerar el ruido a propósito y extrapolar a cero</h2>
+<div class="body">
+<div class="col" style="flex:1.1;">
+<div class="chart" style="width:820px; height:470px;">
+<svg aria-label="Esquema de ZNE: el error medido crece con el factor de ruido λ igual a 1, 3 y 5, y la curva se extrapola hacia λ igual a 0" width="760" height="420" viewBox="0 0 760 420" style="position:absolute; left:60px; top:0px;">
+<line x1="60" y1="360" x2="720" y2="360" stroke="#8C96A5" stroke-width="2"/>
+<line x1="60" y1="30" x2="60" y2="360" stroke="#8C96A5" stroke-width="2"/>
+<polyline fill="none" stroke="#B4580C" stroke-width="4" points="184,291 432,177 680,77"/>
+<polyline fill="none" stroke="#2563A8" stroke-width="4" stroke-dasharray="10 8" points="60,356 184,291"/>
+<circle cx="184" cy="291" r="12" fill="#B4580C"/>
+<circle cx="432" cy="177" r="12" fill="#B4580C"/>
+<circle cx="680" cy="77" r="12" fill="#B4580C"/>
+<circle cx="60" cy="356" r="14" fill="#2563A8"/>
+</svg>
+<p class="lbl" style="left:180px; top:368px; width:200px;">λ = 1: C</p>
+<p class="lbl" style="left:400px; top:224px; width:260px;">λ = 3: C·C†·C</p>
+<p class="lbl" style="left:600px; top:116px; width:220px;">λ = 5</p>
+<p class="lbl" style="left:60px; top:372px; width:120px; color:#2563A8; font-weight:700;">λ = 0</p>
+<p class="lbl" style="left:0px; top:0px; width:300px;">error de energía</p>
+<p class="lbl" style="left:560px; top:430px; width:260px;">factor de ruido λ →</p>
+<p class="lbl" style="left:100px; top:300px; width:240px; color:#2563A8;">estimado sin ruido</p>
+</div>
+<p class="small">Esquema. C·C†·C hace lo mismo que C, pero con el triple de compuertas: el triple de ruido.</p>
+</div>
+<div class="col" style="flex:0.9;">
+<div class="card"><h3>Plegar todo, no solo las CZ</h3><p class="txt">Plegando solo las CZ quedan 4,0 mHa de sesgo; plegando todo el circuito, 0,01 mHa. Las compuertas de 1 qubit también suman ruido.</p></div>
+<div class="card warn"><h3>La lectura va aparte</h3><p class="txt">Plegar no repite la medición, así que la ZNE no corrige el error de lectura. Lo calibramos midiendo |00000⟩ y |11111⟩ y lo invertimos.</p></div>
+</div>
+</div>
+<aside>Los números de plegado son con nuestro modelo a 1,8 Å, como valor esperado exacto (sin shots): sin mitigar +15,5 mHa; ZNE solo CZ +4,0; ZNE global lineal (1,3) +0,42; ZNE global Richardson (1,3,5) +0,01; eco + ZNE lineal +0,02. El precio de la ZNE: amplifica la σ (×2 con λ = 1,3; ×3,5 con 1,3,5), así que necesita entre 4 y 12 veces más shots. Un detalle técnico que costó: C† tiene que tener las mismas compuertas que C o el factor deja de ser λ.</aside>
+</section>

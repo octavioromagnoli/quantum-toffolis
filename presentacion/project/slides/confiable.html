@@ -1,0 +1,11 @@
+<section id="confiable">
+<p class="eyebrow">Confiabilidad · Joaquín y Octavio</p>
+<h2>¿Cómo sabemos que está bien sin mirar FCI?</h2>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:48px;">
+<div class="card"><p class="tag">S² medido</p><p class="txt">A 3,0 Å el triplete está a solo 0,95 mHa: una energía “buena” puede ser el estado equivocado. Medir S² lo detecta: UCCSD ×1 da S² = 0,85 con la energía a 1,5 mHa.</p></div>
+<div class="card"><p class="tag">Varianza ≈ 0</p><p class="txt">El estado exacto tiene varianza cero. Con un eco medido, nuestro ansatz da Var ≤ 3·10⁻⁶ Ha²; UCCSD ×1, entre 8·10⁻⁵ y 3·10⁻³.</p></div>
+<div class="card"><p class="tag o">Límite físico</p><p class="txt">4 átomos de H aislados valen −1,866327 Ha (exacto). A 3,0 Å, CCSD queda 24 mHa por debajo: imposible, y se ve sin FCI.</p></div>
+<div class="card"><p class="tag g">Variacional</p><p class="txt">Entre métodos variacionales, el más bajo gana. N_α = N_β = 2 en todos los shots y σ calibrada.</p></div>
+</div>
+<aside>La consigna pide argumentar por qué el resultado es confiable antes de compararlo con FCI. Estos cuatro argumentos no usan FCI. La varianza por eco de Loschmidt aplica U(θ) e^{−iHt} U(θ)† y cuenta los shots que no vuelven a |0…0⟩: con 1 M de shots no hubo ninguno. Sin la penalización de S², una corrida del compacto convergió al triplete con 0,95 mHa de error: “precisión química” con el estado equivocado.</aside>
+</section>

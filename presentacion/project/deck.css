@@ -1,0 +1,100 @@
+:root {
+  --ink: #14213D;
+  --paper: #F6F4EE;
+  --paper2: #ECE7DB;
+  --night: #0F1B2D;
+  --night2: #1A2B44;
+  --blue: #2563A8;
+  --blue-l: #8DBBEB;
+  --orange: #B4580C;
+  --orange-l: #F2A35C;
+  --soft: #4A5568;
+  --soft-d: #C3CFDD;
+  --line: #D3CCBC;
+}
+
+body { font-family: 'Inter', Arial, sans-serif; }
+
+section {
+  padding: 128px;
+  box-sizing: border-box;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+section.alt { background: var(--paper2); }
+section.dark { background: var(--night); color: #EEF2F7; }
+section.statement { background: var(--orange-l); color: var(--ink); }
+
+h1, h2, h3 { font-family: 'Space Grotesk', Arial, sans-serif; margin: 0; }
+h1 { font-size: 104px; font-weight: 700; line-height: 1.05; }
+h2 { font-size: 60px; font-weight: 700; line-height: 1.1; color: var(--ink); }
+h3 { font-size: 36px; font-weight: 600; line-height: 1.2; color: var(--ink); }
+section.dark h2, section.dark h3 { color: #F3F5F8; }
+
+.eyebrow { font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--orange); margin: 0 0 16px 0; }
+section.dark .eyebrow { color: var(--orange-l); }
+
+.lead { font-size: 30px; line-height: 1.4; color: var(--soft); margin: 24px 0 0 0; max-width: 1500px; }
+section.dark .lead { color: var(--soft-d); }
+
+.txt { font-size: 28px; line-height: 1.4; color: var(--soft); margin: 0; }
+section.dark .txt { color: var(--soft-d); }
+.small { font-size: 24px; line-height: 1.35; color: var(--soft); margin: 0; }
+section.dark .small { color: var(--soft-d); }
+
+.body { flex: 1; display: flex; gap: 48px; margin-top: 56px; }
+.col { display: flex; flex-direction: column; gap: 24px; flex: 1; }
+
+.cards { display: flex; gap: 32px; margin-top: 56px; }
+.card { flex: 1; background: #FBFAF6; border: 2px solid var(--line); border-radius: 20px; padding: 36px; display: flex; flex-direction: column; gap: 16px; }
+section.alt .card { background: #F8F5EE; }
+section.dark .card { background: var(--night2); border-color: #2C4163; }
+.card.hi { border-color: var(--blue); border-width: 4px; }
+.card.warn { border-color: var(--orange); border-width: 4px; }
+
+.big { font-family: 'Space Grotesk', Arial, sans-serif; font-size: 72px; font-weight: 700; line-height: 1; margin: 0; color: var(--ink); }
+.big.blue { color: var(--blue); }
+.big.orange { color: var(--orange); }
+section.dark .big { color: #F3F5F8; }
+section.dark .big.blue { color: var(--blue-l); }
+section.dark .big.orange { color: var(--orange-l); }
+
+.tag { font-size: 24px; font-weight: 700; padding: 6px 16px; border-radius: 999px; background: #DDE8F5; color: #1B4C82; margin: 0; align-self: flex-start; }
+.tag.o { background: #F7DFC6; color: #7A3A05; }
+.tag.g { background: #DCEBDD; color: #22573A; }
+
+.blue-t { color: var(--blue); }
+.orange-t { color: var(--orange); }
+section.dark .blue-t { color: var(--blue-l); }
+section.dark .orange-t { color: var(--orange-l); }
+
+/* gráficos con barras */
+.bars { display: flex; flex-direction: column; gap: 28px; }
+.barrow { display: flex; align-items: center; gap: 24px; }
+.barlabel { width: 420px; font-size: 28px; font-weight: 600; margin: 0; color: var(--ink); }
+section.dark .barlabel { color: #EEF2F7; }
+.bartrack { flex: 1; height: 56px; position: relative; }
+.bar { height: 56px; border-radius: 8px; background: var(--blue); }
+.bar.o { background: var(--orange); }
+.bar.g { background: #8C96A5; }
+.barval { width: 300px; font-size: 28px; font-weight: 700; margin: 0; color: var(--ink); }
+section.dark .barval { color: #F3F5F8; }
+
+/* pipeline */
+.flow { display: flex; align-items: stretch; gap: 0; margin-top: 64px; }
+.step { flex: 1; background: #FBFAF6; border: 2px solid var(--line); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 12px; }
+.step .who { font-size: 24px; font-weight: 700; color: var(--orange); margin: 0; }
+.arrow { width: 48px; align-self: center; height: 32px; background: var(--soft); }
+
+table.t { font-size: 24px; color: var(--ink); width: 100%; }
+section.dark table.t { color: #EEF2F7; }
+
+.chart { position: relative; }
+.lbl { position: absolute; font-size: 24px; color: var(--soft); margin: 0; }
+section.dark .lbl { color: var(--soft-d); }
+
+@keyframes rise { from { opacity: 0; transform: translate(0px, 24px); } to { opacity: 1; transform: translate(0px, 0px); } }
+.rise { animation: rise 500ms ease-out both; animation-delay: calc(var(--i) * 120ms); }

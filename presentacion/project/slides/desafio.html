@@ -1,0 +1,20 @@
+<section id="desafio">
+<p class="eyebrow">El problema</p>
+<h2>Calcular cómo cambia la energía al separar 4 hidrógenos</h2>
+<div style="display:flex; align-items:center; gap:0; margin-top:64px; align-self:center;">
+<x-shape kind="ellipse" style="width:120px; height:120px; background:#2563A8;"></x-shape>
+<div style="width:150px; display:flex; flex-direction:column; align-items:center;"><p class="txt" style="font-weight:700; color:#14213D;">d</p><hr style="width:150px; border-top:4px solid #8C96A5;"></div>
+<x-shape kind="ellipse" style="width:120px; height:120px; background:#2563A8;"></x-shape>
+<div style="width:150px; display:flex; flex-direction:column; align-items:center;"><p class="txt" style="font-weight:700; color:#14213D;">d</p><hr style="width:150px; border-top:4px solid #8C96A5;"></div>
+<x-shape kind="ellipse" style="width:120px; height:120px; background:#2563A8;"></x-shape>
+<div style="width:150px; display:flex; flex-direction:column; align-items:center;"><p class="txt" style="font-weight:700; color:#14213D;">d</p><hr style="width:150px; border-top:4px solid #8C96A5;"></div>
+<x-shape kind="ellipse" style="width:120px; height:120px; background:#2563A8;"></x-shape>
+</div>
+<p class="small" style="align-self:center; margin-top:16px;">Cadena recta de 4 átomos de H, todos a la misma distancia d. Base STO-3G: 4 orbitales → 8 qubits.</p>
+<div class="cards">
+<div class="card rise" style="--i:0"><p class="big blue">18</p><h3>distancias</h3><p class="txt">De 0,6 a 3,0 Å. Con la curva E(d) sacamos R_e (distancia de equilibrio) y D_e (energía para separar los átomos).</p></div>
+<div class="card rise" style="--i:1"><p class="big blue">± σ</p><h3>energía medida</h3><p class="txt">Tiene que salir de medir el circuito con shots (SamplerV2), con barra de error. No vale leer el estado del simulador.</p></div>
+<div class="card warn rise" style="--i:2"><p class="big orange">d ≥ 1,8 Å</p><h3>ganarle a CCSD</h3><p class="txt">El método clásico estándar falla cuando los átomos se separan. Ahí tenemos que ser mejores, y explicar por qué confiar.</p></div>
+</div>
+<aside>FCI es la respuesta exacta: con 8 qubits se puede calcular, pero solo sirve para comparar, no como resultado. La precisión química es un error menor a 1,6 mHa (miliHartree). El jurado mira además cuántas compuertas y cuántas mediciones usamos.</aside>
+</section>

@@ -1,0 +1,34 @@
+<section id="geometrias">
+<p class="eyebrow">Extra · otra geometría</p>
+<h2>Cambiamos la forma de la molécula: VQE sigue, CCSD no</h2>
+<div class="cards" style="margin-top:48px;">
+<div class="card warn">
+<div style="display:flex; gap:48px; align-items:center;">
+<div style="display:grid; grid-template-columns:72px 72px; gap:56px;">
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#B4580C;"></x-shape>
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#B4580C;"></x-shape>
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#B4580C;"></x-shape>
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#B4580C;"></x-shape>
+</div>
+<h3>H₄ cuadrado</h3>
+</div>
+<p class="txt">Por simetría, dos orbitales quedan casi empatados: hay mezcla <b>incluso cerca del equilibrio</b>.</p>
+<p class="txt">CCSD: <b class="orange-t">+9,4 mHa a 0,7 Å</b>, −18,9 a 1,8 Å, y a 3,0 Å <b>no converge</b>.</p>
+</div>
+<div class="card">
+<div style="display:flex; gap:48px; align-items:center;">
+<div style="display:flex; gap:24px; align-items:flex-start; height:144px;">
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#2563A8;"></x-shape>
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#2563A8; margin-top:72px;"></x-shape>
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#2563A8;"></x-shape>
+<x-shape kind="ellipse" style="width:72px; height:72px; background:#2563A8; margin-top:72px;"></x-shape>
+</div>
+<h3>H₄ en zigzag</h3>
+</div>
+<p class="txt">Una cadena con ángulo de 120°. Se comporta como la recta.</p>
+<p class="txt">CCSD: exacto en el equilibrio, pero <b class="orange-t">−31,6 mHa a 2,4 Å</b>.</p>
+</div>
+</div>
+<div class="card hi" style="margin-top:32px;"><p class="txt"><b class="blue-t">VQE, mismo flujo y mismo circuito:</b> dentro de 2σ de FCI en los 10 puntos medidos (2 M de shots, σ ≈ 1,4 mHa). En la zona estirada le gana a CCSD en todos los puntos donde CCSD converge.</p></div>
+<aside>Solo cambia h4_geometry(d, shape). En el cuadrado, a 0,7 Å el determinante HF tiene peso nulo en el estado exacto, y aun así VQE llega a FCI porque las excitaciones dobles lo conectan con los determinantes que pesan. Brecha HOMO-LUMO a 0,9 Å: 0,42 Ha en el cuadrado contra 0,76 en la recta. Limitación: con 2 M de shots, σ ≈ 1,4 mHa no alcanza para afirmar precisión química punto a punto.</aside>
+</section>

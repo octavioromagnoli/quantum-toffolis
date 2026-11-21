@@ -1,0 +1,54 @@
+<section id="mezcla" class="alt">
+<p class="eyebrow">Por qué falla CCSD</p>
+<h2>Al estirar, la molécula deja de tener una forma principal</h2>
+<div style="display:flex; gap:64px; margin-top:32px;">
+<div style="display:flex; flex-direction:column; gap:12px;">
+<h3>Cuánto del estado real es la “foto” simple (HF)</h3>
+<div class="chart" style="width:760px; height:486px;">
+<svg aria-label="El peso del determinante de Hartree-Fock en el estado exacto baja de 0,985 a 0,6 Å hasta 0,27 a 3,0 Å" width="760" height="480" viewBox="0 0 760 480">
+<rect x="400" y="40" width="340" height="400" fill="#DCD5C5"/>
+<line x1="60" y1="440" x2="740" y2="440" stroke="#8C96A5" stroke-width="2"/>
+<line x1="60" y1="40" x2="60" y2="440" stroke="#8C96A5" stroke-width="2"/>
+<line x1="60" y1="240" x2="740" y2="240" stroke="#C9C1AF" stroke-width="1.5" stroke-dasharray="6 6"/>
+<polyline fill="none" stroke="#2563A8" stroke-width="5" points="60.0,46.0 88.3,48.8 116.7,52.8 130.8,55.6 145.0,58.4 159.2,61.6 173.3,65.6 201.7,74.8 230.0,86.8 286.7,119.6 343.3,162.4 400.0,207.6 456.7,247.2 513.3,278.0 570.0,300.0 626.7,315.2 683.3,325.6 740.0,332.4"/>
+<circle cx="145" cy="58.4" r="9" fill="#2563A8"/>
+<circle cx="740" cy="332.4" r="9" fill="#2563A8"/>
+</svg>
+<p class="lbl" style="left:0px; top:26px; width:50px;">1</p>
+<p class="lbl" style="left:0px; top:226px; width:50px;">0,5</p>
+<p class="lbl" style="left:0px; top:426px; width:50px;">0</p>
+<p class="lbl" style="left:40px; top:452px; width:120px;">0,6 Å</p>
+<p class="lbl" style="left:370px; top:452px; width:120px;">1,8 Å</p>
+<p class="lbl" style="left:680px; top:452px; width:120px;">3,0 Å</p>
+<p class="lbl" style="left:180px; top:2px; width:330px; color:#2563A8; font-weight:700;">95 % en el equilibrio</p>
+<p class="lbl" style="left:560px; top:360px; width:190px; color:#2563A8; font-weight:700;">27 % a 3,0 Å</p>
+<p class="lbl" style="left:420px; top:52px; width:300px;">zona estirada</p>
+</div>
+</div>
+<div style="display:flex; flex-direction:column; gap:12px;">
+<h3>Error de CCSD contra la respuesta exacta</h3>
+<div class="chart" style="width:760px; height:486px;">
+<svg aria-label="El error de CCSD es cero cerca del equilibrio y cae hasta 30,6 mHa por debajo de la respuesta exacta entre 2,4 y 2,6 Å" width="760" height="480" viewBox="0 0 760 480">
+<rect x="400" y="40" width="340" height="400" fill="#DCD5C5"/>
+<rect x="60" y="41" width="680" height="38" fill="#BFE0C6"/>
+<line x1="60" y1="60" x2="740" y2="60" stroke="#14213D" stroke-width="2"/>
+<line x1="60" y1="40" x2="60" y2="440" stroke="#8C96A5" stroke-width="2"/>
+<line x1="60" y1="440" x2="740" y2="440" stroke="#8C96A5" stroke-width="2"/>
+<polyline fill="none" stroke="#B4580C" stroke-width="5" points="60.0,59.9 88.3,60.0 116.7,59.9 130.8,59.9 145.0,59.9 159.2,59.9 173.3,59.9 201.7,60.1 230.0,60.7 286.7,67.6 343.3,95.7 400.0,168.2 456.7,277.4 513.3,373.6 570.0,422.9 626.7,423.7 683.3,388.6 740.0,333.2"/>
+<circle cx="626.7" cy="423.7" r="9" fill="#B4580C"/>
+</svg>
+<p class="lbl" style="left:0px; top:46px; width:50px;">0</p>
+<p class="lbl" style="left:-10px; top:226px; width:60px;">−15</p>
+<p class="lbl" style="left:-10px; top:402px; width:60px;">−30</p>
+<p class="lbl" style="left:40px; top:452px; width:120px;">0,6 Å</p>
+<p class="lbl" style="left:370px; top:452px; width:120px;">1,8 Å</p>
+<p class="lbl" style="left:680px; top:452px; width:120px;">3,0 Å</p>
+<p class="lbl" style="left:80px; top:90px; width:300px; color:#22573A; font-weight:700;">banda de ±1,6 mHa</p>
+<p class="lbl" style="left:300px; top:370px; width:300px; color:#B4580C; font-weight:700;">−30,6 mHa</p>
+<p class="lbl" style="left:80px; top:180px; width:300px;">en mHa</p>
+</div>
+</div>
+</div>
+<p class="txt" style="margin-top:8px; color:#14213D;"><b>HF</b> (Hartree-Fock) es la aproximación más simple: una sola “foto” de dónde están los electrones. CCSD parte de esa foto y la corrige. En el equilibrio la foto es el 95 % del estado real y CCSD anda perfecto; estirado es solo el 27 % y CCSD falla.</p>
+<aside>HF (Hartree-Fock) es la aproximación de una sola configuración de electrones. El peso de HF es cuánto de esa configuración hay en el estado exacto. Al estirar baja a 0,27: es correlación estática, el caso clásico donde CCSD falla. CCSD solo incluye excitaciones simples y dobles conectadas; para 4 electrones FCI equivale a CCSDTQ, y le faltan las triples y cuádruples conectadas.</aside>
+</section>

@@ -1,0 +1,13 @@
+<section id="curva" class="dark">
+<p class="eyebrow">Resultado central · curva sin ruido</p>
+<h2>Le ganamos a CCSD en toda la zona estirada</h2>
+<p class="lead">UCCSD ×2 (el ansatz que hoy está en main), 18 distancias, 8 M de shots por punto, energía medida con SamplerV2.</p>
+<div class="cards" style="margin-top:56px;">
+<div class="card rise" style="--i:0"><p class="big blue" style="font-size:56px;">7 / 7</p><h3>le gana a CCSD</h3><p class="txt">Puntos con d ≥ 1,8 Å donde |E − FCI| + σ es menor que el error de CCSD.</p></div>
+<div class="card rise" style="--i:1"><p class="big blue" style="font-size:56px;">7 / 7</p><h3>precisión química</h3><p class="txt">Error menor a 1,6 mHa en todos los puntos estirados.</p></div>
+<div class="card rise" style="--i:2"><p class="big" style="font-size:56px;">0,8841 Å</p><h3>R_e ± 0,0025</h3><p class="txt">FCI: 0,8886 Å. Distancia de equilibrio, a 1,8σ.</p></div>
+<div class="card rise" style="--i:3"><p class="big" style="font-size:56px;">313,2 mHa</p><h3>D_e ± 0,85</h3><p class="txt">FCI: 313,21 mHa. Energía para separar los átomos.</p></div>
+</div>
+<p class="small" style="margin-top:40px;">CCSD, en cambio, se equivoca entre 9 y 31 mHa en esa zona. R_e y D_e con el ajuste cuártico de 7 puntos de Joaquín (PR #6).</p>
+<aside>Esto es el desafío central, sin ruido, y ya está cumplido. El jurado va a preguntar por el costo: 1648 CZ en línea y 8 M de shots por punto. Por eso el resto del trabajo va a bajar CZ (ADAPT, compacto) y shots (GC), y a mostrar que con ruido también funciona.</aside>
+</section>

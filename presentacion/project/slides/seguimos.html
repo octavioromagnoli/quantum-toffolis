@@ -1,0 +1,23 @@
+<section id="seguimos">
+<p class="eyebrow">Cómo seguimos</p>
+<h2>Plan hasta la entrega, y mejoras si sobra tiempo</h2>
+<div class="body">
+<div class="col">
+<h3>Plan</h3>
+<div class="flow" style="flex-direction:column; align-items:stretch; gap:16px;">
+<div class="step"><p class="who">1 · los cuatro</p><p class="txt">Sync: decidir ansatz principal y grupos de medición.</p></div>
+<div class="step"><p class="who">2 · Joaquín</p><p class="txt">Mergear #5, #6 y #7 y cambiar el pipeline.</p></div>
+<div class="step"><p class="who">3 · todos</p><p class="txt">Correr Colab limpio (≤ 20 min); freeze a las T 3:30.</p></div>
+<div class="step"><p class="who">4 · Joaquín</p><p class="txt">Subir notebook y resultados a Drive.</p></div>
+</div>
+</div>
+<div class="col">
+<h3>Mejoras posibles</h3>
+<div class="card"><p class="txt"><b>Menos shots:</b> GC sobre los 5 qubits (hoy 34 grupos QWC).</p></div>
+<div class="card"><p class="txt"><b>Post-selección:</b> descartar shots que rompen N_α, N_β.</p></div>
+<div class="card"><p class="txt"><b>ADAPT nativo en línea</b>, para bajar de 370 CZ.</p></div>
+<div class="card"><p class="txt"><b>Extra FeMoco:</b> cómo escala esto a una molécula real (doc de Santino).</p></div>
+</div>
+</div>
+<aside>Lo más importante es el paso 1: sin la decisión del ansatz no se puede cerrar el notebook. Las mejoras son opcionales; la más barata es GC en 5 qubits porque la función ya existe en estimator.py. La post-selección solo sirve en las bases que miden Z.</aside>
+</section>

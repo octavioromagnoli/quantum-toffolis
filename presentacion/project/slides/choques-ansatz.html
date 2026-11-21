@@ -1,0 +1,29 @@
+<section id="choques-ansatz" class="alt">
+<p class="eyebrow">Dónde chocamos · el ansatz</p>
+<h2>Tres caminos para el mismo circuito</h2>
+<div class="cards" style="margin-top:48px;">
+<div class="card">
+<p class="tag">Base · hoy en main</p>
+<h3>UCCSD ×2</h3>
+<p class="txt">8 qubits · <b>1648 CZ</b> en línea · exacto</p>
+<p class="small">+ químico, conserva N y S².<br>− con ruido es peor que HF.</p>
+</div>
+<div class="card">
+<p class="tag o">Gonzalo · PR #5</p>
+<h3>ADAPT, 13 operadores</h3>
+<p class="txt">8 qubits · <b>370 CZ</b> en línea · ≤ 0,84 mHa</p>
+<p class="small">+ elige operadores con sentido físico y corta sin FCI.<br>− siguen siendo cientos de CZ.</p>
+</div>
+<div class="card hi">
+<p class="tag g">Octavio · PR #7</p>
+<h3>Compacto en ladrillo</h3>
+<p class="txt">5 qubits · <b class="blue-t">16 CZ</b> · exacto</p>
+<p class="small">+ sobrevive al ruido (FakeFez).<br>− no conserva N ni S² solo (los medimos); ~2× shots; no escala a moléculas grandes.</p>
+</div>
+</div>
+<div class="card warn" style="margin-top:40px;">
+<h3>Propuesta para el sync (a decidir entre los cuatro)</h3>
+<p class="txt">Compacto como ansatz principal, porque es lo que mira el jurado (CZ) y es el único que funciona con ruido. UCCSD ×2 como referencia de 8 qubits, y ADAPT en la tabla de comparar ansätze.</p>
+</div>
+<aside>No es un error que haya tres: Gonzalo atacó las CZ desde la química (ADAPT, de ~584 a 185 con conectividad total), Octavio desde las simetrías (de 8 a 5 qubits). Lo que hay que decidir es cuál va en la curva principal del notebook. El cambio en el pipeline es chico porque el compacto tiene la misma interfaz que el ansatz de Gonzalo.</aside>
+</section>

@@ -1,0 +1,20 @@
+<section id="flujo" class="alt">
+<p class="eyebrow">Nuestra solución</p>
+<h2>Una cadena de cinco pasos, repartida entre los cuatro</h2>
+<div class="flow">
+<div class="step rise" style="--i:0"><p class="who">Octavio</p><h3 style="font-size:30px;">Hamiltoniano</h3><p class="small">La fórmula de la energía en qubits: 8 qubits, 185 términos.</p></div>
+<x-shape kind="arrow-right" style="width:48px; height:28px; background:#8C96A5; align-self:center;"></x-shape>
+<div class="step rise" style="--i:1"><p class="who">Gonzalo · Octavio</p><h3 style="font-size:30px;">Ansatz</h3><p class="small">Un circuito con perillas θ que prepara el estado.</p></div>
+<x-shape kind="arrow-right" style="width:48px; height:28px; background:#8C96A5; align-self:center;"></x-shape>
+<div class="step rise" style="--i:2"><p class="who">Gonzalo</p><h3 style="font-size:30px;">Buscar θ</h3><p class="small">Se giran las perillas sin ruido (está permitido).</p></div>
+<x-shape kind="arrow-right" style="width:48px; height:28px; background:#8C96A5; align-self:center;"></x-shape>
+<div class="step rise" style="--i:3"><p class="who">Santino</p><h3 style="font-size:30px;">Medir E ± σ</h3><p class="small">La energía se mide con shots, con barra de error.</p></div>
+<x-shape kind="arrow-right" style="width:48px; height:28px; background:#8C96A5; align-self:center;"></x-shape>
+<div class="step rise" style="--i:4"><p class="who">Joaquín</p><h3 style="font-size:30px;">Analizar</h3><p class="small">Curva, R_e, D_e, confiabilidad y el notebook.</p></div>
+</div>
+<div class="cards" style="margin-top:48px;">
+<div class="card"><h3>La intuición de VQE</h3><p class="txt">El ansatz es una receta con perillas: preparamos el estado, medimos su energía y giramos las perillas hasta que no baja más. Lo más bajo es lo mejor.</p></div>
+<div class="card warn"><h3>Lo que mira el jurado</h3><p class="txt">No solo el número: con cuántas <b>CZ</b> (compuertas de 2 qubits, las que más fallan) y cuántos <b>shots</b> (mediciones) se llega.</p></div>
+</div>
+<aside>Cada uno es dueño de sus archivos: hamiltonian.py, reduction.py, noise.py y hardware.py (Octavio); ansatz.py, optimize.py y adapt.py (Gonzalo); estimator.py (Santino); analysis.py, pipeline.py y el notebook (Joaquín). Buscar θ sin ruido está permitido por la consigna; la energía que se reporta siempre sale de medir con shots.</aside>
+</section>

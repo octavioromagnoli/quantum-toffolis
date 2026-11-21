@@ -1,0 +1,17 @@
+<section id="fez" class="alt">
+<p class="eyebrow">Hardware real (simulado) · Octavio</p>
+<h2>En una copia de IBM Fez, con mitigación, llegamos a FCI</h2>
+<p class="lead">2,4 Å · compacto de 16 CZ · error contra FCI en mHa, medido con shots.</p>
+<div class="bars" style="margin-top:48px;">
+<div class="barrow"><p class="barlabel">Sin mitigar</p><div class="bartrack" style="width:880px; flex:none;"><div style="position:absolute; left:292px; top:-8px; width:3px; height:72px; background:#14213D;"></div><div class="bar g" style="position:absolute; left:296px; top:0px; width:561px;"></div></div><p class="barval">+76,5 ± 1,9</p></div>
+<div class="barrow"><p class="barlabel">Corrigiendo la lectura</p><div class="bartrack" style="width:880px; flex:none;"><div style="position:absolute; left:292px; top:-8px; width:3px; height:72px; background:#14213D;"></div><div class="bar g" style="position:absolute; left:296px; top:0px; width:345px;"></div></div><p class="barval">+47,1 ± 2,0</p></div>
+<div class="barrow"><p class="barlabel">ZNE + lectura</p><div class="bartrack" style="width:880px; flex:none;"><div style="position:absolute; left:292px; top:-8px; width:3px; height:72px; background:#14213D;"></div><div class="bar" style="position:absolute; left:271px; top:0px; width:21px;"></div></div><p class="barval blue-t">−2,9 ± 2,1</p></div>
+<div class="barrow"><p class="barlabel">CCSD (clásico)</p><div class="bartrack" style="width:880px; flex:none;"><div style="position:absolute; left:292px; top:-8px; width:3px; height:72px; background:#14213D;"></div><div class="bar o" style="position:absolute; left:68px; top:0px; width:224px;"></div></div><p class="barval orange-t">−30,6</p></div>
+</div>
+<div class="cards" style="margin-top:48px;">
+<div class="card"><p class="txt"><b>FakeFez</b> copia la calibración real: ~1 % por CZ y lectura de 0,4 a 0,8 %.</p></div>
+<div class="card"><p class="txt">Elegimos la línea de 5 qubits con <b>la mitad</b> de errores que la mediana.</p></div>
+<div class="card"><p class="txt">UCCSD ×2 en Fez necesitaría <b>1939 CZ</b>: no queda señal.</p></div>
+</div>
+<aside>La barra vertical es el cero (FCI). Sin mitigar el error es peor que CCSD. Corregir solo la lectura deja +47 mHa, que coincide con el error exacto de las compuertas (49 mHa): la corrección funciona. La ZNE sola dejaba +32 mHa porque no toca la lectura. Las dos juntas: −2,9 ± 2,1 mHa, compatible con FCI a 1,4σ. Con σ ≈ 2 mHa no alcanza para afirmar precisión química. Elegimos la línea entre 856 posibles (0,087 errores esperados contra 0,172 de la mediana). Simular solo los 5 qubits usados da el mismo valor esperado que el chip completo y es ~20 veces más rápido.</aside>
+</section>

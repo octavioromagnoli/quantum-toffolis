@@ -1,12 +1,12 @@
 # El diferencial: la misma exactitud con 100× menos CZ, y sobrevive al ruido
 
-> **Estado:** implementado y probado en la rama `octavio/diferencial`: `h4vqe/reduction.py`, `h4vqe/noise.py`, `tests/test_reduction.py` y `scripts/diferencial_demo.py`. Todos los números de este documento salen de `python scripts/diferencial_demo.py` (guarda `docs/ideas/diferencial_resultados.json`). Las distancias se miden en Å, las energías en Ha y los errores en mHa contra FCI.
+> **Estado:** implementado y probado en la rama `octavio/hamiltoniano`: `h4vqe/reduction.py`, `h4vqe/noise.py`, `tests/test_reduction.py` y `scripts/diferencial_demo.py`. Todos los números de este documento salen de `python scripts/diferencial_demo.py` (guarda `docs/ideas/diferencial_resultados.json`). Las distancias se miden en Å, las energías en Ha y los errores en mHa contra FCI.
 
 ## La idea en tres líneas
 
-1. Cualquier equipo con IA llega a FCI sin ruido con UCCSD en 8 qubits. Nuestra base ya lo hace, pero con **1648 CZ en línea**. Con el ruido de la consigna ese circuito da **561 mHa de error, peor que Hartree-Fock**.
+1. Cualquier equipo con IA llega a FCI sin ruido con UCCSD en 8 qubits. Nuestra base ya lo hace, pero con **1648 CZ en línea**. Con nuestro modelo de ruido (sección 2) ese circuito da **561 mHa de error, peor que Hartree-Fock**.
 2. Usando las simetrías de la cadena (paridad de N_α, paridad de N_β y la **inversión**), el problema baja a **5 qubits**. Ahí un ansatz en ladrillo nativo de la línea llega a FCI (< 0,001 mHa en las 18 distancias) con **16 CZ y sin SWAP**.
-3. Con 16 CZ el ruido deja un sesgo de solo ~14 mHa. La mitigación bien hecha (**plegado global**, no solo de CZ) lo baja a **0,01–0,02 mHa**. Medido con shots (42M por punto) da **−1,1 ± 0,9, +0,4 ± 0,9 y −0,8 ± 0,8 mHa** a 1,8, 2,4 y 3,0 Å: **precisión química con el ruido de la consigna**, y lejos de CCSD (−9 a −31 mHa).
+3. Con 16 CZ el ruido deja un sesgo de solo ~14 mHa. La mitigación bien hecha (**plegado global**, no solo de CZ) lo baja a **0,01–0,02 mHa**. Medido con shots (42M por punto) da **−1,1 ± 0,9, +0,4 ± 0,9 y −0,8 ± 0,8 mHa** a 1,8, 2,4 y 3,0 Å: **precisión química con ruido**, y lejos de CCSD (−9 a −31 mHa).
 
 La consigna lo dice en la motivación: *"no alcanza con llegar al número correcto: importa cómo se llega, con cuántas compuertas y con cuántas mediciones"*. Ahí está el diferencial.
 
@@ -20,7 +20,7 @@ La consigna lo dice en la motivación: *"no alcanza con llegar al número correc
 | compacto L=7 | 5 | 40 | 14 | 14 | 0,000 | 12,8 |
 | **compacto L=8 (propuesto)** | **5** | **45** | **16** | **16** | **0,000** | **13,5** |
 
-Como referencia, a 2,0 Å HF tiene 322 mHa de error y CCSD −18,3 mHa. La columna "con ruido" es el valor de expectación exacto con el ruido de la consigna y *sin* mitigación, así que mide solo el sesgo.
+Como referencia, a 2,0 Å HF tiene 322 mHa de error y CCSD −18,3 mHa. La columna "con ruido" es el valor de expectación exacto con nuestro modelo de ruido y *sin* mitigación, así que mide solo el sesgo.
 
 - La curva completa con el compacto L=8 da error < 0,001 mHa en las 18 distancias, con ⟨S²⟩ = 0 y N = 4. Los barridos de ida (0,6 → 3,0) y de vuelta coinciden. Con L=10 también da < 0,0001 mHa. **Con L=6 falla** (hasta 3,8 mHa, con mínimos locales): eso es un buen análisis de límites para el notebook.
 - **Trampa que conviene contar en "qué no funcionó":** si en cada capa se ponen *todas* las CZ a la vez (0-1, 1-2, 2-3, 3-4), el ansatz tiene un **techo de fidelidad de 0,961** que no mejora con más capas (probado con L = 2…8). La fidelidad 1 se alcanza con el patrón en ladrillo (pares alternados) o con una cadena de CX.
@@ -35,7 +35,7 @@ Como referencia, a 2,0 Å HF tiene 322 mHa de error y CCSD −18,3 mHa. La colum
 
 ## 2. Ruido y mitigación (`h4vqe/noise.py`)
 
-`ruido.py` **no está publicado**: no figura en la web de la Jam (revisé el bundle JS) ni en el repo de workshops. Lo reconstruí con la descripción de la consigna (despolarizante: 0,1 % por cz y 0,005 % por compuerta de 1 qubit; base cz/sx/x/rz; qubits en línea). **Hay que pedirlo a los organizadores**, y si difiere, solo hay que cambiar `noise_model()`.
+La consigna ya no incluye `ruido.py`: los organizadores aclararon que quedó de una versión anterior y que no entra. Igual usamos un modelo de ruido **propio**, simple y controlado, con los parámetros que describía esa versión (despolarizante: 0,1 % por cz y 0,005 % por compuerta de 1 qubit; base cz/sx/x/rz; qubits en línea). Sirve para medir cuánto daño hace cada compuerta y para probar la mitigación. Para ruido de hardware real queda el extra con `FakeFez`.
 
 Sesgo de cada técnica, como valor de expectación exacto con ruido. Esto sirve para *elegir* la técnica; no son energías reportadas.
 
@@ -103,5 +103,5 @@ Sesgo de cada técnica, como valor de expectación exacto con ruido. Esto sirve 
 ## 6. Limitaciones (para declararlas, no para esconderlas)
 
 - El ansatz en ladrillo es *hardware-efficient*: no conserva N ni S² por construcción (lo verificamos midiéndolos) y con L ≤ 6 aparecen mínimos locales. En 5 qubits no hay *barren plateaus*, pero esto no escala a moléculas grandes. El tapering, en cambio, sí escala.
-- `ruido.py` está reconstruido. Si las rz no tienen ruido (en IBM son virtuales), el sesgo sin mitigar baja de ~15 a ~13 mHa a 1,8 Å. Las conclusiones no cambian.
+- El modelo de ruido es propio (despolarizante, no el de un hardware real). Si las rz no tienen ruido (en IBM son virtuales), el sesgo sin mitigar baja de ~15 a ~13 mHa a 1,8 Å. Las conclusiones no cambian.
 - Unas 2× más shots que en 8 qubits para la misma σ (sección 3).

@@ -1,10 +1,11 @@
-"""Modelo de ruido de la consigna, medición con ruido y herramientas de escalado de ruido (ZNE).
+"""Modelo de ruido propio, medición con ruido y herramientas de escalado de ruido (ZNE).
 
 Dueño: Octavio.
 
-ruido.py NO está publicado (ni en la web de la Jam ni en el repo de workshops). Se reconstruye con
-la descripción de la consigna: base cz, sx, x, rz; qubits en línea; error despolarizante de 0,1 %
-por cz y 0,005 % por compuerta de 1 qubit. Si aparece el ruido.py oficial, reemplazar noise_model().
+La consigna ya no incluye ruido.py (los organizadores aclararon que quedó de una versión anterior y
+que no entra). Usamos un modelo PROPIO, simple y controlado, con los parámetros que describía esa
+versión: base cz, sx, x, rz; qubits en línea; error despolarizante de 0,1 % por cz y 0,005 % por
+compuerta de 1 qubit. Sirve para medir cuánto daño hace cada compuerta y para probar la mitigación.
 
 Lo que aprendimos (detalles en docs/ideas/diferencial.md):
   * El sesgo por ruido escala con TODAS las compuertas: el circuito compacto (16 CZ) tiene ~150
@@ -47,7 +48,7 @@ def noisy_backend(n_qubits: int, p2: float = P_CZ, p1: float = P_1Q, seed: int |
 
 
 def noisy_sampler(seed: int | None = None, p2: float = P_CZ, p1: float = P_1Q) -> AerSampler:
-    """SamplerV2 de Aer con el ruido de la consigna (matriz densidad: exacto y rápido hasta ~10 qubits)."""
+    """SamplerV2 de Aer con nuestro modelo de ruido (matriz densidad: exacto y rápido hasta ~10 qubits)."""
     return AerSampler(seed=seed, options={"backend_options": {
         "noise_model": noise_model(p2, p1), "method": "density_matrix"}})
 

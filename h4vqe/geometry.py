@@ -24,11 +24,11 @@ def scan_geometry(shape: str, distances, shots: int, reps: int = ANSATZ_REPS,
         ans = build_ansatz(m, reps=reps)
         if cz is None:   # el circuito tiene la misma estructura en todas las distancias
             cz = {"cz_all": cz_count(ans.circuit), "cz_line": cz_count(ans.circuit, "line")}
-        # Desde HF y desde el θ* del punto anterior; nos quedamos con el mejor.
-        opts = [optimize_params(ans, H, n_restarts=2)]
-        if x_prev is not None:
-            opts.append(optimize_params(ans, H, x0=x_prev, n_restarts=2))
-        opt = min(opts, key=lambda o: o["energy"])
+        if x_prev is None:   # primer punto: desde HF con reinicios al azar
+            opt = optimize_params(ans, H, n_restarts=2)
+        else:                # resto: desde el θ* del punto anterior y desde HF; el mejor
+            opt = min(optimize_params(ans, H, x0=x_prev), optimize_params(ans, H),
+                      key=lambda o: o["energy"])
         x_prev = opt["x"]
         meas = measure_energy(ans.circuit.assign_parameters(opt["x"]), H, shots, seed=seed)
         _, psi = sector_ground_state(H, m["norb"], m["nelec"])

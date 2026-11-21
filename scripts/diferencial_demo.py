@@ -6,7 +6,7 @@
 1. CZ y precisión: UCCSD del equipo contra el ansatz compacto de 5 qubits.
 2. Curva completa con el compacto: energía MEDIDA con SamplerV2 (estimator.py del equipo), σ, shots, CZ,
    y <S^2>, <N> también medidos con shots.
-3. Ruido de la consigna en la zona estirada: crudo, ZNE (plegado global, λ = 1,3,5) y eco + ZNE (λ = 1,3).
+3. Nuestro modelo de ruido (noise.py) en la zona estirada: crudo, ZNE (plegado global, λ = 1,3,5) y eco + ZNE (λ = 1,3).
 4. Argumento de confiabilidad sin FCI: límite de 4 átomos de H aislados.
 """
 from __future__ import annotations

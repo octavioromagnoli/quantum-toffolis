@@ -57,8 +57,8 @@ import pandas as pd, matplotlib.pyplot as plt
 from h4vqe import config
 from h4vqe.geometry import scan_geometry
 from h4vqe.hamiltonian import ZIGZAG_ANGLE
-GEO_D = [0.7, 0.9, 1.2, 1.5, 1.8, 2.4, 3.0]
-GEO_SHOTS = 2_000_000   # σ ≈ 1,4 mHa por punto (~3 min las dos geometrías)
+GEO_D = [0.7, 1.2, 1.8, 2.4, 3.0]
+GEO_SHOTS = 2_000_000   # σ ≈ 1,4 mHa por punto
 geo = pd.DataFrame(scan_geometry("square", GEO_D, GEO_SHOTS) + scan_geometry("zigzag", GEO_D, GEO_SHOTS))
 geo["beats_ccsd"] = geo.err_vqe_mHa.abs() + 1e3 * geo.sigma < geo.err_ccsd_mHa.abs()
 fig, axs = plt.subplots(1, 2, figsize=(11, 3.6), sharey=True)

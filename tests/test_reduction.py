@@ -55,7 +55,7 @@ def test_reduction_and_compact():
     isa = to_line(bound)
     assert Operator(fold_global(isa, 1).remove_final_measurements(inplace=False)).equiv(Operator(isa))
     rn = measure_energy_noisy(isa, H5, 200_000)
-    assert rn["energy"] - opt["energy"] > 5e-3, rn          # sesgo de ~13 mHa con el ruido de la consigna
+    assert rn["energy"] - opt["energy"] > 5e-3, rn          # sesgo de ~13 mHa con nuestro modelo de ruido
     print("OK reducción + compacto + ruido", 1e3 * (opt["energy"] - m["e_fci"]), r, rn)
 
 

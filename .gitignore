@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+notebook/h4vqe/
+notebook/curva_h4.png
+.pytest_cache/

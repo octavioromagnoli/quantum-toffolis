@@ -50,6 +50,10 @@ Costo: Ĥ en el orden final se agrupa mucho peor (69 grupos contra 37 con el agr
 - **Circuitos explícitos de excitación sin ruteo propio** (escalera de CNOT + RY multicontrolada): exactos, pero el transpiler los rutea peor que `PauliEvolutionGate` (705 contra 526 CZ en línea).
 - **Probar layouts y semillas del transpiler** para conectividad en línea: el mejor resultado fue ~515 CZ, contra ~526 por defecto.
 
+### Extra: comparación de ansätze
+
+En el notebook de extras (`H4_VQE_extras.ipynb`, sección "Comparación de ansätze"): 10 ansätze sin ruido en las 18 distancias, y con ruido a 2,4 Å. Resumen: ADAPT 15 es el mejor ansatz químico sin ruido; con ruido solo sirve el compacto de 5 qubits (14-16 CZ).
+
 ### Limitaciones y próximos pasos
 
 - S² ≤ 6,5·10⁻³ (no es exactamente 0), porque el pool no está adaptado al espín: los pares de dobles αβ tampoco comparten parámetro.

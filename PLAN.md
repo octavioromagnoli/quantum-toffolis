@@ -56,6 +56,8 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python --only-b
 
 ## Tareas
 
+Cada uno tiene su issue asignado con checklist: Octavio [#1](https://github.com/octavioromagnoli/quantum-toffolis/issues/1), Gonzalo [#2](https://github.com/octavioromagnoli/quantum-toffolis/issues/2), Santino [#3](https://github.com/octavioromagnoli/quantum-toffolis/issues/3), Joaquín [#4](https://github.com/octavioromagnoli/quantum-toffolis/issues/4).
+
 ### Octavio: hamiltoniano, simetrías y ruido
 - **P1** Validar el hamiltoniano: diagonalizar Ĥ solo en el sector N_α = N_β = 2 y comparar con FCI en todas las distancias. Explicar en `02_hamiltonian.md` por qué CCSD falla (no variacional; correlación fuerte al estirar), con un gráfico de E_CCSD − E_FCI.
 - **P1** `h4vqe/noise.py`: modelo de ruido de la consigna (`ruido.py`: cz 0,1 %, 1 qubit 0,005 %, base cz/sx/x/rz, qubits en línea). Buscar `ruido.py` en el repo de workshops; si no aparece, implementarlo con `NoiseModel` y despolarizante. Devolver un `AerSampler` con ruido que se pueda pasar al estimador.

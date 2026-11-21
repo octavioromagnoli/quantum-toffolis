@@ -8,8 +8,8 @@ Idea (Grimsley et al., Nat. Commun. 10, 3007, 2019):
        (con θ = 0) es  g_k = <ψ| i[G_k, H] |ψ> = 2 Re <Hψ| -i G_k ψ>.
     3. Agregar el de |g_k| máximo y reoptimizar TODOS los parámetros (warm start).
     4. Repetir hasta que max|g_k| < grad_tol (criterio que NO usa FCI).
-       Ojo: con 1e-4 se traba en mesetas (a 1,6, 2,8 y 3,0 Å para con 0,6 a 2 mHa de
-       error y después el gradiente vuelve a crecer). Con 1e-5 llega a FCI en toda la curva.
+       Ojo: con 1e-4 se traba en mesetas: a 1,6, 2,8 y 3,0 Å se detiene con 0,6 a 2 mHa
+       de error, y después el gradiente vuelve a crecer. Con 1e-5 llega a FCI en toda la curva.
 
 Un mismo operador se puede elegir más de una vez.
 
@@ -147,22 +147,27 @@ def adapt_vqe_multi(ms: list[dict], Hs: list, pool: list | None = None,
         if gmax.max() < grad_tol:
             reason = "grad_tol"
             break
-        costs = [line_cost(order, e) for e in pools[0].excitations]
-        score = gmax / np.array([c for c, _ in costs]) ** cost_power
-        score[gmax < grad_tol] = -1.0
+        if cost_power > 0:
+            costs = [line_cost(order, e) for e in pools[0].excitations]
+            score = gmax / np.array([c for c, _ in costs]) ** cost_power
+            score[gmax < grad_tol] = -1.0
+        else:
+            costs, score = None, gmax
         k = int(np.argmax(score))
-        order = costs[k][1]
+        if costs is not None:
+            order = costs[k][1]
         idx.append(k)
         for j, (p, Hm) in enumerate(zip(pools, Hms)):
             fast = p.fast(idx)
             xs[j], energies[j] = _reoptimize(fast, Hm, np.append(xs[j], 0.0))
             psis[j] = fast.state(xs[j])
         history.append({"n_ops": len(idx), "added": pools[0].excitations[k],
-                        "max_grad": float(gmax[k]), "line_cost": costs[k][0],
+                        "max_grad": float(gmax[k]),
+                        "line_cost": costs[k][0] if costs is not None else None,
                         "energies": list(energies)})
         if verbose:
-            print(f"  op {len(idx):2d}: {pools[0].excitations[k]}  max|g|={gmax[k]:.2e}  "
-                  f"costo línea≈{costs[k][0]:.0f}")
+            extra = f"  costo línea≈{costs[k][0]:.0f}" if costs is not None else ""
+            print(f"  op {len(idx):2d}: {pools[0].excitations[k]}  max|g|={gmax[k]:.2e}{extra}")
     return {"excitations": [pools[0].excitations[i] for i in idx], "xs": xs,
             "energies": energies, "history": history, "stop": reason}
 
@@ -174,20 +179,34 @@ def adapt_vqe_multi(ms: list[dict], Hs: list, pool: list | None = None,
 # qubits 0-3 = alfa, 4-7 = beta (convención de hamiltonian.py).
 # --------------------------------------------------------------------------------------
 
-# Recomendado. Pool fermiónico, lista común para las 18 distancias, primeros 13 operadores.
-# Sin ruido y con el warm start del pipeline: error máx. 0,84 mHa (1,4 Å), ≤ 0,6 mHa
-# para d ≥ 1,8 Å; 185 CZ todos con todos, ~515 en línea (UCCSD×2: ~584 / ~1600).
-# Corte elegido por la varianza ⟨H²⟩ − ⟨H⟩² (cae de 3e-3 a 2,6e-4 Ha² en k = 13),
-# que se puede medir sin conocer FCI.
+# Recomendado (15 ops). La lista común de ADAPT truncada en 13 operadores, más las dos
+# simples que completan los PARES DE ESPÍN (β 4→6 junto a α 0→2, α 1→3 junto a β 5→7).
+# Sin ruido, con optimize_params (warm start + θ = 0): error máx. 0,38 mHa en TODA la
+# curva, S² ≤ 6,5e-3; 194 CZ todos con todos; 378 en línea con routing.routed_ansatz + LINE_ORDER
+# (~530 con el transpiler común). Var(H) exacta máx. sobre la curva: 1,9e-4 Ha².
+# Las simples agregadas AL FINAL, en cambio, caen en un mínimo malo (2,5 mHa, S² = 0,52).
 ADAPT_FERMIONIC = [
+    ((1, 5), (3, 7)), ((0, 5), (3, 6)), ((0, 4), (2, 6)), ((1, 4), (2, 7)),
+    ((1, 5), (2, 6)), ((0, 5), (2, 7)), ((0, 4), (3, 7)), ((1, 4), (3, 6)),
+    ((0, 1), (2, 3)), ((4, 5), (6, 7)),
+    ((0,), (2,)), ((4,), (6,)), ((5,), (7,)), ((1,), (3,)),
+    ((0, 5), (2, 7)),
+]
+
+# Lista original de ADAPT truncada en 13 operadores (sin completar los pares de espín).
+# Error máx. 0,59 mHa (2,0 Å); S² ≤ 0,013; 185 CZ / 370 en línea.
+# Corte elegido por la varianza ⟨H²⟩ − ⟨H⟩² calculada con el estado (cae de 3,2e-3 a
+# 2,6e-4 Ha² en k = 13); el eco de Loschmidt de analysis.py la confirma MEDIDA con shots.
+ADAPT_FERMIONIC_13 = [
     ((1, 5), (3, 7)), ((0, 5), (3, 6)), ((0, 4), (2, 6)), ((1, 4), (2, 7)),
     ((1, 5), (2, 6)), ((0, 5), (2, 7)), ((0, 4), (3, 7)), ((1, 4), (3, 6)),
     ((0, 1), (2, 3)), ((4, 5), (6, 7)), ((0,), (2,)), ((5,), (7,)), ((0, 5), (2, 7)),
 ]
 
 # Extra. Pool QEB (excitaciones de qubit), primeros 15 operadores: 159 CZ / ~451 en línea.
-# OJO: con el warm start del pipeline cae en un mínimo malo a 2,0 Å (9,8 mHa, S² = 0,78).
-# Usar con build_ansatz(m, excitations=ADAPT_QEB, kind="qeb") y varios reinicios.
+# Con optimize_params (warm start + θ = 0): error máx. 0,81 mHa, S² ≤ 0,074. Solo con warm
+# start caía en un mínimo malo a 2,0 Å (9,8 mHa, S² = 0,78).
+# Usar con build_ansatz(m, excitations=ADAPT_QEB, kind="qeb").
 ADAPT_QEB = [
     ((1, 5), (3, 7)), ((0, 5), (3, 6)), ((0, 4), (2, 6)), ((1, 4), (2, 7)),
     ((1, 5), (2, 6)), ((0, 5), (2, 7)), ((0, 4), (3, 7)), ((1, 4), (3, 6)),

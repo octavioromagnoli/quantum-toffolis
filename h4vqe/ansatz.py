@@ -111,7 +111,6 @@ def excitation_circuit(exc, nq: int, theta, kind: str = "fermionic") -> QuantumC
     """
     src, dst = exc
     G = excitation_generator(exc, nq, kind=kind).to_matrix(sparse=True)
-    occ = list(src)
     s1 = sum(1 << q for q in src)
     s2 = sum(1 << q for q in dst)
     spect = [q for q in range(nq) if q not in src + dst]

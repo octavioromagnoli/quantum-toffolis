@@ -3,7 +3,7 @@
 Dueño: Gonzalo.
 
 Idea (Co-ADAPT, Ramôa et al., arXiv:2601.20681, 2026; redes fSWAP, Kivlichan et al. 2018):
-    - El transpiler con SWAP comunes multiplica las CZ ~2,8× en línea (185 → ~520).
+    - El transpiler con SWAP comunes multiplica las CZ ~2,8× en línea (194 → ~530).
     - Un fSWAP entre qubits vecinos intercambia dos MODOS fermiónicos (incluido el signo
       de Jordan-Wigner) y cuesta 2 CZ (es iSWAP salvo fases locales). Un SWAP cuesta 3.
     - Antes de cada excitación juntamos sus modos en qubits contiguos con fSWAP y NO
@@ -155,7 +155,7 @@ def routed_ansatz(m: dict, excitations: list, init_order: list[int] | None = Non
     return qc, order, n_sw
 
 
-# Mejor orden inicial encontrado para ADAPT_FERMIONIC (búsqueda sobre 72 órdenes:
+# Mejor orden inicial encontrado para ADAPT_FERMIONIC y ADAPT_FERMIONIC_13 (72 órdenes:
 # 24 permutaciones espaciales × {bloques, intercalado, bloques espejados}).
 # Orden intercalado por orbital espacial: [α3 β3 α1 β1 α2 β2 α0 β0].
 LINE_ORDER = [3, 7, 1, 5, 2, 6, 0, 4]

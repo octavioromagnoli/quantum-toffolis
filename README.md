@@ -8,31 +8,39 @@
 
 ```
 h4vqe/                 paquete (un dueño por módulo, ver PLAN.md)
-  config.py            distancias, shots, ansatz por defecto
-  hamiltonian.py       PySCF -> Jordan-Wigner, HF/FCI/CCSD            (Octavio)
-  ansatz.py            UCCSD con Trotter + simulador numpy exacto      (Gonzalo)
-  optimize.py          θ* sin ruido, L-BFGS-B con gradiente analítico  (Gonzalo)
-  estimator.py         energía medida con SamplerV2 de Aer, ±σ         (Santino)
-  analysis.py          tabla, R_e, D_e, gráficos, diagnósticos         (Joaquín)
-  pipeline.py          barrido de la curva con warm start              (Joaquín)
+  config.py            distancias, shots, ansatz de la curva (ANSATZ = "adapt")
+  hamiltonian.py       PySCF -> Jordan-Wigner, HF/FCI/CCSD, validación      (Octavio)
+  ansatz.py            excitaciones (UCCSD, listas) + simulador numpy exacto (Gonzalo)
+  adapt.py             ADAPT-VQE y listas guardadas (ADAPT_FERMIONIC, 15 ops) (Gonzalo)
+  routing.py           ruteo fSWAP para qubits en línea (378 CZ)            (Gonzalo)
+  optimize.py          θ* sin ruido, L-BFGS-B con gradiente analítico       (Gonzalo)
+  estimator.py         energía medida con SamplerV2 de Aer, ±σ              (Santino)
+  analysis.py          tabla, R_e, D_e, gráficos, varianza y eco            (Joaquín)
+  pipeline.py          curva con warm start + diagnósticos de confiabilidad (Joaquín)
+  reduction.py         tapering 8 -> 5 qubits y ansatz compacto de 16 CZ    (Octavio)
+  noise.py             modelo de ruido propio, lectura y ZNE                (Octavio)
+  hardware.py          extra FakeFez (necesita qiskit-ibm-runtime)          (Octavio)
+  geometry.py          extra H4 cuadrado y en zigzag                        (Octavio)
 notebook/
   md/*.md              texto de cada sección del notebook
   build_notebook.py    arma H4_VQE.ipynb (módulos con %%writefile + texto)
-tests/test_smoke.py    chequeos de cordura (~10 s)
+tests/                 test_smoke, test_routing, test_analysis, test_reduction, test_hardware
 ```
 
 ## Arranque rápido
 
 ```bash
 uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python --only-binary pyscf "qiskit==2.6.2" "qiskit-aer==0.18.4" "pyscf==2.15.0" scipy matplotlib pandas nbformat nbconvert ipykernel pytest
+uv pip install --python .venv/bin/python --only-binary pyscf "qiskit==2.6.2" "qiskit-aer==0.18.4" "pyscf==2.15.0" "qiskit-ibm-runtime==0.52.1" scipy matplotlib pandas nbformat nbconvert ipykernel pytest
 .venv/bin/python -m ipykernel install --sys-prefix --name h4vqe-local
-.venv/bin/python tests/test_smoke.py
+.venv/bin/python -m pytest -q tests                  # ~30 s
 .venv/bin/python notebook/build_notebook.py          # solo genera
-.venv/bin/python notebook/build_notebook.py --run    # genera y ejecuta (~10 min)
+.venv/bin/python notebook/build_notebook.py --run    # genera y ejecuta (~8 min en una Mac)
 ```
 
-En macOS, `--only-binary pyscf` evita compilar PySCF, que falla.
+En macOS, `--only-binary pyscf` evita compilar PySCF, que falla. `qiskit-ibm-runtime` solo hace falta para el extra de FakeFez (`hardware.py`, `tests/test_hardware.py`).
+
+El kernel `h4vqe-local` es uno solo por usuario: si hay varios worktrees, apunta al `.venv` del último que lo registró. Para ejecutar el notebook desde otro worktree, registrá un kernel con otro nombre (`ipykernel install --sys-prefix --name ...`) y pasalo a `nbconvert` con `--ExecutePreprocessor.kernel_name`.
 
 ## Probar en Colab
 

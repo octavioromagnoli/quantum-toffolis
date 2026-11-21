@@ -20,7 +20,7 @@ PKG = ROOT / "h4vqe"
 OUT = ROOT / "notebook" / "H4_VQE.ipynb"
 
 MODULES = ["__init__", "config", "hamiltonian", "ansatz", "optimize", "estimator",
-           "analysis", "pipeline", "geometry", "reduction", "noise", "hardware"]
+           "adapt", "routing", "analysis", "pipeline", "geometry", "reduction", "noise", "hardware"]
 
 INSTALL = '''\
 # Instala dependencias si faltan (Colab arranca sin Qiskit ni PySCF).
@@ -102,15 +102,16 @@ pd.DataFrame(fz["rows"]).astype({"shots": "Int64"})'''
 CHECKS = '''\
 import numpy as np, importlib, time
 import h4vqe
-for mod in ["config","hamiltonian","ansatz","optimize","estimator","analysis","pipeline"]:
+for mod in ["config","hamiltonian","ansatz","optimize","estimator","adapt","routing","analysis","pipeline"]:
     importlib.reload(importlib.import_module("h4vqe." + mod))
 from qiskit.quantum_info import Statevector
 from h4vqe import config
 from h4vqe.hamiltonian import molecule, qubit_hamiltonian
 from h4vqe.ansatz import build_ansatz, cz_count
+from h4vqe.pipeline import curve_ansatz_kwargs, line_cz_fswap
 
 m = molecule(2.0); H = qubit_hamiltonian(m)
-ans = build_ansatz(m, reps=config.ANSATZ_REPS)
+ans = build_ansatz(m, **curve_ansatz_kwargs())   # config.ANSATZ
 e_hf = Statevector(ans.fast.psi0).expectation_value(H).real
 print(f"términos de Pauli: {len(H)} | qubits: {H.num_qubits}")
 print(f"E_HF (PySCF) = {m['e_hf']:.8f}   <HF|H|HF> = {e_hf:.8f}")
@@ -118,7 +119,8 @@ print(f"E_FCI = {m['e_fci']:.8f}   E_CCSD = {m['e_ccsd']:.8f}  (CCSD − FCI = {
 x = np.random.default_rng(0).normal(0, .2, ans.num_parameters)
 fid = abs(np.vdot(Statevector(ans.circuit.assign_parameters(x)).data, ans.fast.state(x)))**2
 print(f"fidelidad circuito Qiskit vs simulador numpy = {fid:.12f}")
-print(f"parámetros: {ans.num_parameters} | CZ: {cz_count(ans.circuit)} (todos con todos), {cz_count(ans.circuit, 'line')} (línea)")'''
+print(f"ansatz: {config.ANSATZ} | parámetros: {ans.num_parameters} | CZ: {cz_count(ans.circuit)} (todos con todos), "
+      f"{cz_count(ans.circuit, 'line')} (línea, transpiler), {line_cz_fswap(m, ans)} (línea, ruteo fSWAP)")'''
 
 RUN = '''\
 from h4vqe.pipeline import run_curve
@@ -133,7 +135,7 @@ TABLE = '''\
 import pandas as pd
 from h4vqe.analysis import results_table
 df = results_table(rows)
-cols = ["d","E_vqe","sigma_mHa","shots","cz_all","cz_line","E_fci","E_ccsd","err_vqe_mHa","err_ccsd_mHa","beats_ccsd","chem_acc"]
+cols = ["d","E_vqe","sigma_mHa","shots","cz_all","cz_line","cz_line_fswap","E_fci","E_ccsd","err_vqe_mHa","err_ccsd_mHa","beats_ccsd","chem_acc"]
 pd.set_option("display.float_format", lambda v: f"{v:.6f}")
 df[cols]'''
 
@@ -163,7 +165,8 @@ print(f"zona estirada: le gana a CCSD en {int(s.beats_ccsd.sum())}/{len(s)} punt
 
 RELIABILITY = '''\
 from h4vqe.pipeline import run_reliability
-# Tres puntos de la zona estirada; en cada uno, HF vs UCCSD ×1 vs el ansatz de la curva.
+# Tres puntos de la zona estirada; en cada uno, HF, un ansatz menos profundo (ADAPT 12 ops),
+# el de la curva (ADAPT 15 ops) y uno más profundo (UCCSD ×2). Ver pipeline.depth_references.
 rel_d = [1.8, 3.0] if QUICK else [1.8, 2.4, 3.0]
 t0 = time.time()
 rel = pd.DataFrame(run_reliability(ctxs, rel_d, shots=shots,
@@ -175,24 +178,27 @@ print(f"total: {time.time()-t0:.0f} s")
 # Solo separa HF del resto; la que resuelve es la del eco.
 rel["var_grupos (≥0)"] = rel["var"].clip(lower=0)
 # echo_cz: CZ del circuito de eco (U, e^{−iHt}, U†). Es un diagnóstico de simulador, no de hardware.
-show = rel[["d","estado","cz","E","sigma","var_grupos (≥0)","var_sigma","var_echo","var_echo_up95","echo_events",
+show = rel[["d","rol","estado","cz","E","sigma","var_grupos (≥0)","var_sigma","var_echo","var_echo_up95","echo_events",
             "echo_cz","N_alpha","N_alpha_sigma","N_beta","N_beta_sigma","S2","S2_sigma","var_exacta"]]
 with pd.option_context("display.float_format", lambda v: f"{v:.3g}"):
     display(show)'''
 
 DEPTH = '''\
-# Convergencia con la profundidad (sin FCI): cuánto baja la energía MEDIDA al agregar
-# parámetros, y cuánto cae la varianza (eco) en el mismo paso.
-piv = rel.pivot(index="d", columns="estado", values="E")
-lbl = [c for c in piv.columns if c.startswith("curva")][0]
-lbl1 = [c for c in piv.columns if c.startswith("UCCSD")][0]
-sig = rel.pivot(index="d", columns="estado", values="sigma")
+# Convergencia con la profundidad (sin FCI). Si el ansatz de la curva convergió:
+#   - el menos profundo da una energía MEDIDA más alta y una varianza (eco) mayor;
+#   - el más profundo (muchas más CZ) no baja la energía medida más allá de σ.
+E = rel.pivot(index="d", columns="rol", values="E")
+S = rel.pivot(index="d", columns="rol", values="sigma")
+by = lambda rol, col: rel[rel.rol == rol].set_index("d")[col]
 conv = pd.DataFrame({
-    "E(×1) − E(curva) [mHa]": 1e3*(piv[lbl1] - piv[lbl]),
-    "σ [mHa]": 1e3*np.hypot(sig[lbl1], sig[lbl]),
-    "Var eco ×1 [Ha²]": rel[rel.estado == lbl1].set_index("d").var_echo,
-    "Var eco curva ≤ [Ha²] (95 %)": rel[rel.estado == lbl].set_index("d").var_echo_up95,
+    "E(menos) − E(curva) [mHa]": 1e3*(E["menos profundo"] - E["curva"]),
+    "σ₁ [mHa]": 1e3*np.hypot(S["menos profundo"], S["curva"]),
 })
+if "más profundo" in E:
+    conv["E(curva) − E(más) [mHa]"] = 1e3*(E["curva"] - E["más profundo"])
+    conv["σ₂ [mHa]"] = 1e3*np.hypot(S["curva"], S["más profundo"])
+conv["Var eco menos [Ha²]"] = by("menos profundo", "var_echo")
+conv["Var eco curva ≤ [Ha²] (95 %)"] = by("curva", "var_echo_up95")
 with pd.option_context("display.float_format", lambda v: f"{v:.3g}"):
     display(conv)
 # Recién ahora, como comprobación: el error real contra FCI.

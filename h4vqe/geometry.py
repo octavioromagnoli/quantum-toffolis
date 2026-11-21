@@ -12,13 +12,14 @@ from .config import ANSATZ_REPS, SEED
 from .estimator import measure_energy
 from .hamiltonian import hf_index, molecule, qubit_hamiltonian, sector_ground_state
 from .optimize import optimize_params
+from .pipeline import SEED_STRIDE
 
 
 def scan_geometry(shape: str, distances, shots: int, reps: int = ANSATZ_REPS,
                   seed: int = SEED, verbose: bool = True) -> list[dict]:
     """VQE (energía medida ± σ) contra HF, CCSD y FCI para una geometría, en varias distancias."""
     rows, x_prev, cz = [], None, None
-    for d in distances:
+    for i, d in enumerate(distances):
         m = molecule(d, shape=shape)
         H = qubit_hamiltonian(m)
         ans = build_ansatz(m, reps=reps)
@@ -30,7 +31,10 @@ def scan_geometry(shape: str, distances, shots: int, reps: int = ANSATZ_REPS,
             opt = min(optimize_params(ans, H, x0=x_prev), optimize_params(ans, H),
                       key=lambda o: o["energy"])
         x_prev = opt["x"]
-        meas = measure_energy(ans.circuit.assign_parameters(opt["x"]), H, shots, seed=seed)
+        # semilla propia por punto (como run_curve): con la misma en todos, el ruido de shots
+        # queda correlacionado entre distancias
+        meas = measure_energy(ans.circuit.assign_parameters(opt["x"]), H, shots,
+                              seed=seed + SEED_STRIDE * i)
         _, psi = sector_ground_state(H, m["norb"], m["nelec"])
         row = {"shape": shape, "d": d, "E_vqe": meas["energy"], "sigma": meas["sigma"],
                "shots": meas["shots"], "E_opt_exact": opt["energy"],

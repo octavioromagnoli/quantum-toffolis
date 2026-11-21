@@ -33,12 +33,29 @@ def h4_geometry(d: float, shape: str = "linear") -> str:
     return "; ".join(f"H {x:.6f} {y:.6f} {z:.6f}" for x, y, z in xyz)
 
 
-def molecule(d: float, basis: str = BASIS, shape: str = "linear") -> dict:
-    """Integrales en base de orbitales HF + energías HF, FCI y CCSD."""
-    mol = gto.M(atom=h4_geometry(d, shape), basis=basis, unit="Angstrom", verbose=0)
+def stable_rhf(mol, max_iter: int = 10):
+    """RHF que sigue las inestabilidades internas hasta llegar a una solución estable.
+
+    En el H4 cuadrado hay orbitales degenerados y el SCF puede terminar en un punto silla, según el
+    entorno (hilos, versión de Python): a 1,2 Å queda 76 mHa por encima del RHF estable, y con esa
+    referencia CCSD daba +180 mHa en vez de −6,5 mHa. En la cadena recta y en el zigzag RHF ya es
+    estable en las 18 distancias, así que ahí esto no cambia nada.
+    """
     hf = scf.RHF(mol)
     hf.conv_tol = 1e-10
     hf.kernel()
+    for _ in range(max_iter):
+        mo, _, stable, _ = hf.stability(return_status=True)
+        if stable:
+            break
+        hf.kernel(dm0=hf.make_rdm1(mo, hf.mo_occ))
+    return hf
+
+
+def molecule(d: float, basis: str = BASIS, shape: str = "linear") -> dict:
+    """Integrales en base de orbitales HF + energías HF, FCI y CCSD."""
+    mol = gto.M(atom=h4_geometry(d, shape), basis=basis, unit="Angstrom", verbose=0)
+    hf = stable_rhf(mol)
     norb = mol.nao_nr()
     nelec = mol.nelectron
     cas = mcscf.CASCI(hf, norb, nelec)

@@ -1,0 +1,10 @@
+**Qué dio** (salida, gráfico y tabla de arriba):
+
+- **Lo cuántico crece como un polinomio.** Los términos de $\hat H$ y los grupos QWC crecen como $\sim N^{4}$, y las CZ de UCCSD también (~$N^{4{,}1}$). Los shots por evaluación de energía crecen más rápido, entre $N^{4{,}7}$ (equilibrio) y $N^{5}$ (estirada). Los shots exactos, con el estado FCI, son el 5–10 % de la cota de peor caso: la cota sirve para el orden de magnitud, pero exagera.
+- **Pero los números absolutos no cierran.** Para FeMoco (54 orbitales, 108 qubits), UCCSD tendría ~780 mil parámetros y ~10⁷ CZ. Con 0,1 % de error por CZ, la probabilidad de que el circuito corra sin errores es $10^{-4850}$. Cada **evaluación** de la energía con $\sigma$ = 1,6 mHa pediría ~2–3·10¹¹ shots, y un VQE necesita miles de evaluaciones.
+- **Lo clásico crece como una exponencial.** FCI pasa de 36 determinantes en H₄ a 11,8 millones en H₁₄ (8 minutos en una PC), y a ~4·10³⁰ en el modelo (54e, 54o) de FeMoco.
+- **CCSD empeora con el tamaño.** En la zona estirada su error pasa de 18 mHa (H₄) a 242 mHa (H₁₂), y en H₁₄ no converge. Incluso **cerca del equilibrio** supera la precisión química desde H₁₀.
+
+**Hipótesis confirmada.** VQE escala de forma polinomial en qubits y compuertas, pero la cantidad de mediciones y la acumulación de ruido lo vuelven impracticable para FeMoco sin corrección de errores. Por eso las estimaciones serias para FeMoco usan estimación de fase con corrección de errores: Lee *et al.* (*PRX Quantum* 2, 030305, 2021) calculan ~4 millones de qubits físicos y menos de 4 días. Lo que muestra H₄ es la parte que sí escala: **la confiabilidad se puede argumentar sin FCI y la cuenta de recursos se puede hacer antes de gastar un solo shot**.
+
+**Limitaciones:** H$_N$ no es FeMoco: no tiene metales de transición, orbitales $d$ ni estados de espín casi degenerados. La extrapolación vale para **contar recursos** (qubits, términos, compuertas, shots), no para predecir la precisión ni la dificultad de optimizar. Además, el ajuste tiene pocos puntos (N = 6 a 14), así que el exponente tiene incertidumbre, y UCCSD es el caso pesimista: con ADAPT las CZ serían menos.

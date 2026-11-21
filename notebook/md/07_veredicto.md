@@ -1,0 +1,9 @@
+### 6.1 Qué dicen las mediciones
+
+- **Límite físico:** a 3,0 Å el VQE queda ~1 mHa por debajo de 4 átomos separados, lo esperable para una interacción débil. CCSD queda **24 mHa** por debajo: sería una "unión" 24 veces más fuerte que la que medimos, algo imposible a esa distancia. Se ve sin FCI.
+- **Varianza por eco:** con 10⁶ shots, el ansatz de la curva da $\mathrm{Var}$ = 1,9·10⁻⁴ (1,8 Å), 9·10⁻⁵ (2,4 Å) y 5·10⁻⁶ Ha² (3,0 Å), igual que la calculada con el estado (`var_exacta`). ADAPT con 12 operadores da entre 7 y 18 veces más, UCCSD ×2 no tiene ningún evento ($\mathrm{Var} \le$ 3·10⁻⁶ Ha²) y HF da 0,11–0,16 Ha².
+- **Simetrías:** $N_\alpha$ y $N_\beta$ dan **exactamente 2 en todos los shots** (el ansatz de excitaciones conserva el número de partículas), y $\lvert\langle S^2\rangle\rvert \le$ 0,011 ± 0,012, compatible con 0: es un singulete.
+- **Profundidad, hacia abajo** (12 → 15 operadores): la energía medida baja 2,4 ± 0,8 mHa a 1,8 Å y 1,4 ± 0,7 mHa a 2,4 Å; a 3,0 Å no cambia dentro del ruido. Los operadores 13 a 15 hacen falta.
+- **Profundidad, hacia arriba** (15 operadores → UCCSD ×2, con 3 veces más CZ): la energía medida cambia menos de 1,6σ en los tres puntos. La varianza de UCCSD ×2 sí es menor (ADAPT no es un autoestado exacto), pero los shots no distinguen sus energías. Por eso elegimos el circuito con menos CZ.
+
+**Conclusión sin FCI:** el ansatz de la curva es el estado variacional más bajo que encontramos, tiene las simetrías correctas, su varianza medida es al menos 500 veces menor que la de HF y agregar mucha profundidad no lo mejora más allá de la $\sigma$. Con $\mathrm{Var}/\Delta$ por debajo de la $\sigma$, el error que queda es el estadístico. **Recién ahora**, como comprobación, la última tabla compara con FCI: errores de 0,05–0,56 mHa, contra 9–31 mHa de CCSD.

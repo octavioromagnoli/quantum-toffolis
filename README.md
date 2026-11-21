@@ -2,9 +2,11 @@
 
 - Consigna: [CONSIGNA.md](CONSIGNA.md)
 - **Plan y tareas por persona: [PLAN.md](PLAN.md)**
-- Notebooks de entrega (generados, no editar a mano):
-  - [notebook/H4_VQE.ipynb](notebook/H4_VQE.ipynb): lo que pide la consigna.
-  - [notebook/H4_VQE_extras.ipynb](notebook/H4_VQE_extras.ipynb): menos qubits, mitigación, FakeFez y otra geometría.
+- Notebook de entrega (generado, no editar a mano): [notebook/H4_VQE.ipynb](notebook/H4_VQE.ipynb).
+  Uno solo, como pide la consigna, contado como historia: de lo mínimo (VQE con UCCSD) a la versión
+  final (ADAPT, mediciones calibradas, confiabilidad medida) y todos los extras (ruido, 5 qubits,
+  mitigación, FakeFez, otra geometría, comparación de ansätze y escalado a FeMoco), con un resumen
+  final que compara lo mínimo contra lo final.
 
 ## Estructura
 
@@ -23,10 +25,15 @@ h4vqe/                 paquete (un dueño por módulo, ver PLAN.md)
   noise.py             modelo de ruido propio, lectura y ZNE                (Octavio)
   hardware.py          extra FakeFez (necesita qiskit-ibm-runtime)          (Octavio)
   geometry.py          extra H4 cuadrado y en zigzag                        (Octavio)
+  mitigation.py        post-selección, lectura combinable y ZNE plegando R·C (Santino)
+  scaling.py           extra de escalado H4 -> H14 -> FeMoco                (Santino)
+  historia.py          diagnósticos del relato: lo mínimo, ADAPT, shots, ruido por ansatz (Santino)
 notebook/
   md/*.md              texto de cada sección del notebook
-  build_notebook.py    arma H4_VQE.ipynb y H4_VQE_extras.ipynb (módulos con %%writefile + texto)
-tests/                 test_smoke, test_routing, test_analysis, test_reduction, test_hardware
+  build_notebook.py    arma H4_VQE.ipynb (módulos y datos con %%writefile + texto)
+scripts/               estudios largos que el notebook no recalcula (calibración de σ, mitigación con shots,
+                       comparación de ansätze, escalado); sus resultados van a results/
+tests/                 test_smoke, test_routing, test_analysis, test_reduction, test_hardware, test_scaling
 ```
 
 ## Arranque rápido
@@ -36,10 +43,10 @@ uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python --only-binary pyscf "qiskit==2.6.2" "qiskit-aer==0.18.4" "pyscf==2.15.0" "qiskit-ibm-runtime==0.52.1" scipy matplotlib pandas nbformat nbconvert ipykernel pytest
 .venv/bin/python -m ipykernel install --sys-prefix --name h4vqe-local
 .venv/bin/python -m pytest -q tests                  # ~30 s
-.venv/bin/python notebook/build_notebook.py                # genera los dos notebooks
-.venv/bin/python notebook/build_notebook.py --run          # genera y ejecuta los dos en carpetas vacías
-.venv/bin/python notebook/build_notebook.py --run core     # solo el principal (~6 min en una Mac)
-.venv/bin/python notebook/build_notebook.py --text-only    # solo actualiza el texto de los ya ejecutados
+.venv/bin/python notebook/build_notebook.py                # genera el notebook
+.venv/bin/python notebook/build_notebook.py --run          # genera y ejecuta en una carpeta vacía (como un Colab nuevo)
+.venv/bin/python notebook/build_notebook.py --quick --run  # curva corta, para probar rápido
+.venv/bin/python notebook/build_notebook.py --text-only    # solo actualiza el texto del ya ejecutado
 ```
 
 En macOS, `--only-binary pyscf` evita compilar PySCF, que falla. `qiskit-ibm-runtime` solo hace falta para el extra de FakeFez (`hardware.py`, `tests/test_hardware.py`).

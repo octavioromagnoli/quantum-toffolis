@@ -39,9 +39,30 @@ def split_constant(H: SparsePauliOp) -> tuple[float, SparsePauliOp]:
     return float(np.real(const)), rest
 
 
-def measurement_groups(H: SparsePauliOp) -> list[SparsePauliOp]:
+def measurement_groups(H: SparsePauliOp, method: str = "sorted") -> list[SparsePauliOp]:
+    """Grupos QWC.
+    method="sorted": sorted insertion (Crawford et al., Quantum 5, 385 (2021)): se recorren
+        los términos por |c| decreciente y cada uno va al primer grupo compatible. Pone los
+        términos grandes juntos y sus covarianzas se compensan: para H4 baja la σ²·N
+        de Neyman ~1,9× contra el coloreo (scripts/shots_study.py), sin compuertas extra.
+    method="coloring": group_commuting de qiskit (lo que se usaba antes)."""
     _, rest = split_constant(H)
-    return rest.group_commuting(qubit_wise=True)
+    if method == "coloring":
+        return rest.group_commuting(qubit_wise=True)
+    labels = [p.to_label() for p in rest.paulis]
+    groups: list[tuple[list[str], list[int]]] = []  # (base común por qubit, índices)
+    for k in np.argsort(-np.abs(rest.coeffs), kind="stable"):
+        lab = labels[k]
+        for basis, idx in groups:
+            if all(a == "I" or b == "I" or a == b for a, b in zip(lab, basis)):
+                for q, a in enumerate(lab):
+                    if a != "I":
+                        basis[q] = a
+                idx.append(k)
+                break
+        else:
+            groups.append((list(lab), [k]))
+    return [rest[idx] for _, idx in groups]
 
 
 def group_basis(group: SparsePauliOp) -> str:

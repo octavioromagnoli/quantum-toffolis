@@ -1,0 +1,377 @@
+{
+ "1.8": {
+  "E_circ_minus_fci_mHa": 7.771561172376096e-12,
+  "cz": 16,
+  "F_echo": 0.9810886293854637,
+  "grouping": {
+   "QWC coloreo": {
+    "groups": 34,
+    "K": 7.808867324505526
+   },
+   "QWC sorted": {
+    "groups": 35,
+    "K": 2.7714802244209142
+   },
+   "GC coloreo": {
+    "groups": 9,
+    "K": 1.0007827450842763
+   },
+   "GC sorted": {
+    "groups": 9,
+    "K": 1.0654596240536067
+   }
+  },
+  "rows": {
+   "p_ro=0.0": {
+    "crudo": {
+     "bias_mHa": 14.728511586393322,
+     "shots_M_sigma0.5": 11.261865274872676
+    },
+    "RO": {
+     "bias_mHa": 14.728511586393322,
+     "shots_M_sigma0.5": 11.261865274872676
+    },
+    "PS": {
+     "bias_mHa": 10.903950374551163,
+     "shots_M_sigma0.5": 11.158376951235638
+    },
+    "PS+RO": {
+     "bias_mHa": 10.903950374551163,
+     "shots_M_sigma0.5": 11.158376951235638
+    },
+    "ZNE lineal (1,3) + crudo": {
+     "bias_mHa": 0.37852700175911025,
+     "shots_M_sigma0.5": 45.3732833883429
+    },
+    "ZNE Richardson (1,3,5) + crudo": {
+     "bias_mHa": 0.0016192400849046606,
+     "shots_M_sigma0.5": 140.20097140254603
+    },
+    "ZNE lineal (1,3) + PS": {
+     "bias_mHa": 0.2659475902553332,
+     "shots_M_sigma0.5": 44.76897359933692
+    },
+    "ZNE Richardson (1,3,5) + PS": {
+     "bias_mHa": -0.001409701264831753,
+     "shots_M_sigma0.5": 137.62325679974055
+    },
+    "eco + ZNE lineal (1,3) + crudo  (plegando R·C)": {
+     "bias_mHa": 0.02969113459405648,
+     "shots_M_sigma0.5": 48.07123594391745
+    },
+    "ZNE lineal (1,3) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.531222310868884,
+     "shots_M_sigma0.5": 45.37114062221511
+    },
+    "Richardson (1,3,5) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.1633250744188519,
+     "shots_M_sigma0.5": 140.1864202460778
+    },
+    "eco + lineal plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.19138776450033923,
+     "shots_M_sigma0.5": 48.06890037633792
+    }
+   },
+   "p_ro=0.02": {
+    "crudo": {
+     "bias_mHa": 110.54483438589457,
+     "shots_M_sigma0.5": 12.138023247710155
+    },
+    "RO": {
+     "bias_mHa": 14.7285115863931,
+     "shots_M_sigma0.5": 16.536993679128678
+    },
+    "PS": {
+     "bias_mHa": 85.31058738337305,
+     "shots_M_sigma0.5": 11.608138951123909
+    },
+    "PS+RO": {
+     "bias_mHa": 10.903950374550941,
+     "shots_M_sigma0.5": 15.764506485301432
+    },
+    "ZNE lineal (1,3) + RO": {
+     "bias_mHa": 0.37852700175866616,
+     "shots_M_sigma0.5": 66.48646802810178
+    },
+    "ZNE Richardson (1,3,5) + RO": {
+     "bias_mHa": 0.0016192400844605714,
+     "shots_M_sigma0.5": 204.91216388869424
+    },
+    "ZNE lineal (1,3) + PS+RO": {
+     "bias_mHa": 0.2659475902553332,
+     "shots_M_sigma0.5": 63.19132646345849
+    },
+    "ZNE Richardson (1,3,5) + PS+RO": {
+     "bias_mHa": -0.0014097012654978869,
+     "shots_M_sigma0.5": 194.0334676136394
+    },
+    "eco + ZNE lineal (1,3) + RO  (plegando R·C)": {
+     "bias_mHa": 0.02969113459405648,
+     "shots_M_sigma0.5": 70.43556870380458
+    },
+    "ZNE lineal (1,3) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.531222310868662,
+     "shots_M_sigma0.5": 66.48432185913562
+    },
+    "Richardson (1,3,5) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.1633250744188519,
+     "shots_M_sigma0.5": 204.89759407733453
+    },
+    "eco + lineal plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.19138776450056127,
+     "shots_M_sigma0.5": 70.43322949783271
+    }
+   }
+  }
+ },
+ "2.4": {
+  "E_circ_minus_fci_mHa": 5.928590951498336e-11,
+  "cz": 16,
+  "F_echo": 0.981079824638686,
+  "grouping": {
+   "QWC coloreo": {
+    "groups": 34,
+    "K": 7.052836677217665
+   },
+   "QWC sorted": {
+    "groups": 35,
+    "K": 2.2242987104140357
+   },
+   "GC coloreo": {
+    "groups": 9,
+    "K": 0.8730526219873412
+   },
+   "GC sorted": {
+    "groups": 9,
+    "K": 0.8744990952279028
+   }
+  },
+  "rows": {
+   "p_ro=0.0": {
+    "crudo": {
+     "bias_mHa": 13.760610348645397,
+     "shots_M_sigma0.5": 9.176521715394024
+    },
+    "RO": {
+     "bias_mHa": 13.760610348645397,
+     "shots_M_sigma0.5": 9.176521715394024
+    },
+    "PS": {
+     "bias_mHa": 10.959973309007998,
+     "shots_M_sigma0.5": 8.989924676182994
+    },
+    "PS+RO": {
+     "bias_mHa": 10.959973309007998,
+     "shots_M_sigma0.5": 8.989924676182994
+    },
+    "ZNE lineal (1,3) + crudo": {
+     "bias_mHa": 0.3614752355647344,
+     "shots_M_sigma0.5": 37.19259618761395
+    },
+    "ZNE Richardson (1,3,5) + crudo": {
+     "bias_mHa": -0.001006254303215215,
+     "shots_M_sigma0.5": 115.73716616762603
+    },
+    "ZNE lineal (1,3) + PS": {
+     "bias_mHa": 0.28646564236112226,
+     "shots_M_sigma0.5": 36.13224452172367
+    },
+    "ZNE Richardson (1,3,5) + PS": {
+     "bias_mHa": -0.0029792579674392528,
+     "shots_M_sigma0.5": 111.314116855832
+    },
+    "eco + ZNE lineal (1,3) + crudo  (plegando R·C)": {
+     "bias_mHa": 0.008484980382972296,
+     "shots_M_sigma0.5": 39.41194836544336
+    },
+    "ZNE lineal (1,3) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.5565802680456144,
+     "shots_M_sigma0.5": 37.18908151904574
+    },
+    "Richardson (1,3,5) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.20484598271619525,
+     "shots_M_sigma0.5": 115.71318548304278
+    },
+    "eco + lineal plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.2150969307026518,
+     "shots_M_sigma0.5": 39.40811697198399
+    }
+   },
+   "p_ro=0.02": {
+    "crudo": {
+     "bias_mHa": 109.14093151681747,
+     "shots_M_sigma0.5": 10.245390702525079
+    },
+    "RO": {
+     "bias_mHa": 13.760610348645175,
+     "shots_M_sigma0.5": 14.181251238485716
+    },
+    "PS": {
+     "bias_mHa": 94.07732257698531,
+     "shots_M_sigma0.5": 9.651766098472299
+    },
+    "PS+RO": {
+     "bias_mHa": 10.959973309007998,
+     "shots_M_sigma0.5": 13.327807913945302
+    },
+    "ZNE lineal (1,3) + RO": {
+     "bias_mHa": 0.3614752355642903,
+     "shots_M_sigma0.5": 57.23536028312998
+    },
+    "ZNE Richardson (1,3,5) + RO": {
+     "bias_mHa": -0.0010062543036593041,
+     "shots_M_sigma0.5": 177.22091158387042
+    },
+    "ZNE lineal (1,3) + PS+RO": {
+     "bias_mHa": 0.28646564236112226,
+     "shots_M_sigma0.5": 53.474744813880214
+    },
+    "ZNE Richardson (1,3,5) + PS+RO": {
+     "bias_mHa": -0.0029792579676612974,
+     "shots_M_sigma0.5": 164.39110792697943
+    },
+    "eco + ZNE lineal (1,3) + RO  (plegando R·C)": {
+     "bias_mHa": 0.008484980382528207,
+     "shots_M_sigma0.5": 60.64335798032968
+    },
+    "ZNE lineal (1,3) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.5565802680451704,
+     "shots_M_sigma0.5": 57.23183310102485
+    },
+    "Richardson (1,3,5) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.20484598271575116,
+     "shots_M_sigma0.5": 177.1968608720551
+    },
+    "eco + lineal plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.2150969307022077,
+     "shots_M_sigma0.5": 60.639513177565846
+    }
+   }
+  }
+ },
+ "3.0": {
+  "E_circ_minus_fci_mHa": 3.907985046680551e-11,
+  "cz": 16,
+  "F_echo": 0.9813471372366388,
+  "grouping": {
+   "QWC coloreo": {
+    "groups": 34,
+    "K": 6.353389606140252
+   },
+   "QWC sorted": {
+    "groups": 35,
+    "K": 1.9784788507342674
+   },
+   "GC coloreo": {
+    "groups": 9,
+    "K": 0.7519746202181233
+   },
+   "GC sorted": {
+    "groups": 9,
+    "K": 0.744565847082761
+   }
+  },
+  "rows": {
+   "p_ro=0.0": {
+    "crudo": {
+     "bias_mHa": 13.326152138996017,
+     "shots_M_sigma0.5": 8.277232696802828
+    },
+    "RO": {
+     "bias_mHa": 13.326152138996017,
+     "shots_M_sigma0.5": 8.277232696802828
+    },
+    "PS": {
+     "bias_mHa": 11.379755994673557,
+     "shots_M_sigma0.5": 8.020775424019613
+    },
+    "PS+RO": {
+     "bias_mHa": 11.379755994673557,
+     "shots_M_sigma0.5": 8.020775424019613
+    },
+    "ZNE lineal (1,3) + crudo": {
+     "bias_mHa": 0.34398114959866,
+     "shots_M_sigma0.5": 33.66467543949256
+    },
+    "ZNE Richardson (1,3,5) + crudo": {
+     "bias_mHa": -0.002302075225557587,
+     "shots_M_sigma0.5": 105.15966546089422
+    },
+    "ZNE lineal (1,3) + PS": {
+     "bias_mHa": 0.29755862882496764,
+     "shots_M_sigma0.5": 32.281795965796135
+    },
+    "ZNE Richardson (1,3,5) + PS": {
+     "bias_mHa": -0.003616225591418498,
+     "shots_M_sigma0.5": 99.62218371214375
+    },
+    "eco + ZNE lineal (1,3) + crudo  (plegando R·C)": {
+     "bias_mHa": 0.005820975109260829,
+     "shots_M_sigma0.5": 35.64740089528177
+    },
+    "ZNE lineal (1,3) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.5559484751176402,
+     "shots_M_sigma0.5": 33.6608200003241
+    },
+    "Richardson (1,3,5) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.22100627347088064,
+     "shots_M_sigma0.5": 105.13333458916004
+    },
+    "eco + lineal plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.2301063423948424,
+     "shots_M_sigma0.5": 35.64320299378946
+    }
+   },
+   "p_ro=0.02": {
+    "crudo": {
+     "bias_mHa": 110.79658506023304,
+     "shots_M_sigma0.5": 9.499106791162909
+    },
+    "RO": {
+     "bias_mHa": 13.326152138996017,
+     "shots_M_sigma0.5": 13.237924655033412
+    },
+    "PS": {
+     "bias_mHa": 100.36018970490335,
+     "shots_M_sigma0.5": 8.756531816502408
+    },
+    "PS+RO": {
+     "bias_mHa": 11.379755994673557,
+     "shots_M_sigma0.5": 12.227858639470885
+    },
+    "ZNE lineal (1,3) + RO": {
+     "bias_mHa": 0.34398114959866,
+     "shots_M_sigma0.5": 53.49298921219075
+    },
+    "ZNE Richardson (1,3,5) + RO": {
+     "bias_mHa": -0.0023020752248914533,
+     "shots_M_sigma0.5": 165.8663211517962
+    },
+    "ZNE lineal (1,3) + PS+RO": {
+     "bias_mHa": 0.29755862882496764,
+     "shots_M_sigma0.5": 49.100739727963244
+    },
+    "ZNE Richardson (1,3,5) + PS+RO": {
+     "bias_mHa": -0.003616225591418498,
+     "shots_M_sigma0.5": 151.09467612674825
+    },
+    "eco + ZNE lineal (1,3) + RO  (plegando R·C)": {
+     "bias_mHa": 0.005820975109260829,
+     "shots_M_sigma0.5": 56.63314523504787
+    },
+    "ZNE lineal (1,3) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.5559484751176402,
+     "shots_M_sigma0.5": 53.489088126638585
+    },
+    "Richardson (1,3,5) plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.22100627347088064,
+     "shots_M_sigma0.5": 165.83971749515803
+    },
+    "eco + lineal plegando solo C  [noise.zne]": {
+     "bias_mHa": 0.2301063423948424,
+     "shots_M_sigma0.5": 56.62889802071744
+    }
+   }
+  }
+ }
+}

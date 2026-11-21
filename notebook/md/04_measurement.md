@@ -31,6 +31,16 @@ Shots necesarios para **σ = 0,5 mHa** (reparto en dos etapas):
 
 Las dos etapas quedan a menos de 1 % del óptimo. Usar las varianzas del estado HF es **11× peor**: HF es un estado de la base computacional, así que da varianza cero a todos los grupos que miden solo Z y les asigna muy pocos shots.
 
+**En 5 qubits** (reducción de Octavio, ansatz compacto): con el coloreo, la reducción costaba ~3× más shots que 8 qubits. Con sorted insertion ese costo desaparece: queda igual que en 8 qubits.
+
+| d (Å) | QWC con coloreo | **QWC con sorted insertion** | GC con sorted insertion |
+|---|---|---|---|
+| 1,8 | 31 M | 11 M | 4,3 M |
+| 2,4 | 28 M | 8,9 M | 3,5 M |
+| 3,0 | 25 M | 7,9 M | 3,0 M |
+
+(Shots para σ = 0,5 mHa, sin ruido; `scripts/mitigation_study.py`.)
+
 **Presupuesto elegido**: con QWC, **8 M de shots por punto dan σ = 0,50–0,53 mHa** en la zona estirada (~0,6 mHa cerca del mínimo). Con GC, 4 M dan lo mismo.
 
 ### Calibración de σ: ¿la barra de error es honesta?

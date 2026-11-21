@@ -2,6 +2,7 @@
 
     python notebook/build_notebook.py            # genera
     python notebook/build_notebook.py --run      # genera y ejecuta (verifica de punta a punta)
+    python notebook/build_notebook.py --quick --run   # igual, con QUICK = True (antes de cada PR)
 
 No editar el .ipynb a mano: se pisa. Editar los módulos o los .md y regenerar.
 """
@@ -19,7 +20,7 @@ PKG = ROOT / "h4vqe"
 OUT = ROOT / "notebook" / "H4_VQE.ipynb"
 
 MODULES = ["__init__", "config", "hamiltonian", "ansatz", "optimize", "estimator",
-           "analysis", "pipeline", "geometry", "reduction", "noise", "hardware"]
+           "adapt", "routing", "analysis", "pipeline", "geometry", "reduction", "noise", "hardware"]
 
 INSTALL = '''\
 # Instala dependencias si faltan (Colab arranca sin Qiskit ni PySCF).
@@ -101,15 +102,16 @@ pd.DataFrame(fz["rows"]).astype({"shots": "Int64"})'''
 CHECKS = '''\
 import numpy as np, importlib, time
 import h4vqe
-for mod in ["config","hamiltonian","ansatz","optimize","estimator","analysis","pipeline"]:
+for mod in ["config","hamiltonian","ansatz","optimize","estimator","adapt","routing","analysis","pipeline"]:
     importlib.reload(importlib.import_module("h4vqe." + mod))
 from qiskit.quantum_info import Statevector
 from h4vqe import config
 from h4vqe.hamiltonian import molecule, qubit_hamiltonian
 from h4vqe.ansatz import build_ansatz, cz_count
+from h4vqe.pipeline import curve_ansatz_kwargs, line_cz_fswap
 
 m = molecule(2.0); H = qubit_hamiltonian(m)
-ans = build_ansatz(m, reps=config.ANSATZ_REPS)
+ans = build_ansatz(m, **curve_ansatz_kwargs())   # config.ANSATZ
 e_hf = Statevector(ans.fast.psi0).expectation_value(H).real
 print(f"términos de Pauli: {len(H)} | qubits: {H.num_qubits}")
 print(f"E_HF (PySCF) = {m['e_hf']:.8f}   <HF|H|HF> = {e_hf:.8f}")
@@ -117,7 +119,8 @@ print(f"E_FCI = {m['e_fci']:.8f}   E_CCSD = {m['e_ccsd']:.8f}  (CCSD − FCI = {
 x = np.random.default_rng(0).normal(0, .2, ans.num_parameters)
 fid = abs(np.vdot(Statevector(ans.circuit.assign_parameters(x)).data, ans.fast.state(x)))**2
 print(f"fidelidad circuito Qiskit vs simulador numpy = {fid:.12f}")
-print(f"parámetros: {ans.num_parameters} | CZ: {cz_count(ans.circuit)} (todos con todos), {cz_count(ans.circuit, 'line')} (línea)")'''
+print(f"ansatz: {config.ANSATZ} | parámetros: {ans.num_parameters} | CZ: {cz_count(ans.circuit)} (todos con todos), "
+      f"{cz_count(ans.circuit, 'line')} (línea, transpiler), {line_cz_fswap(m, ans)} (línea, ruteo fSWAP)")'''
 
 RUN = '''\
 from h4vqe.pipeline import run_curve
@@ -132,7 +135,7 @@ TABLE = '''\
 import pandas as pd
 from h4vqe.analysis import results_table
 df = results_table(rows)
-cols = ["d","E_vqe","sigma_mHa","shots","cz_all","cz_line","E_fci","E_ccsd","err_vqe_mHa","err_ccsd_mHa","beats_ccsd","chem_acc"]
+cols = ["d","E_vqe","sigma_mHa","shots","cz_all","cz_line","cz_line_fswap","E_fci","E_ccsd","err_vqe_mHa","err_ccsd_mHa","beats_ccsd","chem_acc"]
 pd.set_option("display.float_format", lambda v: f"{v:.6f}")
 df[cols]'''
 
@@ -141,38 +144,75 @@ from h4vqe.analysis import plot_curve
 fig = plot_curve(df, "curva_h4.png")'''
 
 RE_DE = '''\
-from h4vqe.analysis import fit_minimum, dissociation_energy, fit_minimum as _fm
-fit = fit_minimum(df.d, df.E_vqe, df.sigma)
+from h4vqe.analysis import fit_minimum, dissociation_energy, fci_minimum, compare_fits, DEFAULT_FIT
+# Referencia: mínimo FCI verdadero (minimizando PySCF en d), NO un ajuste sobre la grilla.
+ref = fci_minimum()
 far = df[df.d == df.d.max()].iloc[0]
+De_fci = far.E_fci - ref["E_min"]
+# Comparación de modelos. "sesgo" = modelo aplicado a FCI en la misma grilla − mínimo verdadero:
+# mide el error del método de ajuste, sin mirar el VQE. Con eso elegimos el modelo.
+cmp = compare_fits(df, ref)
+display(cmp.round(3))
+fit = fit_minimum(df.d, df.E_vqe, df.sigma, DEFAULT_FIT)
 de = dissociation_energy(far.E_vqe, far.sigma, fit)
-fit_fci = _fm(df.d, df.E_fci, np.full(len(df), 1e-6))
-print(f"R_e (VQE) = {fit['R_e']:.4f} ± {fit['R_e_sigma']:.4f} Å   | R_e (FCI, mismo ajuste) = {fit_fci['R_e']:.4f} Å")
-print(f"D_e (VQE) = {1e3*de['D_e']:.2f} ± {1e3*de['D_e_sigma']:.2f} mHa | D_e (FCI) = {1e3*(far.E_fci - fit_fci['E_min']):.2f} mHa")
+print(f"modelo: {fit['model']} sobre d = {fit['fit_points']}")
+print(f"R_e (VQE) = {fit['R_e']:.4f} ± {fit['R_e_sigma']:.4f} Å   | R_e (FCI) = {ref['R_e']:.4f} Å   "
+      f"→ diferencia {1e3*(fit['R_e']-ref['R_e']):+.1f} mÅ = {(fit['R_e']-ref['R_e'])/fit['R_e_sigma']:+.1f} σ")
+print(f"D_e (VQE) = {1e3*de['D_e']:.2f} ± {1e3*de['D_e_sigma']:.2f} mHa | D_e (FCI) = {1e3*De_fci:.2f} mHa  "
+      f"→ diferencia {1e3*(de['D_e']-De_fci):+.2f} mHa = {(de['D_e']-De_fci)/de['D_e_sigma']:+.1f} σ")
 s = df[df.d >= config.STRETCHED_FROM]
 print(f"zona estirada: le gana a CCSD en {int(s.beats_ccsd.sum())}/{len(s)} puntos; precisión química en {int(s.chem_acc.sum())}/{len(s)}")'''
 
 RELIABILITY = '''\
-from h4vqe.analysis import variance
-from h4vqe.hamiltonian import number_operators
-from h4vqe.optimize import optimize_params
-diag = []
-for d, c in ctxs.items():
-    if d < config.STRETCHED_FROM: continue
-    Hm = c["H"].to_matrix(sparse=True); psi = c["ansatz"].fast.state(c["opt"]["x"])
-    ops = number_operators(c["m"]["norb"]); sv = Statevector(psi)
-    a1 = build_ansatz(c["m"], reps=1); o1 = optimize_params(a1, c["H"], n_restarts=2)
-    diag.append({"d": d, "var_H": variance(psi, Hm), "N_alpha": sv.expectation_value(ops["N_alpha"]).real,
-                 "N_beta": sv.expectation_value(ops["N_beta"]).real, "S2": sv.expectation_value(ops["S2"]).real,
-                 "E(reps=1) - E(reps=2) [mHa]": 1e3*(o1["energy"] - c["opt"]["energy"])})
-pd.DataFrame(diag)'''
+from h4vqe.pipeline import run_reliability
+# Tres puntos de la zona estirada; en cada uno, HF, un ansatz menos profundo (ADAPT 12 ops),
+# el de la curva (ADAPT 15 ops) y uno más profundo (UCCSD ×2). Ver pipeline.depth_references.
+rel_d = [1.8, 3.0] if QUICK else [1.8, 2.4, 3.0]
+t0 = time.time()
+rel = pd.DataFrame(run_reliability(ctxs, rel_d, shots=shots,
+                                   var_shots=500_000 if QUICK else 2_000_000,
+                                   echo_shots=200_000 if QUICK else 1_000_000,
+                                   sym_shots=100_000 if QUICK else 200_000))
+print(f"total: {time.time()-t0:.0f} s")
+# Var(grupos) puede salir negativa por ruido (σ ≈ 2e-3 Ha²): se muestra recortada en 0, con su σ.
+# Solo separa HF del resto; la que resuelve es la del eco.
+rel["var_grupos (≥0)"] = rel["var"].clip(lower=0)
+# echo_cz: CZ del circuito de eco (U, e^{−iHt}, U†). Es un diagnóstico de simulador, no de hardware.
+show = rel[["d","rol","estado","cz","E","sigma","var_grupos (≥0)","var_sigma","var_echo","var_echo_up95","echo_events",
+            "echo_cz","N_alpha","N_alpha_sigma","N_beta","N_beta_sigma","S2","S2_sigma","var_exacta"]]
+with pd.option_context("display.float_format", lambda v: f"{v:.3g}"):
+    display(show)'''
+
+DEPTH = '''\
+# Convergencia con la profundidad (sin FCI). Si el ansatz de la curva convergió:
+#   - el menos profundo da una energía MEDIDA más alta y una varianza (eco) mayor;
+#   - el más profundo (muchas más CZ) no baja la energía medida más allá de σ.
+E = rel.pivot(index="d", columns="rol", values="E")
+S = rel.pivot(index="d", columns="rol", values="sigma")
+by = lambda rol, col: rel[rel.rol == rol].set_index("d")[col]
+conv = pd.DataFrame({
+    "E(menos) − E(curva) [mHa]": 1e3*(E["menos profundo"] - E["curva"]),
+    "σ₁ [mHa]": 1e3*np.hypot(S["menos profundo"], S["curva"]),
+})
+if "más profundo" in E:
+    conv["E(curva) − E(más) [mHa]"] = 1e3*(E["curva"] - E["más profundo"])
+    conv["σ₂ [mHa]"] = 1e3*np.hypot(S["curva"], S["más profundo"])
+conv["Var eco menos [Ha²]"] = by("menos profundo", "var_echo")
+conv["Var eco curva ≤ [Ha²] (95 %)"] = by("curva", "var_echo_up95")
+with pd.option_context("display.float_format", lambda v: f"{v:.3g}"):
+    display(conv)
+# Recién ahora, como comprobación: el error real contra FCI.
+chk = df.set_index("d").loc[rel_d, ["err_vqe_mHa", "sigma_mHa", "err_ccsd_mHa"]]
+chk'''
 
 
 def md(name: str):
     return nbf.v4.new_markdown_cell((MD / name).read_text())
 
 
-def build() -> nbf.NotebookNode:
+def build(quick: bool = False) -> nbf.NotebookNode:
     nb = nbf.v4.new_notebook()
+    run = RUN.replace("QUICK = False", "QUICK = True ") if quick else RUN
     cells = [md("00_intro.md"), md("01_setup.md"), nbf.v4.new_code_cell(INSTALL)]
     for mod in MODULES:
         src = (PKG / f"{mod}.py").read_text()
@@ -181,9 +221,9 @@ def build() -> nbf.NotebookNode:
               md("02_reduction.md"), nbf.v4.new_code_cell(REDUCTION),
               md("03_ansatz.md"), md("04_measurement.md"),
               nbf.v4.new_code_cell(CHECKS),
-              md("05_results.md"), nbf.v4.new_code_cell(RUN), nbf.v4.new_code_cell(TABLE),
+              md("05_results.md"), nbf.v4.new_code_cell(run), nbf.v4.new_code_cell(TABLE),
               nbf.v4.new_code_cell(PLOT), nbf.v4.new_code_cell(RE_DE),
-              md("06_reliability.md"), nbf.v4.new_code_cell(RELIABILITY),
+              md("06_reliability.md"), nbf.v4.new_code_cell(RELIABILITY), nbf.v4.new_code_cell(DEPTH),
               md("07_extras.md"), md("07_geometry.md"), nbf.v4.new_code_cell(GEOMETRY),
               md("07_hardware.md"), nbf.v4.new_code_cell(HARDWARE),
               md("08_decisions.md")]
@@ -194,7 +234,7 @@ def build() -> nbf.NotebookNode:
 
 
 if __name__ == "__main__":
-    nbf.write(build(), OUT)
+    nbf.write(build(quick="--quick" in sys.argv), OUT)
     print("escrito", OUT)
     if "--run" in sys.argv:
         subprocess.check_call([sys.executable, "-m", "jupyter", "nbconvert", "--to", "notebook",

@@ -14,13 +14,22 @@ STRETCHED_FROM = 1.8          # zona donde hay que ganarle a CCSD
 CHEM_ACC = 1.6e-3             # Ha
 
 # Presupuesto de shots por punto de la curva (estimación final, no optimización).
-SHOTS_PER_POINT = 8_000_000   # σ ≈ 0,7 mHa con QWC + Neyman (medido a 2,0 Å)
+SHOTS_PER_POINT = 8_000_000   # σ ≈ 0,5 mHa en la zona estirada (QWC con sorted insertion + Neyman)
 
-# Compuertas nativas del modelo de ruido de la consigna (ruido.py).
+# Compuertas nativas que fija la consigna para el extra con ruido: cz, sx, x y rz.
+# (ruido.py no se distribuye; el modelo de ruido propio está en noise.py.)
 BASIS_GATES = ["cz", "rz", "sx", "x"]
 
 SEED = 1234
 
-# UCCSD con 2 pasos de Trotter: llega a FCI (<1 µHa) en toda la curva sin ruido.
+# Ansatz de la curva principal:
+#   "adapt": ADAPT-VQE fermiónico, lista común de 15 operadores (adapt.ADAPT_FERMIONIC).
+#            194 CZ todos con todos, 378 en línea con el ruteo fSWAP de routing.py.
+#            Error sin ruido ≤ 0,38 mHa en toda la curva.
+#   "uccsd": UCCSD con ANSATZ_REPS pasos de Trotter (582 CZ con 2 pasos; < 1 µHa sin ruido).
+ANSATZ = "adapt"
+
+# Pasos de Trotter de UCCSD. Con ANSATZ = "adapt", UCCSD ×2 queda como referencia más
+# profunda (prueba de profundidad, comparación de ansätze, geometría y FakeFez).
 # Con 1 paso el error máximo es ~4,5 mHa (a 2,0 Å): le gana a CCSD pero sin precisión química.
 ANSATZ_REPS = 2

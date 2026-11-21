@@ -4,3 +4,7 @@ __pycache__/
 notebook/h4vqe/
 notebook/curva_h4.png
 .pytest_cache/
+results/**/prep_*.pkl
+results/**/log.txt
+results/**/pid.txt
+results/**/*_quick.*

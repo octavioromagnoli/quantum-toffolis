@@ -1,0 +1,37 @@
+K = σ²·N en mHa²·Mshots ; shots para σ = 0.5 mHa = K / 0,25 (en M)
+
+d = 0.9 Å   (E_FCI − e0 = -4.0e-12 mHa)
+  agrupamiento     grupos        sumc   neyman_hf     2etapas      neyman      +reuso   shots σ=0,5 (mejor)   ganancia vs hoy
+  QWC qiskit           46       7.905       7.386       4.451       4.408       1.955       7.82 M          ×2.28
+  QWC sorted-ins.      37       6.145      25.790       2.776       2.743       1.861       7.44 M          ×2.39
+  GC qiskit             9       2.176      20.185       1.322       1.318           -       5.27 M          ×3.38
+  GC sorted-ins.       10       2.670      14.228       1.081       1.073           -       4.29 M          ×4.15
+
+d = 1.8 Å   (E_FCI − e0 = -2.2e-13 mHa)
+  agrupamiento     grupos        sumc   neyman_hf     2etapas      neyman      +reuso   shots σ=0,5 (mejor)   ganancia vs hoy
+  QWC qiskit           46       5.379       9.737       4.114       4.092       2.233       8.93 M          ×1.84
+  QWC sorted-ins.      37       3.878      33.070       2.278       2.261       2.120       8.48 M          ×1.94
+  GC qiskit             9       2.143      34.062       1.799       1.796           -       7.18 M          ×2.29
+  GC sorted-ins.        9       1.790      22.422       1.091       1.086           -       4.34 M          ×3.79
+
+d = 2.0 Å   (E_FCI − e0 = 1.8e-12 mHa)
+  agrupamiento     grupos        sumc   neyman_hf     2etapas      neyman      +reuso   shots σ=0,5 (mejor)   ganancia vs hoy
+  QWC qiskit           46       5.007       9.496       3.873       3.854       2.236       8.95 M          ×1.73
+  QWC sorted-ins.      37       3.692      24.603       2.152       2.134       2.134       8.53 M          ×1.82
+  GC qiskit             9       2.063      27.911       1.699       1.696           -       6.78 M          ×2.28
+  GC sorted-ins.        9       1.726      18.682       1.029       1.023           -       4.09 M          ×3.79
+
+d = 2.4 Å   (E_FCI − e0 = -4.4e-13 mHa)
+  agrupamiento     grupos        sumc   neyman_hf     2etapas      neyman      +reuso   shots σ=0,5 (mejor)   ganancia vs hoy
+  QWC qiskit           46       4.553       9.336       3.555       3.539       2.264       9.06 M          ×1.57
+  QWC sorted-ins.      37       3.557      10.811       1.999       1.973       2.258       7.89 M          ×1.80
+  GC qiskit             9       1.900      17.209       1.466       1.461           -       5.84 M          ×2.43
+  GC sorted-ins.        9       1.629      11.395       0.898       0.890           -       3.56 M          ×4.00
+
+d = 3.0 Å   (E_FCI − e0 = 2.4e-12 mHa)
+  agrupamiento     grupos        sumc   neyman_hf     2etapas      neyman      +reuso   shots σ=0,5 (mejor)   ganancia vs hoy
+  QWC qiskit           46       4.323      11.969       3.391       3.377       2.363       9.45 M          ×1.44
+  QWC sorted-ins.      39       3.713       3.877       1.998       1.954       2.467       7.81 M          ×1.74
+  GC qiskit             9       1.723      10.498       1.220       1.213           -       4.85 M          ×2.80
+  GC sorted-ins.        9       1.394       5.800       0.718       0.706           -       2.82 M          ×4.80
+

@@ -22,7 +22,7 @@ sys.path.insert(0, ROOT)
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
 
-from h4vqe.estimator import split_constant
+from h4vqe.estimator import measurement_groups, split_constant
 from h4vqe.hamiltonian import molecule, qubit_hamiltonian
 
 SIGMA_TARGET = 0.5e-3
@@ -88,10 +88,11 @@ def sorted_insertion(T: Terms, qubit_wise: bool):
     return groups
 
 
-def qiskit_groups(T: Terms, H, qubit_wise: bool):
-    _, rest = split_constant(H)
+def estimator_groups(T: Terms, H, method: str, grouping: str):
+    """Los MISMOS grupos que usa h4vqe/estimator.py, como listas de índices de términos."""
     lab2k = {l: k for k, l in enumerate(T.labels)}
-    return [[lab2k[p.to_label()] for p in g.paulis] for g in rest.group_commuting(qubit_wise=qubit_wise)]
+    return [[lab2k[p.to_label()] for p in g.paulis]
+            for g in measurement_groups(H, method=method, grouping=grouping)]
 
 
 def K_alloc(V, f):
@@ -152,10 +153,10 @@ def main():
         T = Terms(H)
         Pv, Pv_hf = T.apply(psi), T.apply(psi_hf)
         res = {}
-        for name, groups in [("QWC qiskit", qiskit_groups(T, H, True)),
-                             ("QWC sorted-ins.", sorted_insertion(T, True)),
-                             ("GC qiskit", qiskit_groups(T, H, False)),
-                             ("GC sorted-ins.", sorted_insertion(T, False))]:
+        for name, groups in [("QWC qiskit", estimator_groups(T, H, "coloring", "qwc")),
+                             ("QWC sorted-ins.", estimator_groups(T, H, "sorted", "qwc")),
+                             ("GC qiskit", estimator_groups(T, H, "coloring", "gc")),
+                             ("GC sorted-ins.", estimator_groups(T, H, "sorted", "gc"))]:
             res[name] = study_groups(T, groups, Pv, psi, Pv_hf, psi_hf)
             if name.startswith("QWC"):
                 res[name]["+reuso"] = shot_reuse(T, groups, Pv, psi)

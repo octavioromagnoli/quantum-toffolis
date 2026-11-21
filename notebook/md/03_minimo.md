@@ -1,6 +1,5 @@
-## 2 · Lo mínimo que pide la consigna: VQE con UCCSD  *(11:09, Joaquín, Gonzalo y Santino)*
-
-La primera versión que corrió de punta a punta (commit de las 11:09) fue el VQE "de libro". Sus tres piezas siguen siendo las mismas en la versión final; lo que cambia es cómo resolvemos cada una.
+## 2 · Lo mínimo que pide la consigna: VQE con UCCSD
+La primera versión que corrió de punta a punta fue el VQE "de libro". Sus tres piezas siguen siendo las mismas en la versión final; lo que cambia es cómo resolvemos cada una.
 
 ### 2.1 El ciclo variacional
 

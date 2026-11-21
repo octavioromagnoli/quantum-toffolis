@@ -1,5 +1,4 @@
-## 8 · Mitigación de errores: precisión química con ruido  *(13:03 → 13:44, Santino y Octavio)*
-
+## 8 · Mitigación de errores: precisión química con ruido
 **Observación.** Con 16 CZ, el compacto queda a unos +14 mHa de FCI (§7.1). En hardware real se suma el **error de lectura**: cada qubit medido puede devolver el bit equivocado.
 
 **Hipótesis.** Los tres sesgos tienen orígenes distintos y se pueden corregir por separado: la lectura con una calibración, los errores que cambian $N_\alpha$ o $N_\beta$ descartando esos shots, y el ruido de compuertas extrapolando a ruido cero. Combinados, deberían bajar el sesgo por debajo de la $\sigma$ de los shots.
@@ -24,7 +23,7 @@ $$E(0) \approx \sum_i \gamma_i\, E(\lambda_i), \qquad \gamma_i = \prod_{j\neq i}
 
 Lineal con $\lambda = (1, 3)$: $E(0) = \tfrac32 E(1) - \tfrac12 E(3)$. Richardson con $(1, 3, 5)$: $\gamma = \big(\tfrac{15}{8}, -\tfrac{5}{4}, \tfrac38\big)$. El precio es que los $\gamma_i$ amplifican la $\sigma$.
 
-**4. Eco + ZNE (idea de Octavio).** El circuito $C\,C^\dagger\lvert 0\rangle$ debería volver a $\lvert 0\cdots 0\rangle$. Su probabilidad de volver mide la fidelidad por pasada $F$ ($P_0 = F^2 + (1 - F^2)/2^n$). Con un ruido despolarizante global, $E_\lambda = F^\lambda E + (1 - F^\lambda)\,E_{\rm mix}$, con $E_{\rm mix} = \mathrm{Tr}(\hat H)/2^n$, así que se puede reescalar antes de extrapolar:
+**4. Eco + ZNE.** El circuito $C\,C^\dagger\lvert 0\rangle$ debería volver a $\lvert 0\cdots 0\rangle$. Su probabilidad de volver mide la fidelidad por pasada $F$ ($P_0 = F^2 + (1 - F^2)/2^n$). Con un ruido despolarizante global, $E_\lambda = F^\lambda E + (1 - F^\lambda)\,E_{\rm mix}$, con $E_{\rm mix} = \mathrm{Tr}(\hat H)/2^n$, así que se puede reescalar antes de extrapolar:
 
 $$E'_\lambda = \frac{E_\lambda - (1 - F^{\lambda})\,E_{\rm mix}}{F^{\lambda}} .$$
 

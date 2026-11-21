@@ -31,7 +31,7 @@ Si $\sigma$ está bien estimada, $z \sim \mathcal N(0,1)$. Hicimos 500 repeticio
 
 ### 4.4 Semillas: el error que sí encontramos
 
-Al principio cada grupo usaba semillas consecutivas de Aer, y vimos **errores correlacionados entre grupos**, con desvíos de 4σ: la $\sigma$ quedaba subestimada. Ahora cada grupo y cada etapa tienen su propia semilla, derivada con `numpy.random.SeedSequence`. Más tarde (12:02) Gonzalo vio ~3σ seguidos en 0,7–0,9 Å con 200 k shots: las 18 distancias usaban **la misma** semilla, y el ruido de shots quedaba correlacionado entre puntos vecinos. Eso sesga el ajuste de $R_e$ y achica su $\sigma$ de Monte Carlo, que supone errores independientes. Ahora cada distancia y cada diagnóstico tienen su propia semilla.
+Al principio cada grupo usaba semillas consecutivas de Aer, y vimos **errores correlacionados entre grupos**, con desvíos de 4σ: la $\sigma$ quedaba subestimada. Ahora cada grupo y cada etapa tienen su propia semilla, derivada con `numpy.random.SeedSequence`. Más tarde vimos ~3σ seguidos en 0,7–0,9 Å con 200 k shots: las 18 distancias usaban **la misma** semilla, y el ruido de shots quedaba correlacionado entre puntos vecinos. Eso sesga el ajuste de $R_e$ y achica su $\sigma$ de Monte Carlo, que supone errores independientes. Ahora cada distancia y cada diagnóstico tienen su propia semilla.
 
 ### 4.5 Qué no funcionó
 

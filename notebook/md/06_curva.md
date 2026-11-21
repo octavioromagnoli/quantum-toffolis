@@ -1,5 +1,4 @@
-## 5 · Resultado central: la curva, $R_e$ y $D_e$  *(13:41, Joaquín)*
-
+## 5 · Resultado central: la curva, $R_e$ y $D_e$
 Con las mejoras de §3 y §4, el flujo para cada distancia es:
 
 $$d \;\to\; \hat H(d)\ \text{(PySCF + Jordan-Wigner)} \;\to\; \boldsymbol\theta^*(d) = \arg\min_{\boldsymbol\theta} E(\boldsymbol\theta)\ \text{(sin ruido; warm start y } \boldsymbol\theta = 0\text{)} \;\to\; E(d) \pm \sigma\ \text{(8 M shots, SamplerV2)} .$$

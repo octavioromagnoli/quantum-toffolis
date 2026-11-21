@@ -1,5 +1,4 @@
-### 5.1 $R_e$ y $D_e$, y el problema 3: el ajuste tenía sesgo  *(11:42, Joaquín)*
-
+### 5.1 $R_e$ y $D_e$, y el problema 3: el ajuste tenía sesgo
 El mínimo sale de ajustar un polinomio a las energías medidas cerca de 0,9 Å, pesando cada punto con $1/\sigma_i$:
 
 $$E(d) \approx \sum_{j=0}^{n} a_j\, d^{\,j}, \qquad R_e:\ E'(R_e) = 0,\ E''(R_e) > 0, \qquad D_e = E(3{,}0\ \text{Å}) - E(R_e), \qquad \sigma_{D_e} = \sqrt{\sigma_{3,0}^2 + \sigma_{E(R_e)}^2}.$$

@@ -1,5 +1,4 @@
-## 9 · Ruido de hardware real: FakeFez  *(12:31, Octavio)*
-
+## 9 · Ruido de hardware real: FakeFez
 **Pregunta.** Nuestro modelo de ruido es simple y controlado. ¿La receta (5 qubits, 16 CZ, lectura + ZNE) sobrevive al ruido de un chip real, con errores distintos en cada qubit, relajación ($T_1$, $T_2$) y lectura asimétrica?
 
 `FakeFez` es una copia simulada del procesador IBM Fez (Heron r2, 156 qubits) con su calibración real: el error de cada compuerta, $T_1$/$T_2$ y el error de lectura de cada qubit. Corrimos un punto estirado (2,4 Å) con el ansatz compacto de 5 qubits y 16 CZ (§7.3).

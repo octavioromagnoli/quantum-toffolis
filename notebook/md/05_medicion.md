@@ -1,5 +1,4 @@
-## 4 · Problema 2, demasiados shots y una σ dudosa  *(11:46 → 12:40, Santino)*
-
+## 4 · Problema 2, demasiados shots y una σ dudosa
 **Observación.** En lo mínimo, 8 M de shots por punto daban $\sigma \approx$ 0,7 mHa con 46 grupos QWC. Y al repetir 60 veces la medición del mismo circuito, la dispersión de $z = (E - E_{\rm exacta})/\sigma$ dio 1,16 en lugar de 1: o la $\sigma$ subestimaba el error, o era mala suerte.
 
 **Hipótesis.** (a) La varianza total depende de **cómo se agrupan** los términos y de **cómo se reparten** los shots, así que se puede bajar sin tocar el circuito. (b) Con 60 repeticiones, un 1,16 puede ser pura fluctuación estadística.

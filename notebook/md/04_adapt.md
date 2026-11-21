@@ -1,5 +1,4 @@
-## 3 · Problema 1, demasiadas CZ: ADAPT-VQE  *(11:46 → 13:41, Gonzalo)*
-
+## 3 · Problema 1, demasiadas CZ: ADAPT-VQE
 **Observación.** UCCSD ×2 llega a FCI, pero con 582 CZ (1648 en línea). Con 0,1 % de error por CZ eso no sirve, y el jurado mira las CZ.
 
 **Hipótesis.** No todas las 26 excitaciones aportan lo mismo. Si agregamos al circuito solo las que más bajan la energía, deberíamos llegar a precisión química con muchas menos CZ.

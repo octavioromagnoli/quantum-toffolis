@@ -18,6 +18,7 @@ nuevo: %%writefile crea h4vqe/ ahí y no se usa el paquete del repo.
 from __future__ import annotations
 
 import pathlib
+import re
 import shutil
 import sys
 import tempfile
@@ -431,7 +432,7 @@ mejores = pd.DataFrame([
 with pd.option_context("display.max_colwidth", 140):
     display(mejores)
 
-print("2) LO MÍNIMO (11:09) CONTRA LO FINAL")
+print("2) LO MÍNIMO CONTRA LO FINAL")
 uccsd_err = u2[u2.d >= config.STRETCHED_FROM]["error sin ruido (mHa)"].max()
 adapt_err = 1e3 * (st.E_opt_exact - st.E_fci).max()
 lvf = pd.DataFrame([
@@ -442,25 +443,25 @@ lvf = pd.DataFrame([
     ("grupos de medición (QWC)", int(sh.loc[(2.4, GROUPINGS[0][2]), "grupos"]), int(sh.loc[(2.4, GROUPINGS[1][2]), "grupos"]), "sorted insertion"),
     ("shots para σ = 0,5 mHa a 2,4 Å", f"{sh.loc[(2.4, GROUPINGS[0][2]), 'shots para σ = 0,5 mHa (M)']:.1f} M", f"{sh.loc[(2.4, GROUPINGS[1][2]), 'shots para σ = 0,5 mHa (M)']:.1f} M",
      f"{sh.loc[(2.4, GROUPINGS[0][2]), 'shots para σ = 0,5 mHa (M)'] / sh.loc[(2.4, GROUPINGS[1][2]), 'shots para σ = 0,5 mHa (M)']:.1f}× menos"),
-    ("σ con 8 M de shots, d ≥ 1,8 Å", "0,65–0,72 mHa (corrida de las 11:09)", f"{rng(st.sigma_mHa)} mHa (medida)", "misma cantidad de shots"),
+    ("σ con 8 M de shots, d ≥ 1,8 Å", "0,65–0,72 mHa (primera corrida)", f"{rng(st.sigma_mHa)} mHa (medida)", "misma cantidad de shots"),
     ("error sin ruido máx., d ≥ 1,8 Å", f"{uccsd_err:.1e} mHa", f"{adapt_err:.2f} mHa", "ambos muy por debajo de σ"),
-    ("error medido máx., d ≥ 1,8 Å", "0,74 mHa (corrida de las 11:09)", f"{st.err_vqe_mHa.max():.2f} mHa", "7/7 contra CCSD en los dos"),
+    ("error medido máx., d ≥ 1,8 Å", "0,74 mHa (primera corrida)", f"{st.err_vqe_mHa.max():.2f} mHa", "7/7 contra CCSD en los dos"),
     ("R_e − R_e(FCI)", f"{1e3 * (cuad['R_e (Å)'] - ref['R_e']):+.1f} mÅ (cuadrático, mismos datos)", f"{1e3 * (fit['R_e'] - ref['R_e']):+.1f} ± {1e3 * fit['R_e_sigma']:.1f} mÅ (cuártico)", "ajuste elegido por su sesgo"),
     ("confiabilidad", "con el estado del simulador", "medida con shots (eco, S², N, profundidad)", "sin FCI y sin el estado"),
     ("error con ruido a 2,4 Å, sin mitigar", f"{rz.loc['UCCSD ×2 (lo mínimo)', 'error con ruido, sin mitigar (mHa)']:+.0f} mHa (peor que HF: {rz.loc['HF (sin circuito)', 'error con ruido, sin mitigar (mHa)']:+.0f})",
      f"{rz.loc['ADAPT 15 + ruteo fSWAP', 'error con ruido, sin mitigar (mHa)']:+.0f} mHa (ADAPT); {rz.loc['compacto 5 qubits (L = 8)', 'error con ruido, sin mitigar (mHa)']:+.1f} mHa (compacto 5q)", "§7"),
     ("error con ruido a 2,4 Å, mitigado", "—", f"{mi.loc['eco + ZNE lineal (1,3) + RO', 'sesgo (mHa)']:+.3f} mHa (exacto); −1,0 ± 0,5 y −0,1 ± 0,5 mHa (medidos)", "§8"),
-], columns=["", "lo mínimo (11:09)", "final", "cómo"])
+], columns=["", "lo mínimo", "final", "cómo"])
 with pd.option_context("display.max_colwidth", 120):
     display(lvf)
 
 print("3) LA EVOLUCIÓN CON RUIDO (2,4 Å, sesgo exacto con matriz densidad)")
 cp = rz.loc["compacto 5 qubits (L = 8)"]
 evo = pd.DataFrame([
-    {"etapa": "UCCSD ×2\\n(lo mínimo, 11:09)", **rz.loc["UCCSD ×2 (lo mínimo)", ["CZ (línea)", "error sin ruido (mHa)", "error con ruido, sin mitigar (mHa)"]].to_dict()},
-    {"etapa": "ADAPT 15 + fSWAP\\n(la curva, 13:41)", **rz.loc["ADAPT 15 + ruteo fSWAP", ["CZ (línea)", "error sin ruido (mHa)", "error con ruido, sin mitigar (mHa)"]].to_dict()},
-    {"etapa": "compacto, 5 qubits\\n(12:07)", **cp[["CZ (línea)", "error sin ruido (mHa)", "error con ruido, sin mitigar (mHa)"]].to_dict()},
-    {"etapa": "compacto + eco + ZNE\\n+ lectura (13:44)", "CZ (línea)": cp["CZ (línea)"], "error sin ruido (mHa)": cp["error sin ruido (mHa)"],
+    {"etapa": "UCCSD ×2\\n(lo mínimo)", **rz.loc["UCCSD ×2 (lo mínimo)", ["CZ (línea)", "error sin ruido (mHa)", "error con ruido, sin mitigar (mHa)"]].to_dict()},
+    {"etapa": "ADAPT 15 + fSWAP\\n(la curva)", **rz.loc["ADAPT 15 + ruteo fSWAP", ["CZ (línea)", "error sin ruido (mHa)", "error con ruido, sin mitigar (mHa)"]].to_dict()},
+    {"etapa": "compacto, 5 qubits", **cp[["CZ (línea)", "error sin ruido (mHa)", "error con ruido, sin mitigar (mHa)"]].to_dict()},
+    {"etapa": "compacto + eco + ZNE\\n+ lectura", "CZ (línea)": cp["CZ (línea)"], "error sin ruido (mHa)": cp["error sin ruido (mHa)"],
      "error con ruido, sin mitigar (mHa)": mi.loc["eco + ZNE lineal (1,3) + RO", "sesgo (mHa)"]},
 ]).rename(columns={"CZ (línea)": "CZ en línea", "error con ruido, sin mitigar (mHa)": "error con ruido (mHa)"})
 evo["|CCSD − FCI| (mHa)"] = ccsd24
@@ -479,17 +480,63 @@ def code(src: str):
     return nbf.v4.new_code_cell(src)
 
 
-def _modules() -> list:
-    cells = [code(f"%%writefile h4vqe/{m}.py\n" + (PKG / f"{m}.py").read_text(encoding="utf-8")) for m in MODULES]
-    cells.append(code("%%writefile h4vqe/escalado_recursos.csv\n" + SCALING_CSV.read_text(encoding="utf-8")))
-    return cells
+# Metadatos que colapsan el código de una celda: Colab (cellView = form, con el # @title de la
+# primera línea) y Jupyter/VS Code (jupyter.source_hidden). La celda se ejecuta igual.
+HIDDEN = {"cellView": "form", "jupyter": {"source_hidden": True}}
+
+# En el notebook va solo el nombre del equipo, al principio (00_intro.md). Las líneas de "dueño"
+# de los módulos quedan en el repo, pero no se copian al notebook.
+_NAME_FIXES = [(" (Octavio)", ""), ("reducción de Octavio:", "reducción a 5 qubits:"),
+               ("(lo que recomienda Octavio)", "(la combinación recomendada)"), ("(ADAPT, Gonzalo)", "(ADAPT)")]
+_NAMES = re.compile(r"Octavio|Gonzalo|Santino|Joaquín")
+
+
+def clean_module(src: str) -> str:
+    lines = src.split("\n")
+    if "Dueño:" in src:
+        i = next(k for k, ln in enumerate(lines) if ln.startswith("Dueño:"))
+        j = i + 1      # líneas de continuación: no vacías y sin cerrar el docstring
+        while j < len(lines) and lines[j].strip() and not lines[j].lstrip().startswith('"""'):
+            j += 1
+        if j < len(lines) and not lines[j].strip() and i > 0 and not lines[i - 1].strip():
+            j += 1     # no dejar dos líneas en blanco seguidas
+        lines = lines[:i] + lines[j:]
+    src = "\n".join(lines)
+    for old, new in _NAME_FIXES:
+        src = src.replace(old, new)
+    assert not _NAMES.search(src), _NAMES.search(src)
+    return src
+
+
+def hidden(src: str):
+    c = code(src)
+    c.metadata.update(HIDDEN)
+    return c
+
+
+def _modules():
+    """Una sola celda, colapsada, que escribe el paquete h4vqe/ (antes eran 17 celdas %%writefile)."""
+    files = {f"{m}.py": clean_module((PKG / f"{m}.py").read_text(encoding="utf-8")) for m in MODULES}
+    files["escalado_recursos.csv"] = SCALING_CSV.read_text(encoding="utf-8")
+    body = []
+    for name, src in files.items():
+        esc = src.replace("\\", "\\\\").replace("\'\'\'", "\\\'\\\'\\\'")
+        body.append(f"    {name!r}: \'\'\'{esc}\'\'\',")
+    return hidden("# @title Paquete `h4vqe/`: escribe los módulos (código oculto, doble clic para verlo)\n"
+                  "import os\n"
+                  "os.makedirs(\"h4vqe\", exist_ok=True)\n"
+                  "ARCHIVOS = {\n" + "\n".join(body) + "\n}\n"
+                  "for nombre, fuente in ARCHIVOS.items():\n"
+                  "    with open(os.path.join(\"h4vqe\", nombre), \"w\", encoding=\"utf-8\") as f:\n"
+                  "        f.write(fuente)\n"
+                  "print(f\"h4vqe/: {len(ARCHIVOS)} archivos escritos\")")
 
 
 def build(quick: bool = False) -> nbf.NotebookNode:
     run = RUN.replace("QUICK = False", "QUICK = True ") if quick else RUN
     cells = [
         md("00_intro.md"),
-        md("01_setup.md"), code(INSTALL), *_modules(),
+        md("01_setup.md"), hidden("# @title Instala las dependencias (código oculto)\n" + INSTALL), _modules(),
         md("02_problema.md"), code(HAM_STRUCT),
         md("02_lectura.md"), code(HAMILTONIAN),
         md("02_ccsd.md"),

@@ -1,5 +1,4 @@
-## 10 · Otra geometría: H₄ cuadrado y en zigzag  *(12:07, Octavio)*
-
+## 10 · Otra geometría: H₄ cuadrado y en zigzag
 **Pregunta.** ¿El método depende de que la molécula sea una cadena recta, o anda igual con otra forma? Repetimos el mismo flujo (UCCSD ×2, $\boldsymbol\theta^*$ sin ruido y energía medida con shots) cambiando **solo** dónde están los átomos (`h4_geometry(d, shape)`):
 
 - **Cuadrado de lado $d$.** Por simetría, los dos orbitales del medio son degenerados. RHF tiene que ocupar uno solo y queda con una brecha HOMO-LUMO chica: 0,42 Ha a 0,9 Å, contra 0,76 Ha en la cadena recta. Por eso hay correlación estática fuerte **incluso cerca del equilibrio**: es el caso difícil para los métodos de un determinante.

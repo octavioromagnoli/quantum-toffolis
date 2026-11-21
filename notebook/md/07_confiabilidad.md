@@ -1,5 +1,4 @@
-## 6 · Problema 4: ¿por qué confiar en la zona estirada sin mirar FCI?  *(11:42 → 12:58, Joaquín)*
-
+## 6 · Problema 4: ¿por qué confiar en la zona estirada sin mirar FCI?
 **Observación.** La consigna pide argumentar la confiabilidad **antes** de comparar con FCI. En lo mínimo, la varianza, las simetrías y la comparación entre profundidades se calculaban con el estado del simulador, que en una computadora cuántica no existe.
 
 **Hipótesis.** Todo eso se puede **medir con shots**. Para la varianza, que es una resta de números grandes, un eco de Loschmidt cuenta eventos raros y resuelve valores mucho más chicos.

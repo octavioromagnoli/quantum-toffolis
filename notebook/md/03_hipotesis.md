@@ -1,6 +1,6 @@
 ### 2.5 Qué dio lo mínimo y qué nos dejó pensando
 
-**UCCSD ×1** (26 parámetros, 292 CZ) ya le gana a CCSD en toda la zona estirada, pero **no llega a precisión química** (hasta 4,5 mHa a 2,0 Å) y **rompe el espín**: a 3,0 Å $\langle S^2\rangle$ llega a 0,85 (0 es singulete y 2 es triplete), porque converge a una mezcla de los dos. Duplicar los pasos de Trotter (**UCCSD ×2**, 52 parámetros) llega a FCI con error < 0,001 mHa en toda la curva. Esa fue nuestra primera entrega completa, y en esa corrida (11:09; 18 distancias, 8 M de shots por punto):
+**UCCSD ×1** (26 parámetros, 292 CZ) ya le gana a CCSD en toda la zona estirada, pero **no llega a precisión química** (hasta 4,5 mHa a 2,0 Å) y **rompe el espín**: a 3,0 Å $\langle S^2\rangle$ llega a 0,85 (0 es singulete y 2 es triplete), porque converge a una mezcla de los dos. Duplicar los pasos de Trotter (**UCCSD ×2**, 52 parámetros) llega a FCI con error < 0,001 mHa en toda la curva. Esa fue nuestra primera entrega completa, y en esa corrida (18 distancias, 8 M de shots por punto):
 
 - le ganaba a CCSD en 7 de 7 puntos estirados, con precisión química en los 7 (error máximo medido: 0,74 mHa);
 - $\sigma$ = 0,65–0,78 mHa por punto;
@@ -17,4 +17,4 @@ O sea: **la consigna mínima ya estaba cumplida**. Pero al mirar los números ap
 | 4 | La confiabilidad se argumentaba con el **estado del simulador**, que en hardware no existe. | La varianza y las simetrías se pueden **medir**, y un eco de Loschmidt resuelve varianzas de $10^{-6}$ Ha². | Varianza por grupos, eco, $N_\alpha$, $N_\beta$, $S^2$ medidos y convergencia con la profundidad | §6 |
 | 5 | Con el modelo de ruido, UCCSD ×2 queda **peor que Hartree-Fock**. | Hacen falta unas 100 veces menos CZ. En 8 qubits un ansatz químico no llega; sacando qubits con simetrías, uno nativo de la línea sí. | Tapering 8 → 6 → 5 qubits, ansatz de 16 CZ, mitigación y FakeFez | §7–§9 |
 
-Los cinco se atacaron en paralelo entre las 11:10 y las 14:40, cada persona en su rama. La versión final del ansatz de la curva (ADAPT con 15 operadores) quedó integrada a las 13:41.
+Los cinco se atacaron en paralelo. La versión final del ansatz de la curva es ADAPT con 15 operadores.

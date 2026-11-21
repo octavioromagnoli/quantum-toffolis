@@ -1,23 +1,23 @@
-### 13.1 La línea de tiempo
+### 13.1 Qué hicimos y qué cambió
 
-| hora | qué hicimos | quién | qué cambió |
-|---|---|---|---|
-| 11:09 | **Lo mínimo:** UCCSD ×2, 8 M de shots, ajuste cuadrático | Joaquín | Cumple la consigna (7/7 contra CCSD), pero con 1648 CZ en línea |
-| 11:42 | Ajuste elegido por su sesgo contra el mínimo FCI verdadero; diagnósticos medidos con shots | Joaquín | $R_e$: sesgo de +7,8 a −0,9 mÅ |
-| 11:46 | **ADAPT-VQE** con lista común (13 operadores) | Gonzalo | 582 → 185 CZ |
-| 11:49 | ***Sorted insertion*** + estudio analítico de shots | Santino | 1,6–1,9× menos shots para la misma σ |
-| 12:02 | Semilla propia por punto; medición por conmutación general | Joaquín, Santino | Ruido de shots independiente entre distancias |
-| 12:07 | **Tapering a 5 qubits**, ansatz compacto de 16 CZ, modelo de ruido; otra geometría | Octavio | Primer circuito que sobrevive al ruido |
-| 12:20 | **Ruteo fSWAP** para qubits en línea | Gonzalo | 515 → 370 CZ en línea |
-| 12:31 | **FakeFez** con lectura + ZNE | Octavio | Compatible con FCI con ruido de hardware real |
-| 12:40 | **Calibración de σ** (3600 repeticiones, 17,8 G shots) | Santino | La barra de error es honesta (std de z = 1,01) |
-| 13:03 | Mitigación: post-selección, lectura combinable, **plegado de R·C** | Santino | Sesgo de la ZNE de 0,16 a 0,002 mHa |
-| 13:04 | ADAPT de **15 operadores** (pares de espín) y doble arranque | Gonzalo | Error de 0,59 a 0,38 mHa; $S^2$ a la mitad |
-| 13:23 | Reducción a **6 qubits** (lo que pide el extra) | Octavio | Tabla 8 → 6 → 5 |
-| 13:41 | ADAPT 15 integrado como ansatz de la curva | Joaquín | 194 CZ (378 en línea) en las 18 distancias |
-| 13:44 | **Mitigación con shots** | Santino | 6/6 con precisión química con ruido |
-| 14:27 | Comparación de ansätze sin y con ruido | Gonzalo | El criterio "cuál usar y cuándo" |
-| 14:37 | **Escalado** H₄ → H₁₄ → FeMoco | Santino | Hasta dónde llega el método |
+| qué hicimos | qué cambió |
+|---|---|
+| **Lo mínimo:** UCCSD ×2, 8 M de shots, ajuste cuadrático | Cumple la consigna (7/7 contra CCSD), pero con 1648 CZ en línea |
+| Ajuste elegido por su sesgo contra el mínimo FCI verdadero; diagnósticos medidos con shots | $R_e$: sesgo de +7,8 a −0,9 mÅ |
+| **ADAPT-VQE** con lista común (13 operadores) | 582 → 185 CZ |
+| ***Sorted insertion*** + estudio analítico de shots | 1,6–1,9× menos shots para la misma σ |
+| Semilla propia por punto; medición por conmutación general | Ruido de shots independiente entre distancias |
+| **Tapering a 5 qubits**, ansatz compacto de 16 CZ, modelo de ruido; otra geometría | Primer circuito que sobrevive al ruido |
+| **Ruteo fSWAP** para qubits en línea | 515 → 370 CZ en línea |
+| **FakeFez** con lectura + ZNE | Compatible con FCI con ruido de hardware real |
+| **Calibración de σ** (3600 repeticiones, 17,8 G shots) | La barra de error es honesta (std de z = 1,01) |
+| Mitigación: post-selección, lectura combinable, **plegado de R·C** | Sesgo de la ZNE de 0,16 a 0,002 mHa |
+| ADAPT de **15 operadores** (pares de espín) y doble arranque | Error de 0,59 a 0,38 mHa; $S^2$ a la mitad |
+| Reducción a **6 qubits** (lo que pide el extra) | Tabla 8 → 6 → 5 |
+| ADAPT 15 integrado como ansatz de la curva | 194 CZ (378 en línea) en las 18 distancias |
+| **Mitigación con shots** | 6/6 con precisión química con ruido |
+| Comparación de ansätze sin y con ruido | El criterio "cuál usar y cuándo" |
+| **Escalado** H₄ → H₁₄ → FeMoco | Hasta dónde llega el método |
 
 ### 13.2 Las decisiones y por qué mejoraron el resultado
 

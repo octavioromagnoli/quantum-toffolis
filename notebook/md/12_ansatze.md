@@ -1,5 +1,4 @@
-## 11 · Comparación de ansätze: ¿cuál conviene y cuándo?  *(14:27, Gonzalo)*
-
+## 11 · Comparación de ansätze: ¿cuál conviene y cuándo?
 Para cerrar la parte de circuitos, juntamos en una tabla todos los ansätze que probamos. **Sin ruido, en las 18 distancias** (`scripts/compare_ansatze.py`, varios minutos, por eso no se recalcula acá; los $\boldsymbol\theta$ se optimizan como en la curva y FCI se usa solo para reportar el error; CZ y grupos a 2,4 Å):
 
 | ansatz | qubits | θ | CZ todos con todos | CZ en línea | grupos | error máx. | error máx. ($d \ge 1{,}8$ Å) | $\langle S^2\rangle$ máx. |

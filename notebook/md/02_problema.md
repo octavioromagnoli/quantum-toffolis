@@ -1,5 +1,4 @@
-## 1 · El problema: de la molécula a los qubits  *(Octavio)*
-
+## 1 · El problema: de la molécula a los qubits
 ### 1.1 Qué hay que calcular
 
 Cuatro átomos de H en línea recta, separados por la misma distancia $d$, en la base STO-3G. Con la aproximación de Born-Oppenheimer los núcleos quedan fijos y, para cada $d$, buscamos el autovalor más chico del hamiltoniano electrónico:

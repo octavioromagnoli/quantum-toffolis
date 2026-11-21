@@ -1,5 +1,4 @@
-## 12 · ¿Y la nitrogenasa? Cuánto costaría la molécula real  *(14:37, Santino)*
-
+## 12 · ¿Y la nitrogenasa? Cuánto costaría la molécula real
 La consigna arranca con la nitrogenasa: su cofactor **FeMoco** es el sistema que motiva todo esto. Como cierre, medimos **cómo crecen los recursos de VQE** al alargar la cadena de hidrógenos (H₄, H₆, …, H₁₄) y los extrapolamos al tamaño de FeMoco. Es la parte del *análisis de limitaciones*: hasta dónde llega el método y por qué.
 
 **Hipótesis (a confirmar o refutar con los datos).** VQE escala de forma polinomial en qubits y compuertas, pero la cantidad de mediciones y la acumulación de ruido lo vuelven impracticable para FeMoco.

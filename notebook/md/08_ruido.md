@@ -1,5 +1,4 @@
-## 7 · Problema 5, el ruido: las CZ deciden  *(12:07 → 13:23, Octavio)*
-
+## 7 · Problema 5, el ruido: las CZ deciden
 Desde acá empiezan los **extras** de la consigna. El desafío central ya está cumplido (§5–§6). La pregunta ahora es si el método sobrevive al ruido de una computadora real.
 
 ### 7.1 El modelo de ruido
@@ -12,7 +11,7 @@ Con $n_{\rm CZ}$ compuertas de dos qubits y $n_{1q}$ de uno, la probabilidad de 
 
 $$P_{\rm limpio} = (1 - p_{\rm CZ})^{n_{\rm CZ}}\,(1 - p_{1q})^{n_{1q}} \approx e^{-n_{\rm CZ}/1000}.$$
 
-**Observación (12:07).** Con este modelo, el VQE "de libro" no sirve: UCCSD ×2 en línea tiene ~1550 CZ, $P_{\rm limpio} \approx$ 0,2, y el estado se mezcla con ruido. ADAPT baja a 313 CZ con el ruteo fSWAP, pero sigue siendo demasiado.
+**Observación.** Con este modelo, el VQE "de libro" no sirve: UCCSD ×2 en línea tiene ~1550 CZ, $P_{\rm limpio} \approx$ 0,2, y el estado se mezcla con ruido. ADAPT baja a 313 CZ con el ruteo fSWAP, pero sigue siendo demasiado.
 
 **Hipótesis.** El sesgo escala con la cantidad de compuertas. Para bajarlo a algo que la mitigación pueda corregir (unos pocos mHa) hacen falta **unas 100 veces menos CZ**. Un ansatz químico en 8 qubits no llega ahí; uno nativo de la línea, en menos qubits, sí.
 

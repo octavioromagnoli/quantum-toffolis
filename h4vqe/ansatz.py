@@ -49,9 +49,22 @@ def uccsd_excitations(m: dict) -> list[tuple[tuple[int, ...], tuple[int, ...]]]:
     return ex
 
 
-def excitation_generator(exc, nq: int, a=None) -> SparsePauliOp:
-    """G = i(T - T†), con T = a†_a a†_b a_j a_i."""
-    a = a or annihilation_ops(nq)
+def qubit_annihilation_ops(nq: int) -> list[SparsePauliOp]:
+    """Q_p = (X_p + iY_p)/2, SIN cadena de Z (excitaciones de qubit, QEB)."""
+    return [SparsePauliOp.from_sparse_list([("X", [p], 0.5), ("Y", [p], 0.5j)], nq)
+            for p in range(nq)]
+
+
+def excitation_generator(exc, nq: int, a=None, kind: str = "fermionic") -> SparsePauliOp:
+    """G = i(T - T†), con T = a†_a a†_b a_j a_i.
+
+    kind="fermionic": a_p de Jordan-Wigner (con cadenas Z).
+    kind="qeb": excitación de qubit, Q_p sin cadenas Z (Yordanov et al., 2020/2021).
+    Conserva N_alfa y N_beta igual, pero toca solo 2 o 4 qubits, así que
+    cuesta menos CZ, sobre todo con qubits en línea.
+    """
+    if a is None:
+        a = annihilation_ops(nq) if kind == "fermionic" else qubit_annihilation_ops(nq)
     src, dst = exc
     T = SparsePauliOp("I" * nq)
     for p in dst:
@@ -71,6 +84,13 @@ class FastAnsatz:
             assert np.allclose(G2 @ G, G, atol=1e-10), "G^3 != G"
         self.psi0 = np.zeros(2 ** nq, dtype=complex)
         self.psi0[hf_index] = 1.0
+
+    @classmethod
+    def from_matrices(cls, G: list, G2: list, psi0: np.ndarray) -> "FastAnsatz":
+        """Igual que el constructor, pero con matrices ya calculadas (lo usa ADAPT)."""
+        obj = cls.__new__(cls)
+        obj.G, obj.G2, obj.psi0 = list(G), list(G2), psi0
+        return obj
 
     def state(self, theta) -> np.ndarray:
         psi = self.psi0
@@ -112,13 +132,16 @@ class Ansatz:
         return len(self.params)
 
 
-def build_ansatz(m: dict, excitations=None, reps: int = 1) -> Ansatz:
-    """UCCSD (o la lista de excitaciones que se pase, p. ej. la de ADAPT)."""
+def build_ansatz(m: dict, excitations=None, reps: int = 1, kind: str = "fermionic") -> Ansatz:
+    """UCCSD (o la lista de excitaciones que se pase, p. ej. la de ADAPT).
+
+    kind="fermionic" (default) o "qeb" (excitaciones de qubit, ver excitation_generator).
+    """
     norb = m["norb"]
     nq = 2 * norb
     excitations = list(excitations or uccsd_excitations(m)) * reps
-    a = annihilation_ops(nq)
-    gens = [excitation_generator(e, nq, a) for e in excitations]
+    a = annihilation_ops(nq) if kind == "fermionic" else qubit_annihilation_ops(nq)
+    gens = [excitation_generator(e, nq, a, kind) for e in excitations]
     theta = ParameterVector("θ", len(gens))
     qc = QuantumCircuit(nq)
     occ = hf_occupation(m)
@@ -129,7 +152,7 @@ def build_ansatz(m: dict, excitations=None, reps: int = 1) -> Ansatz:
     native = transpile(qc, basis_gates=BASIS_GATES, optimization_level=1, seed_transpiler=SEED)
     hf_index = sum(1 << q for q in occ)
     return Ansatz(native, excitations, FastAnsatz(gens, hf_index, nq), theta,
-                  {"reps": reps, "n_qubits": nq})
+                  {"reps": reps, "n_qubits": nq, "kind": kind})
 
 
 def cz_count(circuit: QuantumCircuit, coupling: str = "all", seed: int = SEED) -> int:

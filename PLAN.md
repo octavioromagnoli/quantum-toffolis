@@ -13,6 +13,8 @@ La base en `main` **ya cumple el desafío central sin ruido**. Corre de punta a 
 | Tabla (E, σ, shots, CZ), gráfico, R_e y D_e con incertidumbre Monte Carlo | ✅ |
 | CCSD falla en la zona estirada: entre 9 y 31 mHa *por debajo* de FCI | ✅ ya lo ganamos |
 
+**Probado en Colab limpio (Python 3.13, 2026-11-21):** corre de punta a punta sin errores y da los mismos números (R_e = 0,8936 ± 0,0019 Å, D_e = 312,95 ± 0,84 mHa, 7/7 contra CCSD). **Tarda ~25 min** (la curva sola: 1479 s, ~80 s por punto, contra ~12 s en una Mac). Después de esa corrida, el estimador se aceleró ~25 % (`get_counts` → numpy). Bajar shots (Santino) y CZ (Gonzalo) también reduce el tiempo en Colab.
+
 **Puntos flojos** (en eso se va el tiempo):
 1. **Demasiadas CZ**: UCCSD ×2 tiene ~584 CZ con conectividad total y ~1600 en línea. Con el ruido de la consigna (0,1 % por CZ) eso es inútil, y el jurado mira las CZ.
 2. **Demasiados shots**: 8 M por punto para σ ≈ 0,7 mHa. Hay que bajar ese número o justificarlo.
@@ -86,7 +88,7 @@ Cada uno tiene su issue asignado con checklist: Octavio [#1](https://github.com/
 - **Cierre** Notebook completo en Colab limpio (Entorno de ejecución → Reiniciar y ejecutar todo), tabla final, `00_intro.md` con los números, subida a Drive compartida con el jurado.
 
 ## Definición de terminado
-- [ ] El notebook corre en Colab limpio, de punta a punta, en menos de ~20 min
+- [ ] El notebook corre en Colab limpio, de punta a punta, en menos de ~20 min (hoy: ~25 min, ver arriba)
 - [ ] 18 distancias con E ± σ, shots y CZ por punto
 - [ ] |E_VQE − E_FCI| + σ < |E_CCSD − E_FCI| para d ≥ 1,8 Å
 - [ ] |E_VQE − E_FCI| < 1,6 mHa en la zona estirada

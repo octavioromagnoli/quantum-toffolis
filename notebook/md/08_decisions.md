@@ -2,7 +2,8 @@
 
 | decisión | por qué | alternativa descartada |
 |---|---|---|
-| UCCSD ×2 | exacto en toda la curva | hardware-efficient: difícil de optimizar, rompe N |
+| ADAPT-VQE fermiónico, lista común de 15 operadores | 194 CZ (378 en línea con fSWAP) y error sin ruido ≤ 0,38 mHa; el mismo circuito en toda la curva | UCCSD ×2: exacto, pero 582 CZ (1648 en línea). Compacto de 5 qubits (16 CZ): no conserva N ni S² por construcción y no escala; queda para FakeFez |
+| medir el circuito sin rutear con Ĥ original | es el mismo estado que el ruteado; Ĥ reordenado necesita ~1,9× más grupos QWC | medir el circuito ruteado (las 378 CZ en línea se reportan aparte) |
 | optimizar sin ruido | permitido; mucho más rápido | SPSA con shots: lento y ruidoso |
 | SamplerV2 + σ propia | barras honestas, permite Neyman | EstimatorV2 con `precision`: σ fija |
 | R_e con cuártico en 7 puntos (0,7–1,1 Å) | sesgo < 1 mÅ al aplicarlo a FCI en la misma grilla | cuadrático en 5 puntos: sesgo de +8 mÅ, mayor que σ |

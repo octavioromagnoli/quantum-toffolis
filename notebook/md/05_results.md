@@ -1,6 +1,6 @@
 ## 4 · Resultados: curva, R_e y D_e  *(Joaquín)*
 
-Para cada distancia: hamiltoniano → ansatz → θ* (sin ruido, con warm start desde el punto anterior) → **energía medida** con shots. La tabla tiene, por punto, la energía, su σ, los shots y las CZ (todos con todos y en línea).
+Para cada distancia: hamiltoniano → ansatz → θ* (sin ruido, con warm start desde el punto anterior) → **energía medida** con shots. La tabla tiene, por punto, la energía, su σ, los shots y las CZ: todos con todos (`cz_all`), en línea con el transpiler de Qiskit (`cz_line`) y en línea con nuestro ruteo fSWAP (`cz_line_fswap`, sección 2). El circuito ruteado prepara el mismo estado con los modos reordenados; medimos el circuito sin rutear con Ĥ original porque Ĥ reordenado necesita ~1,9× más grupos QWC.
 
 **Cómo sacamos R_e y D_e.** El mínimo sale de ajustar las energías medidas cerca de 0,9 Å. La σ se obtiene por Monte Carlo: re-muestreamos cada energía con su σ y re-ajustamos, incluida la elección de los puntos.
 
@@ -17,15 +17,15 @@ El cuadrático tiene un sesgo de 3σ: la curva es asimétrica (sube más rápido
 
 **Elegimos el cuártico en 7 puntos**: es el único con sesgo chico en R_e *y* en E_min a la vez, y su σ es de las más chicas. Las diferencias entre modelos de bajo sesgo (≈ 2 mÅ en R_e, ≲ 0,1 mHa en D_e) quedan dentro de la σ estadística.
 
-**Resultado** (corrida completa, UCCSD ×2, 8M shots por punto):
+**Resultado** (corrida completa, ADAPT 15 operadores, 194 CZ, 8M shots por punto):
 
 | | VQE (medido) | FCI | diferencia |
 |---|---|---|---|
-| R_e | 0,8845 ± 0,0023 Å | 0,8886 Å | −4,1 mÅ (−1,7σ) |
-| D_e = E(3,0 Å) − E(R_e) | 313,92 ± 0,85 mHa | 313,21 mHa | +0,70 mHa (+0,8σ) |
+| R_e | 0,8873 ± 0,0018 Å | 0,8886 Å | −1,2 mÅ (−0,7σ) |
+| D_e = E(3,0 Å) − E(R_e) | 313,00 ± 0,66 mHa | 313,21 mHa | −0,21 mHa (−0,3σ) |
 
-La diferencia en R_e (−1,7σ) es estadística: el sesgo del ajuste es solo −0,9 mÅ, y el desvío se mantuvo al pasar a semillas independientes por punto (con la misma semilla en todas las distancias, el ruido quedaba correlacionado entre puntos vecinos).
+Las dos diferencias están dentro de 1σ. El sesgo del ajuste (−0,9 mÅ) y el error de ADAPT sin ruido (≤ 0,38 mHa) quedan debajo de la σ de shots.
 
-En la zona estirada (d ≥ 1,8 Å) le ganamos a CCSD en 7/7 puntos contando la σ, y tenemos precisión química en 7/7 (error máximo: 1,45 mHa, a 2,0 Å). La σ de D_e está dominada por las dos energías que entran en la resta (≈ 0,65 mHa cada una). Para bajarla hacen falta más shots en el mínimo y a 3,0 Å, no un ajuste mejor.
+En la zona estirada (d ≥ 1,8 Å) le ganamos a CCSD en 7/7 puntos contando la σ, y tenemos precisión química en 7/7 (error máximo: 0,56 mHa, a 2,4 Å). En toda la curva el error máximo es 1,15 mHa (0,7 Å). La σ por punto es 0,50–0,60 mHa. La σ de D_e está dominada por las dos energías que entran en la resta. Para bajarla hacen falta más shots en el mínimo y a 3,0 Å, no un ajuste mejor.
 
 > Las celdas de abajo recalculan todo esto en cada ejecución. Si cambian el ansatz o los shots, los números de esta sección se actualizan ahí.

@@ -19,12 +19,13 @@ PKG = ROOT / "h4vqe"
 OUT = ROOT / "notebook" / "H4_VQE.ipynb"
 
 MODULES = ["__init__", "config", "hamiltonian", "ansatz", "optimize", "estimator",
-           "analysis", "pipeline", "geometry"]
+           "analysis", "pipeline", "geometry", "reduction", "noise", "hardware"]
 
 INSTALL = '''\
 # Instala dependencias si faltan (Colab arranca sin Qiskit ni PySCF).
 import importlib.util, os, subprocess, sys
-REQS = {"qiskit": "qiskit==2.6.2", "qiskit_aer": "qiskit-aer==0.18.4", "pyscf": "pyscf==2.15.0"}
+REQS = {"qiskit": "qiskit==2.6.2", "qiskit_aer": "qiskit-aer==0.18.4", "pyscf": "pyscf==2.15.0",
+        "qiskit_ibm_runtime": "qiskit-ibm-runtime==0.52.1"}   # runtime: solo para FakeFez
 missing = [pip for mod, pip in REQS.items() if importlib.util.find_spec(mod) is None]
 if missing:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", *missing])
@@ -74,6 +75,17 @@ for a, shape, title in zip(axs, ["square", "zigzag"], ["H$_4$ cuadrado (lado d)"
 axs[0].set_ylabel("E − E_FCI (mHa)"); axs[0].legend(loc="lower left", fontsize=8)
 plt.tight_layout(); plt.show()
 geo[["shape", "d", "E_vqe", "sigma", "err_vqe_mHa", "err_ccsd_mHa", "ccsd_converged", "beats_ccsd", "cz_all", "cz_line"]]'''
+
+HARDWARE = '''\
+import pandas as pd
+from h4vqe.hardware import run_fez
+fz = run_fez(2.4)
+print(f"línea de Fez: qubits {fz['line']} | errores esperados {fz['expected_errors']:.3f} "
+      f"(mediana de las {fz['n_lines']} líneas posibles: {fz['median_expected_errors']:.3f})")
+print(f"CZ: compacto {fz['cz']} (sin SWAP) | UCCSD ×2 ubicado en Fez: {fz['cz_uccsd_fez']} | "
+      f"error del compacto sin ruido: {fz['err_exact_mHa']:.1e} mHa")
+print("lectura por qubit, P(1|0) / P(0|1): " + ", ".join(f"{a:.2%} / {b:.2%}" for a, b in fz["readout"]))
+pd.DataFrame(fz["rows"]).astype({"shots": "Int64"})'''
 
 CHECKS = '''\
 import numpy as np, importlib, time
@@ -161,6 +173,7 @@ def build() -> nbf.NotebookNode:
               nbf.v4.new_code_cell(PLOT), nbf.v4.new_code_cell(RE_DE),
               md("06_reliability.md"), nbf.v4.new_code_cell(RELIABILITY),
               md("07_extras.md"), md("07_geometry.md"), nbf.v4.new_code_cell(GEOMETRY),
+              md("07_hardware.md"), nbf.v4.new_code_cell(HARDWARE),
               md("08_decisions.md")]
     nb.cells = cells
     nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}

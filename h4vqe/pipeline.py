@@ -39,12 +39,23 @@ def run_point(d: float, x0=None, shots: int = SHOTS_PER_POINT, seed: int = SEED,
     return row, ctx
 
 
+# Paso entre semillas de puntos distintos. El estimador usa seed y seed+1 (piloto y Neyman)
+# y run_reliability usa offsets < 1000: con un paso de 1000 ninguna semilla se repite.
+SEED_STRIDE = 1000
+
+
 def run_curve(distances=DISTANCES, shots: int = SHOTS_PER_POINT, verbose: bool = True,
-              ansatz_kwargs=None):
-    """Barre las distancias con warm start (θ* del punto anterior como x0)."""
+              ansatz_kwargs=None, seed: int = SEED):
+    """Barre las distancias con warm start (θ* del punto anterior como x0).
+
+    Cada punto usa su PROPIA semilla. Con la misma semilla en todos, el ruido de shots
+    queda correlacionado entre distancias vecinas (vimos ~3σ seguidos en 0,7–0,9 Å) y el
+    Monte Carlo de R_e, que supone errores independientes, subestima la σ.
+    """
     rows, ctxs, x0 = [], {}, None
-    for d in distances:
-        row, ctx = run_point(d, x0=x0, shots=shots, ansatz_kwargs=ansatz_kwargs)
+    for i, d in enumerate(distances):
+        row, ctx = run_point(d, x0=x0, shots=shots, seed=seed + SEED_STRIDE * i,
+                             ansatz_kwargs=ansatz_kwargs)
         x0 = ctx["opt"]["x"]
         rows.append(row)
         ctxs[d] = ctx
@@ -72,7 +83,7 @@ def run_reliability(ctxs: dict, distances, shots: int = SHOTS_PER_POINT, var_sho
     from .hamiltonian import number_operators
 
     out = []
-    for d in distances:
+    for j, d in enumerate(distances):
         c = ctxs[d]
         m, H = c["m"], c["H"]
         Hm = H.to_matrix(sparse=True)
@@ -84,7 +95,8 @@ def run_reliability(ctxs: dict, distances, shots: int = SHOTS_PER_POINT, var_sho
                   (f"curva ({c['ansatz'].num_parameters} θ)", c["ansatz"], c["opt"]["x"])]
         for k, (name, ans, x) in enumerate(states):
             t0 = time.time()
-            sd = seed + 100 * k  # semillas distintas por estado: ruido de shots independiente
+            # semilla propia por (distancia, estado), separada de las de run_curve
+            sd = seed + 100 * SEED_STRIDE + SEED_STRIDE * j + 100 * k
             circ = ans.circuit.assign_parameters(x)
             e = measure_energy(circ, H, shots, seed=sd)
             row = {"d": d, "estado": name, "E": e["energy"], "sigma": e["sigma"],

@@ -11,6 +11,7 @@
 
 **Qué no funcionó:**
 - Semillas consecutivas en el Sampler ⇒ σ subestimada (corregido).
+- La misma semilla en las 18 distancias ⇒ ruido de shots correlacionado entre puntos vecinos (detectado por Gonzalo: ~3σ seguidos en 0,7–0,9 Å con 200 k shots). Eso sesga el ajuste de R_e y hace que su σ de Monte Carlo, que supone errores independientes, quede chica. Ahora cada punto y cada diagnóstico usa su propia semilla, separadas por un paso de 1000 para que no choquen con las semillas derivadas del estimador (seed+1 de la etapa de Neyman).
 - Medir la varianza como ⟨H²⟩ − ⟨H⟩² con grupos QWC: (H−c)² tiene 1775 Paulis en 225 grupos y cada grupo fluctúa mucho aunque el total sea ≈ 0, así que la σ queda en ~10⁻³ Ha² aunque se usen millones de shots. Restar la constante de H (c) reduce σ a la mitad, pero no alcanza. Lo dejamos como medición directa y sumamos el eco.
 - Eco con 2 pasos de Trotter: el error de Trotter (1,3·10⁻⁶) se confundía con la señal. Con 4 pasos baja a 9·10⁻⁸.
 

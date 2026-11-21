@@ -13,8 +13,8 @@ Calculamos con **VQE** la curva de energía de la cadena lineal H₄ (STO-3G, 8 
 6. Confiabilidad sin FCI, todo **medido con shots**: varianza de la energía (por grupos y por eco de Loschmidt), simetrías N_α, N_β y S², y convergencia con la profundidad.
 
 **Resultados** (UCCSD ×2, 8M shots por punto, 582 CZ todos con todos):
-- Precisión química en las 18 distancias; en la zona estirada (d ≥ 1,8 Å), error ≤ 0,57 mHa contra 9–31 mHa de CCSD.
-- R_e = 0,8841 ± 0,0025 Å (FCI: 0,8886 Å); D_e = 313,18 ± 0,85 mHa (FCI: 313,21 mHa).
-- Varianza medida por eco ≤ 3·10⁻⁶ Ha² en 1,8, 2,4 y 3,0 Å (HF: 0,11–0,16 Ha²).
+- Precisión química en las 18 distancias; en la zona estirada (d ≥ 1,8 Å), error ≤ 1,45 mHa contra 9–31 mHa de CCSD.
+- R_e = 0,8845 ± 0,0023 Å (FCI: 0,8886 Å); D_e = 313,92 ± 0,85 mHa (FCI: 313,21 mHa).
+- Varianza medida por eco ≤ 5·10⁻⁶ Ha² en 1,8, 2,4 y 3,0 Å (HF: 0,11–0,16 Ha²).
 
 > TODO (Joaquín): actualizar al cerrar con el ansatz y los shots finales.

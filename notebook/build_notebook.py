@@ -53,6 +53,17 @@ a2.plot(val.d, val.w_hf, "o-", color="tab:red")
 a2.set_ylabel(r"peso de HF en FCI  $|\\langle \\mathrm{HF}|\\Psi_\\mathrm{FCI}\\rangle|^2$"); a2.set_ylim(0, 1)
 plt.tight_layout(); plt.show()'''
 
+REDUCTION = '''\
+import pandas as pd
+from h4vqe import config
+from h4vqe.reduction import reduction_table, compare_ansatze
+red = pd.DataFrame(reduction_table(config.DISTANCES))
+print(f"{len(red)} distancias | máx |E_0(H₅) − E_FCI| = {red.err_fci.abs().max():.1e} Ha | "
+      f"máx |<HF|H₅|HF> − E_HF| = {red.err_hf.abs().max():.1e} Ha")
+print(f"términos de Pauli: {red.paulis_8q.max()} → {red.paulis_5q.max()} | "
+      f"grupos QWC: {red.groups_8q.max()} → {red.groups_5q.max()}")
+pd.DataFrame(compare_ansatze(2.0))'''
+
 GEOMETRY = '''\
 import pandas as pd, matplotlib.pyplot as plt
 from h4vqe import config
@@ -167,6 +178,7 @@ def build() -> nbf.NotebookNode:
         src = (PKG / f"{mod}.py").read_text()
         cells.append(nbf.v4.new_code_cell(f"%%writefile h4vqe/{mod}.py\n{src}"))
     cells += [md("02_hamiltonian.md"), nbf.v4.new_code_cell(HAMILTONIAN),
+              md("02_reduction.md"), nbf.v4.new_code_cell(REDUCTION),
               md("03_ansatz.md"), md("04_measurement.md"),
               nbf.v4.new_code_cell(CHECKS),
               md("05_results.md"), nbf.v4.new_code_cell(RUN), nbf.v4.new_code_cell(TABLE),

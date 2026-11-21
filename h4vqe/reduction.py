@@ -32,9 +32,11 @@ from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 from scipy.optimize import minimize
 
-from .ansatz import Ansatz, hf_occupation
-from .config import BASIS_GATES, SEED
-from .hamiltonian import number_operators, qubit_hamiltonian
+from .ansatz import Ansatz, build_ansatz, cz_count, hf_occupation
+from .config import ANSATZ_REPS, BASIS_GATES, SEED
+from .estimator import measurement_groups
+from .hamiltonian import molecule, number_operators, qubit_hamiltonian
+from .optimize import optimize_params
 
 
 # --------------------------------------------------------------------------- simetrías
@@ -254,3 +256,36 @@ def optimize_compact(ans: Ansatz, H5: SparsePauliOp, S2_5: SparsePauliOp | None 
             best = r
     e = ans.fast.energy_and_grad(best.x, Hm)[0]
     return {"x": best.x, "energy": float(e), "nfev": int(best.nfev), "success": bool(best.success)}
+
+
+# --------------------------------------------------------------------------- tablas para el notebook
+def reduction_table(distances) -> list[dict]:
+    """Por distancia: términos de Pauli y grupos QWC en 8 y 5 qubits, y chequeo de H₅ contra PySCF
+    (fundamental de H₅ = E_FCI y <HF|H₅|HF> = E_HF)."""
+    rows = []
+    for d in distances:
+        m = molecule(d)
+        H8 = qubit_hamiltonian(m)
+        tp = tapering(m, H8)
+        H5 = tp.apply(H8)
+        M5 = H5.to_matrix(sparse=True)
+        rows.append({"d": d, "paulis_8q": len(H8), "paulis_5q": len(H5),
+                     "groups_8q": len(measurement_groups(H8)), "groups_5q": len(measurement_groups(H5)),
+                     "err_fci": float(np.linalg.eigvalsh(M5.toarray())[0] - m["e_fci"]),
+                     "err_hf": float(M5[tp.hf_index, tp.hf_index].real - m["e_hf"])})
+    return rows
+
+
+def compare_ansatze(d: float = 2.0, layers: int = 8) -> list[dict]:
+    """UCCSD en 8 qubits contra el ansatz compacto en 5: qubits, parámetros, CZ, grupos y error sin ruido."""
+    m = molecule(d)
+    H8 = qubit_hamiltonian(m)
+    H5 = tapering(m, H8).apply(H8)
+    u = build_ansatz(m, reps=ANSATZ_REPS)
+    eu = optimize_params(u, H8, n_restarts=2)["energy"]
+    c = build_compact_ansatz(m, layers=layers)
+    ec = optimize_compact(c, H5, reduced_number_operators(m)["S2"])["energy"]
+    return [{"ansatz": name, "qubits": a.circuit.num_qubits, "parámetros": a.num_parameters,
+             "CZ (todos con todos)": cz_count(a.circuit), "CZ (línea)": cz_count(a.circuit, "line"),
+             "grupos QWC": len(measurement_groups(H)), "error sin ruido (mHa)": 1e3 * (e - m["e_fci"])}
+            for name, a, H, e in [(f"UCCSD ×{ANSATZ_REPS}", u, H8, eu), (f"compacto L={layers}", c, H5, ec)]]

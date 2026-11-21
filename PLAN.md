@@ -27,11 +27,11 @@ La base en `main` **ya cumple el desafío central sin ruido**. Corre de punta a 
 git pull origin main
 uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python --only-binary pyscf "qiskit==2.6.2" "qiskit-aer==0.18.4" "pyscf==2.15.0" scipy matplotlib pandas nbformat nbconvert ipykernel pytest
 .venv/bin/python tests/test_smoke.py           # tiene que imprimir OK
-.venv/bin/python notebook/build_notebook.py    # genera notebook/H4_VQE.ipynb
+.venv/bin/python notebook/build_notebook.py    # genera notebook/H4_VQE.ipynb y notebook/H4_VQE_extras.ipynb
 ```
 
 - **Cada uno toca solo sus archivos** (tabla de abajo). `config.py` y `pipeline.py` los integra Joaquín: si necesitan cambiarlos, avisen.
-- **Nadie edita `notebook/H4_VQE.ipynb` a mano.** Se genera desde `h4vqe/*.py` y `notebook/md/*.md`. Cada uno escribe su sección en su `.md`.
+- **Nadie edita los `.ipynb` a mano.** Se genera desde `h4vqe/*.py` y `notebook/md/*.md`. Cada uno escribe su sección en su `.md`.
 - Una rama por persona (`octavio/...`, `gonzalo/...`, `santino/...`, `joaquin/...`) y un PR chico a `main` cada vez que algo funciona. Mergear seguido, no al final.
 - Antes de cada PR corré `tests/test_smoke.py`.
 - **No romper interfaces**: `build_ansatz(m, excitations=..., reps=...) -> Ansatz` (con `.circuit`, `.fast`), `measure_energy(circ, H, shots) -> {"energy","sigma","shots",...}`, `molecule(d) -> dict`, `qubit_hamiltonian(m)`.

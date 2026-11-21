@@ -1,37 +1,53 @@
-"""Genera notebook/H4_VQE.ipynb a partir de h4vqe/*.py y notebook/md/*.md.
+"""Genera los dos notebooks de entrega a partir de h4vqe/*.py y notebook/md/*.md.
 
-    python notebook/build_notebook.py            # genera
-    python notebook/build_notebook.py --run      # genera y ejecuta (verifica de punta a punta)
-    python notebook/build_notebook.py --quick --run   # igual, con QUICK = True (antes de cada PR)
+    notebook/H4_VQE.ipynb         lo que pide la consigna (curva, R_e, D_e, confiabilidad)
+    notebook/H4_VQE_extras.ipynb  extras: menos qubits, mitigación, FakeFez, otra geometría
 
-No editar el .ipynb a mano: se pisa. Editar los módulos o los .md y regenerar.
+    python notebook/build_notebook.py                  # genera los dos
+    python notebook/build_notebook.py --run            # genera y ejecuta los dos en carpetas vacías
+    python notebook/build_notebook.py --run core       # solo uno: core o extras
+    python notebook/build_notebook.py --quick --run    # QUICK = True en la curva (antes de cada PR)
+    python notebook/build_notebook.py --kernel NOMBRE  # kernel para ejecutar (default h4vqe-local)
+    python notebook/build_notebook.py --text-only      # actualiza solo el texto de los ya ejecutados
+
+No editar los .ipynb a mano: se pisan. Editar los módulos o los .md y regenerar.
+La ejecución en una carpeta temporal vacía (idea de Santino, build_minimo.py) reproduce un Colab
+nuevo: %%writefile crea h4vqe/ ahí y no se usa el paquete del repo.
 """
 from __future__ import annotations
 
 import pathlib
-import subprocess
+import shutil
 import sys
+import tempfile
+import time
 
 import nbformat as nbf
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MD = ROOT / "notebook" / "md"
 PKG = ROOT / "h4vqe"
-OUT = ROOT / "notebook" / "H4_VQE.ipynb"
+OUT = {"core": ROOT / "notebook" / "H4_VQE.ipynb",
+       "extras": ROOT / "notebook" / "H4_VQE_extras.ipynb"}
 
-MODULES = ["__init__", "config", "hamiltonian", "ansatz", "optimize", "estimator",
-           "adapt", "routing", "analysis", "pipeline", "geometry", "reduction", "noise", "hardware"]
+CORE_MODULES = ["__init__", "config", "hamiltonian", "ansatz", "optimize", "estimator",
+                "adapt", "routing", "analysis", "pipeline"]
+EXTRA_MODULES = CORE_MODULES + ["reduction", "noise", "mitigation", "hardware", "geometry"]
 
 INSTALL = '''\
 # Instala dependencias si faltan (Colab arranca sin Qiskit ni PySCF).
 import importlib.util, os, subprocess, sys
-REQS = {"qiskit": "qiskit==2.6.2", "qiskit_aer": "qiskit-aer==0.18.4", "pyscf": "pyscf==2.15.0",
-        "qiskit_ibm_runtime": "qiskit-ibm-runtime==0.52.1"}   # runtime: solo para FakeFez
+REQS = {"qiskit": "qiskit==2.6.2", "qiskit_aer": "qiskit-aer==0.18.4", "pyscf": "pyscf==2.15.0"}
 missing = [pip for mod, pip in REQS.items() if importlib.util.find_spec(mod) is None]
 if missing:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", *missing])
 os.makedirs("h4vqe", exist_ok=True)
 print("python", sys.version.split()[0], "- instalado:", missing or "nada (ya estaba)")'''
+
+INSTALL_EXTRAS = INSTALL.replace(
+    '"pyscf": "pyscf==2.15.0"}',
+    '"pyscf": "pyscf==2.15.0",\n        "qiskit_ibm_runtime": "qiskit-ibm-runtime==0.52.1"}   # solo para FakeFez')
+assert INSTALL_EXTRAS != INSTALL
 
 HAMILTONIAN = '''\
 import pandas as pd, matplotlib.pyplot as plt
@@ -100,6 +116,50 @@ print(f"CZ: compacto {fz['cz']} (sin SWAP) | UCCSD ×2 ubicado en Fez: {fz['cz_u
       f"error del compacto sin ruido: {fz['err_exact_mHa']:.1e} mHa")
 print("lectura por qubit, P(1|0) / P(0|1): " + ", ".join(f"{a:.2%} / {b:.2%}" for a, b in fz["readout"]))
 pd.DataFrame(fz["rows"]).astype({"shots": "Int64"})'''
+
+MITIGATION = '''\
+# Sesgo EXACTO de cada técnica (sin shots: probabilidades con matriz densidad), a 2,4 Å, con el
+# ansatz compacto (5 qubits, 16 CZ), el modelo de noise.py y 2 % de error de lectura.
+# Sirve para elegir la técnica antes de gastar shots; las energías con shots están en la tabla de arriba
+# (scripts/mitigation_shots.py, ~20 min por punto). θ* y Ĥ₅ salen del MISMO proceso (ver "qué no funcionó").
+import time
+import numpy as np, pandas as pd
+from qiskit.quantum_info import Statevector
+from h4vqe import mitigation as mt
+from h4vqe.estimator import measurement_groups, split_constant
+from h4vqe.hamiltonian import molecule, qubit_hamiltonian
+from h4vqe.noise import to_line
+from h4vqe.reduction import build_compact_ansatz, optimize_compact, reduced_number_operators, tapering
+t0 = time.time()
+d, P_RO, SIG = 2.4, 0.02, 0.5e-3
+m = molecule(d); H8 = qubit_hamiltonian(m); H5 = tapering(m, H8).apply(H8); ops = reduced_number_operators(m)
+ans = build_compact_ansatz(m); x = optimize_compact(ans, H5, ops["S2"])["x"]
+bound = ans.circuit.assign_parameters(x); isa = to_line(bound)
+E0 = Statevector(bound).expectation_value(H5).real
+groups = measurement_groups(H5); sym = [(ops["N_alpha"], 2), (ops["N_beta"], 2)]
+ro = mt.readout_matrices(H5.num_qubits, P_RO)
+P = {l: mt.exact_probabilities(isa, groups, p_ro=P_RO, lam=l) for l in (1, 3, 5)}
+tabs = {"sin mitigar": mt.mitigation_tables(groups), "RO": mt.mitigation_tables(groups, readout=ro),
+        "PS + RO": mt.mitigation_tables(groups, symmetries=sym, readout=ro)}
+est = {k: {l: mt.exact_estimate(P[l], H5, U, W) for l in (1, 3, 5)} for k, (U, W, _) in tabs.items()}
+F, emix = mt.echo_fidelity_exact(isa), split_constant(H5)[0]
+def gam(lams):
+    lams = np.asarray(lams, float)
+    return np.array([np.prod([b / (b - a) for j, b in enumerate(lams) if j != i]) for i, a in enumerate(lams)])
+rows = []
+def add(name, base, lams, rescale=False):
+    E = np.array([est[base][l]["E"] for l in lams]); K = np.array([est[base][l]["K"] for l in lams])
+    if rescale:   # eco: E' = (E − (1 − F^λ) E_mix) / F^λ
+        fl = F ** np.asarray(lams, float); E, K = (E - (1 - fl) * emix) / fl, K / fl ** 2
+    g = gam(lams)
+    rows.append({"técnica": name, "sesgo (mHa)": 1e3 * (g @ E - E0),
+                 "shots para σ = 0,5 mHa (M)": float(np.sum(np.abs(g) * np.sqrt(K)) ** 2) / SIG ** 2 / 1e6})
+for k in tabs: add(k, k, (1,))
+add("ZNE lineal (1,3) + PS + RO", "PS + RO", (1, 3))
+add("eco + ZNE lineal (1,3) + RO", "RO", (1, 3), rescale=True)
+add("ZNE Richardson (1,3,5) + PS + RO", "PS + RO", (1, 3, 5))
+print(f"d = {d} Å | {int(isa.count_ops()['cz'])} CZ | F(eco) = {F:.4f} | CCSD − FCI = {1e3*(m['e_ccsd']-m['e_fci']):.1f} mHa | {time.time()-t0:.0f} s")
+pd.DataFrame(rows).round(3)'''
 
 CHECKS = '''\
 import numpy as np, importlib, time
@@ -209,37 +269,89 @@ chk'''
 
 
 def md(name: str):
-    return nbf.v4.new_markdown_cell((MD / name).read_text())
+    return nbf.v4.new_markdown_cell((MD / name).read_text(encoding="utf-8"))
 
 
-def build(quick: bool = False) -> nbf.NotebookNode:
+def code(src: str):
+    return nbf.v4.new_code_cell(src)
+
+
+def _modules(mods) -> list:
+    return [code(f"%%writefile h4vqe/{m}.py\n" + (PKG / f"{m}.py").read_text(encoding="utf-8")) for m in mods]
+
+
+def _finish(cells) -> nbf.NotebookNode:
     nb = nbf.v4.new_notebook()
-    run = RUN.replace("QUICK = False", "QUICK = True ") if quick else RUN
-    cells = [md("00_intro.md"), md("01_setup.md"), nbf.v4.new_code_cell(INSTALL)]
-    for mod in MODULES:
-        src = (PKG / f"{mod}.py").read_text()
-        cells.append(nbf.v4.new_code_cell(f"%%writefile h4vqe/{mod}.py\n{src}"))
-    cells += [md("02_hamiltonian.md"), nbf.v4.new_code_cell(HAMILTONIAN),
-              md("02_reduction.md"), nbf.v4.new_code_cell(REDUCTION),
-              md("03_ansatz.md"), md("04_measurement.md"),
-              nbf.v4.new_code_cell(CHECKS),
-              md("05_results.md"), nbf.v4.new_code_cell(run), nbf.v4.new_code_cell(TABLE),
-              nbf.v4.new_code_cell(PLOT), nbf.v4.new_code_cell(RE_DE),
-              md("06_reliability.md"), nbf.v4.new_code_cell(RELIABILITY), nbf.v4.new_code_cell(DEPTH),
-              md("07_extras.md"), md("07_geometry.md"), nbf.v4.new_code_cell(GEOMETRY),
-              md("07_hardware.md"), nbf.v4.new_code_cell(HARDWARE),
-              md("08_decisions.md")]
     nb.cells = cells
     nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
     nb.metadata["colab"] = {"provenance": []}
+    todo = [c.source[:80] for c in cells if c.cell_type == "markdown" and "TODO" in c.source]
+    assert not todo, f"quedó un TODO en el texto: {todo}"
     return nb
 
 
+def build_core(quick: bool = False) -> nbf.NotebookNode:
+    """Lo que pide la consigna: curva con energías medidas, R_e, D_e y confiabilidad."""
+    run = RUN.replace("QUICK = False", "QUICK = True ") if quick else RUN
+    return _finish([md("00_intro.md"), md("01_setup.md"), code(INSTALL), *_modules(CORE_MODULES),
+                    md("02_hamiltonian.md"), code(HAMILTONIAN),
+                    md("03_ansatz.md"), md("04_measurement.md"), code(CHECKS),
+                    md("05_results.md"), code(run), code(TABLE), code(PLOT), code(RE_DE),
+                    md("06_reliability.md"), code(RELIABILITY), code(DEPTH),
+                    md("08_decisions.md")])
+
+
+def build_extras() -> nbf.NotebookNode:
+    """Extras: menos qubits, mitigación, ruido de hardware (FakeFez) y otra geometría."""
+    return _finish([md("00_extras.md"), md("01_setup.md"), code(INSTALL_EXTRAS), *_modules(EXTRA_MODULES),
+                    md("02_reduction.md"), code(REDUCTION),
+                    md("07_mitigation.md"), code(MITIGATION),
+                    md("07_hardware.md"), code(HARDWARE),
+                    md("07_geometry.md"), code(GEOMETRY)])
+
+
+BUILD = {"core": build_core, "extras": build_extras}
+
+
+def execute(nb: nbf.NotebookNode, kernel: str) -> nbf.NotebookNode:
+    """Ejecuta en una carpeta temporal vacía, como un Colab nuevo."""
+    from nbclient import NotebookClient
+
+    workdir = pathlib.Path(tempfile.mkdtemp(prefix="h4vqe_nb_"))
+    try:
+        t0 = time.time()
+        NotebookClient(nb, timeout=None, kernel_name=kernel,
+                       resources={"metadata": {"path": str(workdir)}}).execute()
+        print(f"  ejecutado OK en {time.time() - t0:.0f} s")
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+    return nb
+
+
+def update_text(which: str) -> None:
+    """Reemplaza solo las celdas de texto de un notebook ya ejecutado (las salidas quedan)."""
+    old, new = nbf.read(OUT[which], as_version=4), BUILD[which]()
+    if [c.cell_type for c in old.cells] != [c.cell_type for c in new.cells]:
+        raise ValueError(f"{which}: cambió la estructura de celdas, hay que volver a ejecutar con --run")
+    for c_old, c_new in zip(old.cells, new.cells):
+        if c_new.cell_type == "markdown":
+            c_old.source = c_new.source
+        elif c_old.source != c_new.source:
+            raise ValueError(f"{which}: cambió una celda de código, hay que volver a ejecutar con --run")
+    nbf.write(old, OUT[which])
+    print("texto actualizado en", OUT[which])
+
+
 if __name__ == "__main__":
-    nbf.write(build(quick="--quick" in sys.argv), OUT)
-    print("escrito", OUT)
-    if "--run" in sys.argv:
-        subprocess.check_call([sys.executable, "-m", "jupyter", "nbconvert", "--to", "notebook",
-                               "--execute", "--inplace", "--ExecutePreprocessor.timeout=-1",
-                               "--ExecutePreprocessor.kernel_name=h4vqe-local", str(OUT)])
-        print("ejecutado OK")
+    args = sys.argv[1:]
+    which = [w for w in ("core", "extras") if w in args] or ["core", "extras"]
+    kernel = args[args.index("--kernel") + 1] if "--kernel" in args else "h4vqe-local"
+    for w in which:
+        if "--text-only" in args:
+            update_text(w)
+            continue
+        nb = build_core(quick="--quick" in args) if w == "core" else build_extras()
+        nbf.write(nb, OUT[w])
+        print("escrito", OUT[w])
+        if "--run" in args:
+            nbf.write(execute(nb, kernel), OUT[w])

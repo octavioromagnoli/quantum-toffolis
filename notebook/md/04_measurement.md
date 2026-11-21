@@ -71,6 +71,6 @@ Repetimos la medición del **mismo circuito** con semillas independientes y mira
 
 ### Limitaciones
 
-- La calibración es **sin ruido**: verifica la estadística de los shots, no el sesgo del ruido. Con ruido, σ sigue midiendo solo la dispersión estadística, y el sesgo se trata en la sección de mitigación.
+- La calibración es **sin ruido**: verifica la estadística de los shots, no el sesgo del ruido. Con ruido, σ sigue midiendo solo la dispersión estadística, y el sesgo se trata en el notebook de extras (mitigación).
 - GC baja los shots pero **suma CZ** al circuito medido: con 0,1 % de error por CZ, ~50 CZ más (qubits en línea) son ~5 % más de error. Por eso proponemos QWC para las corridas con ruido: además permite post-seleccionar por N_α y N_β en el grupo que mide solo Z.
 - K se planificó con el estado FCI. Si el ansatz cambia, el piloto vuelve a estimar las σ_g en cada punto, así que el reparto se ajusta solo.

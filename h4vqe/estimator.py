@@ -145,6 +145,11 @@ def value_table(group: SparsePauliOp) -> np.ndarray:
     return table
 
 
+def group_outcome_values(group: SparsePauliOp) -> np.ndarray:
+    """Alias de value_table (nombre que usa h4vqe/noise.py)."""
+    return value_table(group)
+
+
 @dataclass
 class MeasurementPlan:
     """Lo que no depende de los shots: grupos, circuitos transpilados y tablas de valores."""
@@ -201,6 +206,11 @@ def _bitarray_to_int(bitarray) -> np.ndarray:
     return x
 
 
+def _outcome_hist(bitarray, nq: int) -> np.ndarray:
+    """Histograma de resultados (2^nq entradas) de un BitArray del SamplerV2. Lo usa noise.py."""
+    return np.bincount(_bitarray_to_int(bitarray), minlength=2 ** nq)
+
+
 def _sample_counts(plan: MeasurementPlan, shots, seed) -> np.ndarray:
     """Corre un circuito por grupo; devuelve conteos por bitstring, shape (n_groups, 2^n)."""
     # Una semilla INDEPENDIENTE por grupo. Con una sola corrida y seed fija, Aer usa
@@ -211,20 +221,17 @@ def _sample_counts(plan: MeasurementPlan, shots, seed) -> np.ndarray:
     counts = np.zeros((plan.n_groups, 2 ** plan.num_qubits))
     for i, (c, n, sd) in enumerate(zip(plan.circuits, shots, seeds)):
         r = AerSampler(seed=int(sd)).run([(c, None, int(n))]).result()[0]
-        counts[i] = np.bincount(_bitarray_to_int(r.data.meas), minlength=counts.shape[1])
+        counts[i] = _outcome_hist(r.data.meas, plan.num_qubits)
     return counts
 
 
-def _stats(plan: MeasurementPlan, counts: np.ndarray) -> np.ndarray:
-    """(n, Σx, Σx²) por grupo a partir de los conteos."""
-    T = np.array(plan.tables)
-    return np.stack([counts.sum(1), (counts * T).sum(1), (counts * T ** 2).sum(1)], axis=1)
-
-
-def _combine(const, stats):
-    n, s1, s2 = stats[:, 0], stats[:, 1], stats[:, 2]
-    mean = s1 / n
-    svar = np.maximum(s2 - n * mean ** 2, 0) / (n - 1)
+def _combine(const, hists, values):
+    """E = const + Σ_g media_g ; σ² = Σ_g var_g / N_g, a partir de los histogramas
+    hists (G, 2^n) y las tablas de valores values (G, 2^n). Firma usada también por noise.py."""
+    hists, values = np.asarray(hists, float), np.asarray(values, float)
+    n = hists.sum(axis=1)
+    mean = np.einsum("gx,gx->g", hists, values) / n
+    svar = np.einsum("gx,gx->g", hists, (values - mean[:, None]) ** 2) / (n - 1)
     return const + mean.sum(), np.sqrt(np.sum(svar / n)), np.sqrt(svar)
 
 
@@ -273,22 +280,24 @@ def measure_energy(circuit: QuantumCircuit, H: SparsePauliOp, total_shots: int,
         pilot_fraction, w_pilot = 1.0, weights
     else:
         w_pilot = None
+    T = np.array(plan.tables)
     stage_counts = [_sample_counts(plan, allocate_shots(plan.groups, int(total_shots * pilot_fraction),
                                                         weights=w_pilot), seed_pilot)]
-    stats = _stats(plan, stage_counts[0])
-    rest = total_shots - int(stats[:, 0].sum())
+    counts = stage_counts[0]
+    rest = total_shots - int(counts.sum())
     if rest > 0 and pilot_fraction < 1:
-        _, _, sg = _combine(plan.const, stats)
+        _, _, sg = _combine(plan.const, counts, T)
         stage_counts.append(_sample_counts(plan, allocate_shots(plan.groups, rest, weights=sg + 1e-12),
                                            seed_rest))
-        stats = stats + _stats(plan, stage_counts[1])
-    E, sigma, sg = _combine(plan.const, stats)
-    out = {"energy": float(E), "sigma": float(sigma), "shots": int(stats[:, 0].sum()),
+        counts = counts + stage_counts[1]
+    E, sigma, sg = _combine(plan.const, counts, T)
+    n = counts.sum(axis=1)
+    out = {"energy": float(E), "sigma": float(sigma), "shots": int(n.sum()),
            "n_groups": plan.n_groups}
     if n_boot:
         out["sigma_boot"] = bootstrap_sigma(plan, stage_counts, n_boot,
                                             int(seed_boot.generate_state(1)[0]))
     if return_details:
-        out["groups"] = [{"n_terms": len(g), "shots": int(st[0]), "mean": st[1] / st[0], "std_sample": s}
-                         for g, st, s in zip(plan.groups, stats, sg)]
+        out["groups"] = [{"n_terms": len(g), "shots": int(ng), "mean": float(c @ t / ng), "std_sample": s}
+                         for g, c, t, ng, s in zip(plan.groups, counts, T, n, sg)]
     return out

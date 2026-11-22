@@ -13,5 +13,4 @@ La primera celda instala lo que falte (Qiskit 2.6, Qiskit Aer 0.18, PySCF 2.15 y
 | `reduction`, `noise` | tapering 8 → 6 → 5 qubits, ansatz compacto y modelo de ruido | §7 |
 | `mitigation` | corrección de lectura, post-selección por simetría y ZNE | §8 |
 | `hardware`, `geometry` | FakeFez y otras geometrías | §9, §10 |
-| `scaling` | escalado H₄ → H₁₄ → FeMoco | §12 |
-| `historia` | diagnósticos de este relato (lo mínimo, ADAPT, shots, ruido por ansatz) | §1–§7, §13 |
+| `historia` | diagnósticos de este relato (lo mínimo, ADAPT, shots, ruido por ansatz) | §1–§7, §12 |

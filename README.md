@@ -5,7 +5,7 @@
 - Notebook de entrega (generado, no editar a mano): [notebook/H4_VQE.ipynb](notebook/H4_VQE.ipynb).
   Uno solo, como pide la consigna, contado como historia: de lo mínimo (VQE con UCCSD) a la versión
   final (ADAPT, mediciones calibradas, confiabilidad medida) y todos los extras (ruido, 5 qubits,
-  mitigación, FakeFez, otra geometría, comparación de ansätze y escalado a FeMoco), con un resumen
+  mitigación, FakeFez, otra geometría y comparación de ansätze), con un resumen
   final que compara lo mínimo contra lo final.
 
 ## Estructura
@@ -26,11 +26,11 @@ h4vqe/                 paquete (un dueño por módulo, ver PLAN.md)
   hardware.py          extra FakeFez (necesita qiskit-ibm-runtime)          (Octavio)
   geometry.py          extra H4 cuadrado y en zigzag                        (Octavio)
   mitigation.py        post-selección, lectura combinable y ZNE plegando R·C (Santino)
-  scaling.py           extra de escalado H4 -> H14 -> FeMoco                (Santino)
+  scaling.py           escalado H4 -> H14 -> FeMoco (fuera del notebook) (Santino)
   historia.py          diagnósticos del relato: lo mínimo, ADAPT, shots, ruido por ansatz (Santino)
 notebook/
   md/*.md              texto de cada sección del notebook
-  build_notebook.py    arma H4_VQE.ipynb (módulos y datos con %%writefile + texto)
+  build_notebook.py    arma H4_VQE.ipynb (módulos con %%writefile + texto, sin datos precalculados)
 scripts/               estudios largos que el notebook no recalcula (calibración de σ, mitigación con shots,
                        comparación de ansätze, escalado); sus resultados van a results/
 tests/                 test_smoke, test_routing, test_analysis, test_reduction, test_hardware, test_scaling

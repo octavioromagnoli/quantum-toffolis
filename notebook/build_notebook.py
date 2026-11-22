@@ -3,7 +3,7 @@
     notebook/H4_VQE.ipynb   todo en un solo notebook, contado como historia: de lo mínimo que pide
                             la consigna (UCCSD) a la versión final (ADAPT, mediciones calibradas,
                             confiabilidad medida) y los extras (ruido, mitigación, FakeFez, otra
-                            geometría, comparación de ansätze y escalado a FeMoco)
+                            geometría y comparación de ansätze)
 
     python notebook/build_notebook.py                  # genera el notebook
     python notebook/build_notebook.py --run            # genera y ejecuta en una carpeta vacía
@@ -30,11 +30,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 MD = ROOT / "notebook" / "md"
 PKG = ROOT / "h4vqe"
 OUT = ROOT / "notebook" / "H4_VQE.ipynb"
-SCALING_CSV = ROOT / "results" / "scaling" / "recursos.csv"
 
 MODULES = ["__init__", "config", "hamiltonian", "ansatz", "optimize", "estimator", "adapt", "routing",
            "analysis", "pipeline", "reduction", "noise", "mitigation", "hardware", "geometry",
-           "scaling", "historia"]
+           "historia"]
 
 INSTALL = '''\
 # Instala dependencias si faltan (Colab arranca sin Qiskit ni PySCF).
@@ -123,7 +122,7 @@ CHECKS = '''\
 import importlib
 import h4vqe
 for mod in ["config", "hamiltonian", "ansatz", "optimize", "estimator", "adapt", "routing", "analysis",
-            "pipeline", "reduction", "noise", "mitigation", "hardware", "geometry", "scaling", "historia"]:
+            "pipeline", "reduction", "noise", "mitigation", "hardware", "geometry", "historia"]:
     importlib.reload(importlib.import_module("h4vqe." + mod))
 from qiskit.quantum_info import Statevector
 from h4vqe import config
@@ -355,38 +354,6 @@ geo[["shape", "d", "E_vqe", "sigma", "err_vqe_mHa", "err_sin_ruido_mHa", "err_cc
      "beats_ccsd", "cz_all", "cz_line"]]'''
 
 # §12 -----------------------------------------------------------------------------------------
-SCALING = '''\
-from h4vqe.scaling import D_EQ, D_STRETCH, chain_resources, extrapolate, plot_scaling, uccsd_cz_transpiled
-t0 = time.time()
-esc = pd.read_csv("h4vqe/escalado_recursos.csv")    # precalculado (scripts/scaling.py): N = 4…14
-# Reproducibilidad: recalculamos en vivo N = 4, 6 y 8 y comparamos con lo guardado.
-vivo = pd.DataFrame([chain_resources(n, dd, verbose=False) for n in (4, 6, 8) for dd in (D_EQ, D_STRETCH)])
-jj = vivo.merge(esc, on=["N", "d"], suffixes=("", "_guardado"))
-dif = max(float(np.max(np.abs(jj[c] / jj[c + "_guardado"] - 1))) for c in ["terminos", "grupos_qwc", "params", "cz_cota", "shots_fci"])
-print(f"recalculado en vivo N = 4, 6, 8: máxima diferencia relativa con lo guardado = {dif:.1e} "
-      f"| |ΔCCSD| máx. = {np.max(np.abs(jj.ccsd_menos_fci_mHa - jj.ccsd_menos_fci_mHa_guardado)):.1e} mHa")
-print(f"CZ de UCCSD ×1 para H₄ transpilado acá: {uccsd_cz_transpiled(4)} (guardado: "
-      f"{int(esc.cz_transpilado[esc.N == 4].iloc[0])}; §2: {int(minimo.loc[minimo.ansatz == 'UCCSD ×1', 'CZ todos con todos'].iloc[0])})")
-ext, lineas = extrapolate(esc)
-print("\\n".join(lineas))
-fig = plot_scaling(esc); plt.show()
-filas = []
-for N in (4, 10, 14):
-    r = esc[(esc.N == N) & np.isclose(esc.d, D_STRETCH)].iloc[0]
-    filas.append({"sistema": f"H{N}", "qubits": 2 * N, "términos": r.terminos, "grupos QWC": r.grupos_qwc,
-                  "parámetros UCCSD": r.params, "CZ UCCSD ×1": r.cz_transpilado, "log10 P(ninguna CZ falla)": r.log10_p_sin_error,
-                  "shots por energía (σ = 1,6 mHa)": r.shots_fci, "|CCSD − FCI| (mHa)": abs(r.ccsd_menos_fci_mHa)})
-for _, r in ext[np.isclose(ext.d, D_STRETCH)].iterrows():
-    filas.append({"sistema": f"FeMoco, {r.modelo} (extrapolado)", "qubits": r.qubits, "términos": r.terminos,
-                  "grupos QWC": r.grupos_qwc, "parámetros UCCSD": r.params, "CZ UCCSD ×1": r.cz_transpilado,
-                  "log10 P(ninguna CZ falla)": r.log10_p_sin_error, "shots por energía (σ = 1,6 mHa)": r.shots_fci,
-                  "|CCSD − FCI| (mHa)": np.nan})
-escala = pd.DataFrame(filas)
-with pd.option_context("display.float_format", lambda v: f"{v:.3g}"):
-    display(escala)
-print(f"(a {D_STRETCH} Å; {time.time() - t0:.0f} s)")'''
-
-# §13 -----------------------------------------------------------------------------------------
 SUMMARY = '''\
 # Resumen: todo sale de las celdas de arriba (acá no se recalcula nada).
 from h4vqe.historia import plot_evolution
@@ -399,7 +366,6 @@ mi = mitig.set_index("técnica")
 fzr = pd.DataFrame(fz["rows"]).set_index("método")
 cur = rel[rel.rol == "curva"]
 gs = geo[(geo.d >= config.STRETCHED_FROM) & geo.ccsd_converged]
-fem = ext[np.isclose(ext.d, D_STRETCH) & (ext.modelo == "Reiher 2017")].iloc[0]
 rng = lambda s, f="{:.2f}": f"{f.format(s.min())}–{f.format(s.max())}"
 ccsd24 = 1e3 * abs(ruido_ctx["m"]["e_ccsd"] - ruido_ctx["m"]["e_fci"])
 fez_z = fzr.loc["VQE en Fez, ZNE (1,3,5) + lectura"]
@@ -425,9 +391,6 @@ mejores = pd.DataFrame([
     ("Otras geometrías, d ≥ 1,8 Å donde CCSD converge (UCCSD ×2, 2 M shots)",
      f"|VQE − FCI| ≤ {gs.err_vqe_mHa.abs().max():.2f} mHa (σ ≈ {1e3 * gs.sigma.mean():.1f} mHa)",
      f"le gana a CCSD en {int(gs.beats_ccsd.sum())}/{len(gs)} puntos ({rng(gs.err_ccsd_mHa.abs(), '{:.0f}')} mHa)"),
-    ("Escalado a FeMoco (54 orbitales, 108 qubits)",
-     f"{fem.params:.2e} parámetros, {fem.cz_transpilado:.1e} CZ, {fem.shots_fci:.1e} shots por energía",
-     f"P(ninguna CZ falla) = 10^{fem.log10_p_sin_error:.0f}"),
 ], columns=["qué", "resultado", "comparación"])
 with pd.option_context("display.max_colwidth", 140):
     display(mejores)
@@ -517,7 +480,6 @@ def hidden(src: str):
 def _modules():
     """Una sola celda, colapsada, que escribe el paquete h4vqe/ (antes eran 17 celdas %%writefile)."""
     files = {f"{m}.py": clean_module((PKG / f"{m}.py").read_text(encoding="utf-8")) for m in MODULES}
-    files["escalado_recursos.csv"] = SCALING_CSV.read_text(encoding="utf-8")
     body = []
     for name, src in files.items():
         esc = src.replace("\\", "\\\\").replace("\'\'\'", "\\\'\\\'\\\'")
@@ -560,8 +522,6 @@ def build(quick: bool = False) -> nbf.NotebookNode:
         md("11_geometria.md"), code(GEOMETRY),
         md("11_geometria_resultado.md"),
         md("12_ansatze.md"),
-        md("13_escalado.md"), code(SCALING),
-        md("13_escalado_resultado.md"),
         md("14_resumen.md"), code(SUMMARY),
         md("14_conclusiones.md"),
     ]

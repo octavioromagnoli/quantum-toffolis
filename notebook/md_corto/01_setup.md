@@ -10,5 +10,5 @@ Las dos celdas siguientes están colapsadas (doble clic para verlas): instalan l
 | `estimator` | energía **medida** con `SamplerV2`, con su σ | §2, §4 |
 | `analysis`, `pipeline` | curva, $R_e$, $D_e$ y diagnósticos | §5, §6 |
 | `reduction`, `noise`, `mitigation` | 5 qubits, modelo de ruido y mitigación | §7, §8 |
-| `hardware`, `geometry`, `scaling` | FakeFez, otras geometrías, FeMoco | §9–§12 |
-| `historia` | diagnósticos de este relato | §1–§7, §13 |
+| `hardware`, `geometry` | FakeFez y otras geometrías | §9, §10 |
+| `historia` | diagnósticos de este relato | §1–§7, §12 |

@@ -1,4 +1,4 @@
-### 13.1 Qué hicimos y qué cambió
+### 12.1 Qué hicimos y qué cambió
 
 | qué hicimos | qué cambió |
 |---|---|
@@ -9,9 +9,9 @@
 | Ajuste elegido por su sesgo | sesgo en $R_e$: +7,8 → −0,9 mÅ |
 | Confiabilidad **medida** con shots | eco, simetrías y profundidad, sin FCI |
 | **5 qubits + 16 CZ** + mitigación | precisión química **con ruido** |
-| FakeFez, geometrías, ansätze, FeMoco | la receta funciona y sabemos hasta dónde llega |
+| FakeFez, geometrías, ansätze | la receta funciona y sabemos hasta dónde llega |
 
-### 13.2 Decisiones clave
+### 12.2 Decisiones clave
 
 | decisión | por qué | descartado |
 |---|---|---|
@@ -23,7 +23,7 @@
 | cuártico en 7 puntos | sesgo mínimo, elegido sin mirar el VQE | parábola (+7,8 mÅ) |
 | con ruido: 5 qubits + 16 CZ + lectura + eco + ZNE | cada técnica ataca un error distinto | ADAPT/UCCSD con ruido (181 y 548 mHa) |
 
-### 13.3 Limitaciones
+### 12.3 Limitaciones
 
 - La curva central es **sin ruido de compuertas**: con ruido, el ansatz de la curva tendría ~180 mHa de sesgo. Con ruido vale el compacto de 5 qubits, que no escala.
 - Los parámetros se buscan sin ruido, como permite la consigna.
@@ -31,7 +31,7 @@
 - El eco de Loschmidt es un diagnóstico de simulador (más de 4000 CZ).
 - FakeFez no modela tiempos muertos ni diafonía.
 
-### 13.4 Qué haríamos después
+### 12.4 Qué haríamos después
 
 - **VQE contra SQD** (extra de la consigna) en cadenas más largas: en 8 qubits SQD es trivial.
 - Un pool adaptado al espín, para que $S^2$ sea exactamente 0, y operadores más baratos en CZ.

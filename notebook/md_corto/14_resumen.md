@@ -1,4 +1,4 @@
-## 13 · Resumen final: de lo mínimo a nuestro resultado
+## 12 · Resumen final: de lo mínimo a nuestro resultado
 
 La celda de abajo junta los números de las celdas anteriores (no recalcula nada):
 1. nuestros mejores resultados;

@@ -1,4 +1,4 @@
-## 13 · Resumen final: de lo mínimo a nuestro resultado
+## 12 · Resumen final: de lo mínimo a nuestro resultado
 
 La celda de abajo **no recalcula nada**: junta los números que salieron de las celdas anteriores en tres tablas y un gráfico.
 

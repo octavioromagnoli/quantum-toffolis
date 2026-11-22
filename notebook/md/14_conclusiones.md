@@ -1,4 +1,4 @@
-### 13.1 Qué hicimos y qué cambió
+### 12.1 Qué hicimos y qué cambió
 
 | qué hicimos | qué cambió |
 |---|---|
@@ -17,9 +17,8 @@
 | ADAPT 15 integrado como ansatz de la curva | 194 CZ (378 en línea) en las 18 distancias |
 | **Mitigación con shots** | 6/6 con precisión química con ruido |
 | Comparación de ansätze sin y con ruido | El criterio "cuál usar y cuándo" |
-| **Escalado** H₄ → H₁₄ → FeMoco | Hasta dónde llega el método |
 
-### 13.2 Las decisiones y por qué mejoraron el resultado
+### 12.2 Las decisiones y por qué mejoraron el resultado
 
 | decisión | por qué funcionó | alternativa descartada |
 |---|---|---|
@@ -34,18 +33,17 @@
 | Con ruido: **tapering a 5 qubits + compacto de 16 CZ** | Las simetrías son información conocida; sacarlas deja un espacio de 32 estados que un circuito nativo de la línea recorre sin SWAP | ADAPT o UCCSD con ruido: 181 y 548 mHa de error |
 | Mitigación: **lectura + eco + ZNE con plegado de R·C** | Cada técnica ataca un sesgo distinto; plegar también la rotación de medición escala todo el ruido | ZNE sola (no toca la lectura); plegar solo las CZ (4 mHa de sesgo) |
 
-### 13.3 Hasta dónde llega el método (limitaciones)
+### 12.3 Hasta dónde llega el método (limitaciones)
 
 - **La curva central es sin ruido de compuertas.** La $\sigma$ es solo estadística. Con 0,1 % de error por CZ, el ansatz de la curva (194 CZ, 378 en línea) tendría un sesgo de ~180 mHa. Con ruido, el resultado que vale es el del compacto de 5 qubits con mitigación, que **no escala** a moléculas grandes.
 - **Los parámetros se buscan sin ruido**, como permite la consigna. La curva mide qué tan expresivo es el ansatz más el ruido de los shots, no la dificultad de optimizar con mediciones ruidosas.
 - **Shots:** 8 M por punto (144 M en la curva) para $\sigma \approx$ 0,5 mHa; la mitigación multiplica eso por ~4.
 - **El eco de Loschmidt** es un diagnóstico de simulador (más de 4000 CZ). En hardware, lo equivalente es la varianza por grupos con más shots.
 - **FakeFez** no modela los tiempos muertos ni la diafonía, y su $\sigma \approx$ 1,2 mHa no alcanza para afirmar precisión química.
-- **Escalado (§12):** los conteos crecen como potencias de $N$, pero los shots y la probabilidad de un circuito sin errores vuelven inviable un VQE así para FeMoco. Las estimaciones serias para FeMoco usan estimación de fase con corrección de errores.
 
-### 13.4 Lo que no hicimos y haríamos después
+### 12.4 Lo que no hicimos y haríamos después
 
-- **VQE contra SQD** (extra de la consigna): no llegamos. Con 8 qubits, SQD es trivial (hasta muestras al azar dan la respuesta), así que el experimento interesante es el de §12: un tope al subespacio en cadenas más largas.
+- **VQE contra SQD** (extra de la consigna): no llegamos. Con 8 qubits, SQD es trivial (hasta muestras al azar dan la respuesta), así que el experimento interesante es poner un tope al subespacio en cadenas más largas.
 - **Un pool adaptado al espín** (pares de dobles $\alpha\beta$ con un mismo parámetro) para que $S^2$ sea exactamente 0, y operadores CEO de 9 CNOT para bajar más las CZ.
 - **GC en 5 qubits** para el compacto con ruido: menos shots a cambio de unas pocas CZ.
 - **Hardware real**: la receta de §9 (línea elegida por calibración, lectura + ZNE) está lista para un backend de IBM con `QiskitRuntimeService`.

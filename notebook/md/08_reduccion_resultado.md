@@ -11,4 +11,4 @@
 - Con $L$ = 6 capas aparecen mínimos locales (hasta 3,8 mHa de error). Con $L$ = 7 (14 CZ) ya llega a FCI; $L$ = 8 da margen.
 - Si cada capa pone **todas** las CZ a la vez (0-1, 1-2, 2-3, 3-4), el ansatz se traba en una fidelidad de 0,961, que no mejora con más capas. Con el patrón en ladrillo llega a 1.
 - Los orbitales localizados (enlaces 1-2 y 3-4) no tienen paridad definida ante la inversión: con ellos solo se puede bajar a 6 qubits.
-- El ansatz en ladrillo **no conserva $N$ ni $S^2$** por construcción: por eso la penalización de $S^2$ y la medición de $N$ y $S^2$. A diferencia del tapering, **no escala** a moléculas grandes (§12): es una solución para H₄, no un método general.
+- El ansatz en ladrillo **no conserva $N$ ni $S^2$** por construcción: por eso la penalización de $S^2$ y la medición de $N$ y $S^2$. A diferencia del tapering, **no escala** a moléculas grandes: es una solución para H₄, no un método general.

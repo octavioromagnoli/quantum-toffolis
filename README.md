@@ -1,65 +1,79 @@
-# quantum-toffolis — H₄ con VQE (Quantum Jam 2026)
+# H₄ con VQE: la curva de disociación con precisión química
 
-- Consigna: [CONSIGNA.md](CONSIGNA.md)
-- **Plan y tareas por persona: [PLAN.md](PLAN.md)**
-- Notebook de entrega (generado, no editar a mano): [notebook/H4_VQE.ipynb](notebook/H4_VQE.ipynb).
-  Uno solo, como pide la consigna, contado como historia: de lo mínimo (VQE con UCCSD) a la versión
-  final (ADAPT, mediciones calibradas, confiabilidad medida) y todos los extras (ruido, 5 qubits,
-  mitigación, FakeFez, otra geometría y comparación de ansätze), con un resumen
-  final que compara lo mínimo contra lo final.
+[![Abrir en Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/octavioromagnoli/quantum-toffolis/blob/main/notebook/H4_VQE.ipynb)
 
-## Estructura
+Proyecto del equipo **quantum toffolis** para la Quantum Jam 2026. Con VQE (Qiskit + PySCF) calculamos la curva de energía de la cadena lineal H₄ (base STO-3G, 8 qubits) entre 0,6 y 3,0 Å. Donde los métodos clásicos aproximados empiezan a fallar, al estirar los enlaces, el resultado le gana a CCSD.
 
-```
-h4vqe/                 paquete (un dueño por módulo, ver PLAN.md)
-  config.py            distancias, shots, ansatz de la curva (ANSATZ = "adapt")
-  hamiltonian.py       PySCF -> Jordan-Wigner, HF/FCI/CCSD, validación      (Octavio)
-  ansatz.py            excitaciones (UCCSD, listas) + simulador numpy exacto (Gonzalo)
-  adapt.py             ADAPT-VQE y listas guardadas (ADAPT_FERMIONIC, 15 ops) (Gonzalo)
-  routing.py           ruteo fSWAP para qubits en línea (378 CZ)            (Gonzalo)
-  optimize.py          θ* sin ruido, L-BFGS-B con gradiente analítico       (Gonzalo)
-  estimator.py         energía medida con SamplerV2 de Aer, ±σ              (Santino)
-  analysis.py          tabla, R_e, D_e, gráficos, varianza y eco            (Joaquín)
-  pipeline.py          curva con warm start + diagnósticos de confiabilidad (Joaquín)
-  reduction.py         tapering 8 -> 5 qubits y ansatz compacto de 16 CZ    (Octavio)
-  noise.py             modelo de ruido propio, lectura y ZNE                (Octavio)
-  hardware.py          extra FakeFez (necesita qiskit-ibm-runtime)          (Octavio)
-  geometry.py          extra H4 cuadrado y en zigzag                        (Octavio)
-  mitigation.py        post-selección, lectura combinable y ZNE plegando R·C (Santino)
-  scaling.py           escalado H4 -> H14 -> FeMoco (fuera del notebook) (Santino)
-  historia.py          diagnósticos del relato: lo mínimo, ADAPT, shots, ruido por ansatz (Santino)
-notebook/
-  md/*.md              texto de cada sección del notebook
-  build_notebook.py    arma H4_VQE.ipynb (módulos con %%writefile + texto, sin datos precalculados)
-scripts/               estudios largos que el notebook no recalcula (calibración de σ, mitigación con shots,
-                       comparación de ansätze, escalado); sus resultados van a results/
-tests/                 test_smoke, test_routing, test_analysis, test_reduction, test_hardware, test_scaling
-```
+Todas las energías se **miden** con `SamplerV2` de `qiskit_aer`, con shots. No se lee el estado del simulador. El notebook corre de punta a punta en un Colab nuevo, instala sus dependencias y no usa datos precalculados.
 
-## Arranque rápido
+## Resultados
+
+| | VQE (este trabajo) | referencia |
+|---|---|---|
+| Error en la zona estirada (d ≥ 1,8 Å) | ≤ 0,56 mHa, σ ≈ 0,5 mHa | CCSD: 9–31 mHa |
+| Precisión química (< 1,6 mHa) | 18 de 18 distancias | — |
+| $R_e$ | 0,8873 ± 0,0018 Å | FCI: 0,8886 Å |
+| $D_e$ | 313,00 ± 0,66 mHa | FCI: 313,21 mHa |
+| Compuertas CZ (todos con todos / en línea) | 194 / 378 | UCCSD ×2: 582 / 1648 |
+| Con ruido (0,1 % por CZ), 2,4 Å | 5 qubits, 16 CZ, sesgo mitigado de +0,008 mHa | UCCSD ×2 sin mitigar: 548 mHa |
+| Ruido de un chip de IBM (FakeFez), 2,4 Å | −0,71 ± 1,23 mHa | CCSD: −30,6 mHa |
+
+## Cómo llegamos
+
+El [notebook](notebook/H4_VQE.ipynb) cuenta el recorrido. Hay también una [versión con texto corto](notebook/H4_VQE_corto.ipynb). Arranca de lo mínimo que pide la consigna, un VQE con UCCSD, y resuelve los problemas en el orden en que aparecieron:
+
+1. **Demasiadas CZ.** ADAPT-VQE con una lista común de 15 excitaciones, más un ruteo propio con fSWAP para qubits en línea, baja de 1648 a 378 CZ.
+2. **Demasiados shots y una σ dudosa.** Agrupamiento QWC con *sorted insertion* y reparto de Neyman (hasta 1,9× menos shots). La barra de error se calibró con 3600 repeticiones.
+3. **Sesgo en el ajuste de $R_e$.** El método de ajuste se eligió midiendo su sesgo contra el mínimo FCI exacto.
+4. **Confiabilidad sin mirar FCI.** Varianza de la energía por eco de Loschmidt, simetrías $N_\alpha$, $N_\beta$ y $S^2$ medidas, y convergencia con la profundidad del ansatz.
+5. **El ruido.** Tapering por simetrías (8 → 5 qubits), un ansatz compacto de 16 CZ y mitigación (lectura, post-selección y ZNE).
+
+Extras: FakeFez, otras geometrías (H₄ cuadrado y en zigzag) y una comparación de ansätze con y sin ruido. La consigna completa está en [CONSIGNA.md](CONSIGNA.md).
+
+## Correrlo
+
+**En Colab:** abrí el badge de arriba y hacé *Entorno de ejecución → Ejecutar todo*. La curva completa tarda unos 25 min en Colab gratis.
+
+**En local** (Python 3.12, con [uv](https://docs.astral.sh/uv/)):
 
 ```bash
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python --only-binary pyscf "qiskit==2.6.2" "qiskit-aer==0.18.4" "pyscf==2.15.0" "qiskit-ibm-runtime==0.52.1" scipy matplotlib pandas nbformat nbconvert ipykernel pytest
 .venv/bin/python -m ipykernel install --sys-prefix --name h4vqe-local
-.venv/bin/python -m pytest -q tests                  # ~30 s
-.venv/bin/python notebook/build_notebook.py                # genera el notebook
-.venv/bin/python notebook/build_notebook.py --run          # genera y ejecuta en una carpeta vacía (como un Colab nuevo)
+.venv/bin/python -m pytest -q tests                        # ~30 s
+.venv/bin/python notebook/build_notebook.py --run          # genera y ejecuta el notebook en una carpeta vacía
 .venv/bin/python notebook/build_notebook.py --quick --run  # curva corta, para probar rápido
-.venv/bin/python notebook/build_notebook.py --text-only    # solo actualiza el texto del ya ejecutado
 ```
 
-En macOS, `--only-binary pyscf` evita compilar PySCF, que falla. `qiskit-ibm-runtime` solo hace falta para el extra de FakeFez (`hardware.py`, `tests/test_hardware.py`).
+En macOS, `--only-binary pyscf` evita compilar PySCF, que falla. `qiskit-ibm-runtime` solo hace falta para FakeFez.
 
-El kernel `h4vqe-local` es uno solo por usuario: si hay varios worktrees, apunta al `.venv` del último que lo registró. Para ejecutar el notebook desde otro worktree, registrá un kernel con otro nombre (`ipykernel install --sys-prefix --name ...`) y pasalo con `build_notebook.py --run --kernel NOMBRE`.
+El `.ipynb` se genera a partir de `h4vqe/*.py` y `notebook/md/*.md`, así que no se edita a mano: hay que cambiar los módulos o el texto y regenerarlo. Con `--text-only` se actualiza solo el texto del notebook ya ejecutado.
 
-## Probar en Colab
+## Estructura
 
-```bash
-uv tool install google-colab-cli
-colab new -s h4
-colab exec -s h4 -f notebook/H4_VQE.ipynb
-colab stop -s h4
+```
+h4vqe/                 el paquete
+  hamiltonian.py       PySCF -> Jordan-Wigner; HF, FCI y CCSD de referencia
+  ansatz.py            excitaciones (UCCSD) y simulador numpy exacto
+  adapt.py, routing.py ADAPT-VQE y ruteo fSWAP para qubits en línea
+  optimize.py          búsqueda de θ sin ruido, con gradiente analítico
+  estimator.py         energía medida con SamplerV2 de Aer, con su σ
+  analysis.py          tabla, R_e, D_e, gráficos, varianza y eco
+  pipeline.py          curva con warm start y diagnósticos de confiabilidad
+  reduction.py         tapering 8 -> 5 qubits y ansatz compacto de 16 CZ
+  noise.py             modelo de ruido, lectura y ZNE
+  mitigation.py        post-selección, lectura combinable y ZNE
+  hardware.py          FakeFez
+  geometry.py          H4 cuadrado y en zigzag
+  historia.py          diagnósticos del relato del notebook
+  scaling.py           escalado H4 -> H14 -> FeMoco (exploración, fuera del notebook)
+notebook/              H4_VQE.ipynb, su versión corta, el generador y el texto de cada sección
+scripts/               estudios largos que el notebook no recalcula (calibración de σ, mitigación con shots, ...)
+results/               resultados de esos estudios
+tests/                 tests con pytest
+presentacion/          diapositivas
 ```
 
-Con nuestra cuenta, el login de `colab` (OAuth) devolvió solo los permisos de email y perfil, sin el de Colab, y no anduvo. Lo que sí funciona: subir el `.ipynb` a Drive, abrirlo con Colab y hacer "Entorno de ejecución → Ejecutar todo". La curva completa tarda ~25 min en Colab gratis.
+## Equipo
+
+Octavio, Gonzalo, Santino y Joaquín. Cómo nos repartimos el trabajo está en [PLAN.md](PLAN.md).
